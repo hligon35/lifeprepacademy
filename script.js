@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initScrollAnimations();
     initLazyLoading();
     initAnalytics();
+    initEventTabs();
+    initEventGalleries();
 });
 
 // Smooth scrolling for navigation links
@@ -632,4 +634,448 @@ if ('serviceWorker' in navigator) {
             .then(registration => console.log('SW registered'))
             .catch(error => console.log('SW registration failed'));
     });
+}
+
+// Event Tabs Functionality
+function initEventTabs() {
+    const eventTabs = document.querySelectorAll('.event-tab');
+    const eventDetails = document.querySelectorAll('.event-details');
+    
+    if (eventTabs.length === 0) return;
+    
+    eventTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const eventType = this.getAttribute('data-event');
+            
+            // Remove active class from all tabs and details
+            eventTabs.forEach(t => t.classList.remove('active'));
+            eventDetails.forEach(d => d.classList.remove('active'));
+            
+            // Add active class to clicked tab and corresponding content
+            this.classList.add('active');
+            const targetContent = document.getElementById(`${eventType}-content`);
+            if (targetContent) {
+                targetContent.classList.add('active');
+                
+                // Load gallery if not already loaded
+                loadEventGallery(eventType);
+            }
+            
+            // Track tab click
+            trackEvent('event_tab_click', 'events', eventType);
+        });
+    });
+    
+    // Load the default gallery (Men's Mental Health Expo)
+    loadEventGallery('mmhe');
+}
+
+// Event Galleries Functionality
+function initEventGalleries() {
+    // Define photo collections for each event
+    window.eventPhotos = {
+        mmhe: [
+            'photos/mmhe/photo1.jpg',
+            'photos/mmhe/photo2.jpg',
+            'photos/mmhe/photo3.jpg',
+            'photos/mmhe/photo4.jpg',
+            'photos/mmhe/photo5.jpg',
+            'photos/mmhe/photo6.jpg'
+        ],
+        discpan: [
+            'photos/discpan/photo1.jpg',
+            'photos/discpan/photo2.jpg',
+            'photos/discpan/photo3.jpg',
+            'photos/discpan/photo4.jpg',
+            'photos/discpan/photo5.jpg'
+        ],
+        erf: [
+            'photos/erf/photo1.jpg',
+            'photos/erf/photo2.jpg',
+            'photos/erf/photo3.jpg',
+            'photos/erf/photo4.jpg',
+            'photos/erf/photo5.jpg',
+            'photos/erf/photo6.jpg',
+            'photos/erf/photo7.jpg'
+        ]
+    };
+}
+
+function loadEventGallery(eventType) {
+    const galleryContainer = document.querySelector(`#${eventType}-gallery .gallery-grid`);
+    if (!galleryContainer) return;
+    
+    // Check if gallery is already loaded
+    if (galleryContainer.dataset.loaded === 'true') return;
+    
+    // Show loading state
+    galleryContainer.innerHTML = '<div class="gallery-loading">Loading photos...</div>';
+    
+    // Get photos for this event
+    const photos = window.eventPhotos[eventType];
+    
+    if (!photos || photos.length === 0) {
+        // Show empty state
+        galleryContainer.innerHTML = `
+            <div class="gallery-empty">
+                <h4>Coming Soon</h4>
+                <p>Photos from this event will be available soon.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Clear loading state
+    galleryContainer.innerHTML = '';
+    
+    // Create gallery items
+    photos.forEach((photoUrl, index) => {
+        createGalleryItem(galleryContainer, photoUrl, eventType, index);
+    });
+    
+    // Mark as loaded
+    galleryContainer.dataset.loaded = 'true';
+    
+    // Re-initialize image modal for new images
+    initGalleryImageModal();
+}
+
+function createGalleryItem(container, photoUrl, eventType, index) {
+    const galleryItem = document.createElement('div');
+    galleryItem.className = 'gallery-item';
+    galleryItem.dataset.eventType = eventType;
+    galleryItem.dataset.photoIndex = index;
+    
+    // Create image with error handling
+    const img = document.createElement('img');
+    img.src = photoUrl;
+    img.alt = `${getEventName(eventType)} - Photo ${index + 1}`;
+    img.loading = 'lazy';
+    
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'gallery-overlay';
+    
+    const caption = document.createElement('div');
+    caption.className = 'gallery-caption';
+    caption.textContent = `${getEventName(eventType)} - Photo ${index + 1}`;
+    
+    overlay.appendChild(caption);
+    
+    // Handle image load error
+    img.addEventListener('error', function() {
+        galleryItem.innerHTML = `
+            <div class="gallery-placeholder">
+                <div class="placeholder-content">
+                    <h4>Photo ${index + 1}</h4>
+                    <p>Image not available</p>
+                </div>
+            </div>
+        `;
+        galleryItem.classList.add('placeholder');
+    });
+    
+    // Handle successful image load
+    img.addEventListener('load', function() {
+        // Add click handler for modal
+        galleryItem.addEventListener('click', function() {
+            openImageModal(photoUrl, img.alt, eventType, index);
+        });
+    });
+    
+    galleryItem.appendChild(img);
+    galleryItem.appendChild(overlay);
+    container.appendChild(galleryItem);
+    
+    // Add entrance animation
+    setTimeout(() => {
+        galleryItem.classList.add('animate-in');
+    }, index * 100);
+}
+
+function getEventName(eventType) {
+    const names = {
+        mmhe: "Men's Mental Health Expo",
+        discpan: "Discussion Panel",
+        erf: "Ed Reed Foundation"
+    };
+    return names[eventType] || eventType;
+}
+
+// Enhanced Image Modal for Gallery
+function initGalleryImageModal() {
+    // Remove existing modal if present
+    const existingModal = document.querySelector('.gallery-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Create new modal
+    const modal = createGalleryModal();
+    document.body.appendChild(modal);
+    
+    const modalImg = modal.querySelector('.modal-image');
+    const modalCaption = modal.querySelector('.modal-caption');
+    const closeBtn = modal.querySelector('.modal-close');
+    const prevBtn = modal.querySelector('.modal-prev');
+    const nextBtn = modal.querySelector('.modal-next');
+    const counter = modal.querySelector('.modal-counter');
+    
+    let currentEvent = '';
+    let currentIndex = 0;
+    let currentPhotos = [];
+    
+    // Event listeners
+    closeBtn.addEventListener('click', closeGalleryModal);
+    prevBtn.addEventListener('click', showPreviousImage);
+    nextBtn.addEventListener('click', showNextImage);
+    
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeGalleryModal();
+        }
+    });
+    
+    document.addEventListener('keydown', function(e) {
+        if (modal.style.display === 'block') {
+            switch(e.key) {
+                case 'Escape':
+                    closeGalleryModal();
+                    break;
+                case 'ArrowLeft':
+                    showPreviousImage();
+                    break;
+                case 'ArrowRight':
+                    showNextImage();
+                    break;
+            }
+        }
+    });
+    
+    function openImageModal(src, alt, eventType, index) {
+        currentEvent = eventType;
+        currentIndex = index;
+        currentPhotos = window.eventPhotos[eventType] || [];
+        
+        modal.style.display = 'block';
+        modalImg.src = src;
+        modalImg.alt = alt;
+        modalCaption.textContent = alt;
+        updateCounter();
+        updateNavigationButtons();
+        document.body.style.overflow = 'hidden';
+        
+        trackEvent('gallery_image_view', 'events', `${eventType}_${index}`);
+    }
+    
+    function closeGalleryModal() {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    
+    function showPreviousImage() {
+        if (currentPhotos.length <= 1) return;
+        
+        currentIndex = (currentIndex - 1 + currentPhotos.length) % currentPhotos.length;
+        updateModalImage();
+    }
+    
+    function showNextImage() {
+        if (currentPhotos.length <= 1) return;
+        
+        currentIndex = (currentIndex + 1) % currentPhotos.length;
+        updateModalImage();
+    }
+    
+    function updateModalImage() {
+        const newSrc = currentPhotos[currentIndex];
+        const newAlt = `${getEventName(currentEvent)} - Photo ${currentIndex + 1}`;
+        
+        modalImg.src = newSrc;
+        modalImg.alt = newAlt;
+        modalCaption.textContent = newAlt;
+        updateCounter();
+    }
+    
+    function updateCounter() {
+        if (counter && currentPhotos.length > 1) {
+            counter.textContent = `${currentIndex + 1} / ${currentPhotos.length}`;
+            counter.style.display = 'block';
+        } else if (counter) {
+            counter.style.display = 'none';
+        }
+    }
+    
+    function updateNavigationButtons() {
+        const hasMultipleImages = currentPhotos.length > 1;
+        prevBtn.style.display = hasMultipleImages ? 'block' : 'none';
+        nextBtn.style.display = hasMultipleImages ? 'block' : 'none';
+    }
+    
+    // Make openImageModal globally accessible
+    window.openImageModal = openImageModal;
+}
+
+function createGalleryModal() {
+    const modal = document.createElement('div');
+    modal.className = 'gallery-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <img class="modal-image" src="" alt="">
+            <div class="modal-caption"></div>
+            <div class="modal-counter"></div>
+            <button class="modal-nav modal-prev">&#10094;</button>
+            <button class="modal-nav modal-next">&#10095;</button>
+        </div>
+    `;
+    
+    // Add styles for the gallery modal
+    const style = document.createElement('style');
+    style.textContent = `
+        .gallery-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.95);
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .gallery-modal .modal-content {
+            position: relative;
+            margin: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 90%;
+            max-width: 1200px;
+            height: 100%;
+            flex-direction: column;
+        }
+        
+        .gallery-modal .modal-image {
+            max-width: 90%;
+            max-height: 80%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        
+        .modal-caption {
+            color: white;
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .modal-counter {
+            color: white;
+            text-align: center;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .gallery-modal .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 2001;
+            transition: color 0.3s ease;
+        }
+        
+        .gallery-modal .modal-close:hover {
+            color: var(--secondary-color);
+        }
+        
+        .gallery-modal .modal-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            padding: 16px;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 2001;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .gallery-modal .modal-prev {
+            left: 20px;
+        }
+        
+        .gallery-modal .modal-next {
+            right: 20px;
+        }
+        
+        .gallery-modal .modal-nav:hover {
+            background-color: rgba(0,0,0,0.8);
+        }
+        
+        .gallery-placeholder {
+            background-color: var(--background-light);
+            border: 2px dashed var(--border-color);
+            border-radius: var(--border-radius);
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-light);
+        }
+        
+        .placeholder-content {
+            text-align: center;
+        }
+        
+        .placeholder-content h4 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .gallery-modal .modal-close {
+                top: 10px;
+                right: 20px;
+                font-size: 30px;
+            }
+            
+            .gallery-modal .modal-nav {
+                padding: 12px;
+                font-size: 16px;
+            }
+            
+            .gallery-modal .modal-image {
+                max-height: 70%;
+            }
+        }
+        
+        .gallery-item.animate-in {
+            animation: slideInUp 0.6s ease forwards;
+        }
+        
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    return modal;
 }

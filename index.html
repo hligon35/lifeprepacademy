@@ -153,18 +153,64 @@
 
             <section id="events" class="events-section">
                 <div class="container">
-                    <h2>Upcoming Events</h2>
-                    <div class="event-gallery">
-                        <article class="event-card">
-                            <img src="eventa.avif" alt="Annual scholarship award ceremony event" loading="lazy">
-                            <div class="event-info">
-                                <h3>Annual Scholarship Awards</h3>
-                                <p class="event-date">March 15, 2025</p>
-                                <p>Join us as we celebrate our scholarship recipients and their achievements.</p>
-                                <a href="#contact" class="btn btn-primary">Register Now</a>
+                    <h2>Events</h2>
+                    
+                    <!-- Event Selection Tabs -->
+                    <div class="event-tabs">
+                        <button class="event-tab active" data-event="mmhe">Men's Mental Health Expo</button>
+                        <button class="event-tab" data-event="discpan">Discussion Panel</button>
+                        <button class="event-tab" data-event="erf">Ed Reed Foundation</button>
+                    </div>
+                    
+                    <!-- Event Content -->
+                    <div class="event-content">
+                        <!-- Men's Mental Health Expo -->
+                        <div class="event-details active" id="mmhe-content">
+                            <div class="event-info-header">
+                                <h3>Men's Mental Health Expo</h3>
+                                <p class="event-description">
+                                    A comprehensive expo focused on men's mental health awareness, featuring workshops, 
+                                    panel discussions, and resources to support mental wellness in our community.
+                                </p>
                             </div>
-                        </article>
-                        <!-- Add more events as needed -->
+                            <div class="event-gallery" id="mmhe-gallery">
+                                <div class="gallery-grid">
+                                    <!-- Photos will be loaded dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Discussion Panel -->
+                        <div class="event-details" id="discpan-content">
+                            <div class="event-info-header">
+                                <h3>Discussion Panel</h3>
+                                <p class="event-description">
+                                    Interactive panel discussions bringing together community leaders, educators, 
+                                    and participants to share insights and drive meaningful conversations about education and development.
+                                </p>
+                            </div>
+                            <div class="event-gallery" id="discpan-gallery">
+                                <div class="gallery-grid">
+                                    <!-- Photos will be loaded dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Ed Reed Foundation -->
+                        <div class="event-details" id="erf-content">
+                            <div class="event-info-header">
+                                <h3>Ed Reed Foundation</h3>
+                                <p class="event-description">
+                                    Partnership events and initiatives with the Ed Reed Foundation, focusing on 
+                                    youth development, education, and community empowerment programs.
+                                </p>
+                            </div>
+                            <div class="event-gallery" id="erf-gallery">
+                                <div class="gallery-grid">
+                                    <!-- Photos will be loaded dynamically -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>

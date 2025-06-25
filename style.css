@@ -339,13 +339,188 @@ section:nth-child(even) {
 }
 
 /* Events Section */
+.events-section {
+    background-color: var(--background-white);
+}
+
+/* Event Tabs */
+.event-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+}
+
+.event-tab {
+    background-color: transparent;
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.event-tab:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.event-tab.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Event Content */
+.event-content {
+    position: relative;
+}
+
+.event-details {
+    display: none;
+    animation: fadeInUp 0.5s ease;
+}
+
+.event-details.active {
+    display: block;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.event-info-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.event-info-header h3 {
+    color: var(--primary-color);
+    font-size: clamp(1.5rem, 4vw, 2rem);
+    margin-bottom: 1rem;
+}
+
+.event-description {
+    font-size: 1.1rem;
+    color: var(--text-light);
+    max-width: 800px;
+    margin: 0 auto;
+    line-height: 1.7;
+}
+
+/* Event Gallery */
 .event-gallery {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 2rem;
     margin-top: 2rem;
 }
 
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.gallery-item {
+    position: relative;
+    background-color: var(--background-white);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.gallery-item:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-hover);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    transition: var(--transition);
+}
+
+.gallery-item:hover img {
+    transform: scale(1.05);
+}
+
+.gallery-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.7));
+    display: flex;
+    align-items: flex-end;
+    padding: 1rem;
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.gallery-item:hover .gallery-overlay {
+    opacity: 1;
+}
+
+.gallery-caption {
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+/* Loading State */
+.gallery-loading {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-light);
+}
+
+.gallery-loading::after {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--primary-color);
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 10px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Empty Gallery State */
+.gallery-empty {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-light);
+    background-color: var(--background-light);
+    border-radius: var(--border-radius);
+    border: 2px dashed var(--border-color);
+}
+
+.gallery-empty h4 {
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+/* Legacy event styles (keeping for backward compatibility) */
 .event-card {
     background-color: var(--background-white);
     border-radius: var(--border-radius);
@@ -621,8 +796,21 @@ footer {
     }
     
     .programs-grid,
-    .event-gallery {
+    .gallery-grid {
         grid-template-columns: 1fr;
+    }
+    
+    .event-tabs {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 2rem;
+    }
+    
+    .event-tab {
+        width: 100%;
+        max-width: 280px;
+        text-align: center;
     }
     
     section {
