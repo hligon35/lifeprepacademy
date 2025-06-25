@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://lifeprepacademy.org/sitemap.xml
+
+# Crawl delay
+Crawl-delay: 1
+
+# Disallow unnecessary files
+Disallow: /Screenshot*
+Disallow: /*.log$
+Disallow: /tmp/
+Disallow: /cache/
