@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initLazyLoading();
     initAnalytics();
     initEventTabs();
+    initKeyboardNavigation();
 });
 
 // Smooth scrolling for navigation links
@@ -787,6 +788,7 @@ function initEventPhotos() {
 
 function loadEventGallery(eventType) {
     const galleryContainer = document.querySelector(`#${eventType}-gallery .gallery-grid`);
+    const paginationContainer = document.querySelector(`#${eventType}-pagination`);
     if (!galleryContainer) return;
     
     // Check if gallery is already loaded
@@ -809,71 +811,217 @@ function loadEventGallery(eventType) {
         return;
     }
     
-    // Clear loading state
-    galleryContainer.innerHTML = '';
+    // Initialize pagination for this event
+    initGalleryPagination(eventType, photos);
     
-    // Create gallery items
-    photos.forEach((photoUrl, index) => {
-        const galleryItem = document.createElement('div');
-        galleryItem.className = 'gallery-item';
-        galleryItem.dataset.eventType = eventType;
-        galleryItem.dataset.photoIndex = index;
+    // Mark as loaded
+    galleryContainer.dataset.loaded = 'true';
+}
+
+// Gallery Pagination System
+function initGalleryPagination(eventType, photos) {
+    const PHOTOS_PER_PAGE = 9; // 3x3 grid
+    const totalPages = Math.ceil(photos.length / PHOTOS_PER_PAGE);
+    
+    // Initialize pagination state
+    if (!window.galleryPagination) {
+        window.galleryPagination = {};
+    }
+    
+    window.galleryPagination[eventType] = {
+        currentPage: 1,
+        totalPages: totalPages,
+        photos: photos,
+        photosPerPage: PHOTOS_PER_PAGE
+    };
+    
+    // Setup pagination controls
+    setupPaginationControls(eventType);
+    
+    // Load first page
+    loadGalleryPage(eventType, 1);
+}
+
+function setupPaginationControls(eventType) {
+    const pagination = window.galleryPagination[eventType];
+    const paginationContainer = document.querySelector(`#${eventType}-pagination`);
+    const prevBtn = document.querySelector(`#${eventType}-prev`);
+    const nextBtn = document.querySelector(`#${eventType}-next`);
+    const pageInfo = document.querySelector(`#${eventType}-page-info`);
+    
+    if (!paginationContainer) return;
+    
+    // Show pagination if more than one page
+    if (pagination.totalPages > 1) {
+        paginationContainer.classList.remove('hidden');
         
-        const img = document.createElement('img');
-        img.src = photoUrl;
-        img.alt = `${getEventName(eventType)} - Photo ${index + 1}`;
-        // Only use lazy loading for images after the first 6 to ensure immediate visibility
-        if (index > 5 && eventType !== 'mmhe') {
+        // Add keyboard shortcuts info
+        addKeyboardShortcutsInfo(eventType);
+    }
+    
+    // Update page info
+    if (pageInfo) {
+        pageInfo.textContent = `Page ${pagination.currentPage} of ${pagination.totalPages}`;
+    }
+    
+    // Setup button event listeners
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            if (pagination.currentPage > 1) {
+                loadGalleryPage(eventType, pagination.currentPage - 1);
+            }
+        });
+    }
+    
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            if (pagination.currentPage < pagination.totalPages) {
+                loadGalleryPage(eventType, pagination.currentPage + 1);
+            }
+        });
+    }
+    
+    // Update button states
+    updatePaginationButtons(eventType);
+}
+
+function addKeyboardShortcutsInfo(eventType) {
+    const galleryContainer = document.querySelector(`#${eventType}-gallery`);
+    if (!galleryContainer) return;
+    
+    // Check if shortcuts info already exists
+    if (galleryContainer.querySelector('.gallery-shortcuts')) return;
+    
+    const shortcutsDiv = document.createElement('div');
+    shortcutsDiv.className = 'gallery-shortcuts';
+    shortcutsDiv.innerHTML = `
+        <strong>Keyboard shortcuts:</strong> 
+        <kbd>←</kbd> Previous page · 
+        <kbd>→</kbd> Next page · 
+        <kbd>Home</kbd> First page · 
+        <kbd>End</kbd> Last page
+    `;
+    
+    galleryContainer.appendChild(shortcutsDiv);
+}
+
+function loadGalleryPage(eventType, pageNumber) {
+    const pagination = window.galleryPagination[eventType];
+    const galleryContainer = document.querySelector(`#${eventType}-gallery .gallery-grid`);
+    
+    if (!pagination || !galleryContainer) return;
+    
+    // Add transition effect
+    galleryContainer.classList.add('page-transition');
+    
+    setTimeout(() => {
+        // Update current page
+        pagination.currentPage = pageNumber;
+        
+        // Calculate photo range for this page
+        const startIndex = (pageNumber - 1) * pagination.photosPerPage;
+        const endIndex = Math.min(startIndex + pagination.photosPerPage, pagination.photos.length);
+        const pagePhotos = pagination.photos.slice(startIndex, endIndex);
+        
+        // Clear gallery
+        galleryContainer.innerHTML = '';
+        
+        // Create gallery items for current page
+        pagePhotos.forEach((photoUrl, index) => {
+            const actualIndex = startIndex + index;
+            const galleryItem = document.createElement('div');
+            galleryItem.className = 'gallery-item';
+            galleryItem.dataset.eventType = eventType;
+            galleryItem.dataset.photoIndex = actualIndex;
+            
+            const img = document.createElement('img');
+            img.src = photoUrl;
+            img.alt = `${getEventName(eventType)} - Photo ${actualIndex + 1}`;
             img.loading = 'lazy';
-        }
-        
-        // Create overlay for styling
-        const overlay = document.createElement('div');
-        overlay.className = 'gallery-overlay';
-        
-        const caption = document.createElement('div');
-        caption.className = 'gallery-caption';
-        caption.textContent = `${getEventName(eventType)} - Photo ${index + 1}`;
-        
-        overlay.appendChild(caption);
-        
-        img.addEventListener('error', function() {
-            galleryItem.innerHTML = `
-                <div class="gallery-placeholder">
-                    <div class="placeholder-content">
-                        <h4>Photo ${index + 1}</h4>
-                        <p>Image not available</p>
+            
+            // Create overlay for styling
+            const overlay = document.createElement('div');
+            overlay.className = 'gallery-overlay';
+            
+            const caption = document.createElement('div');
+            caption.className = 'gallery-caption';
+            caption.textContent = `Photo ${actualIndex + 1}`;
+            
+            overlay.appendChild(caption);
+            
+            img.addEventListener('error', function() {
+                galleryItem.innerHTML = `
+                    <div class="gallery-placeholder">
+                        <div class="placeholder-content">
+                            <h4>Photo ${actualIndex + 1}</h4>
+                            <p>Image not available</p>
+                        </div>
                     </div>
-                </div>
-            `;
-            galleryItem.classList.add('placeholder');
-        });
-        
-        img.addEventListener('load', function() {
-            galleryItem.addEventListener('click', function() {
-                openImageModal(photoUrl, img.alt, eventType, index);
+                `;
+                galleryItem.classList.add('placeholder');
             });
-        });
-        
-        galleryItem.appendChild(img);
-        galleryItem.appendChild(overlay);
-        galleryContainer.appendChild(galleryItem);
-        
-        // Add entrance animation only if this is not the initial load (mmhe)
-        if (eventType !== 'mmhe' || galleryContainer.dataset.loaded === 'true') {
+            
+            img.addEventListener('load', function() {
+                galleryItem.addEventListener('click', function() {
+                    openImageModal(photoUrl, img.alt, eventType, actualIndex);
+                });
+            });
+            
+            galleryItem.appendChild(img);
+            galleryItem.appendChild(overlay);
+            galleryContainer.appendChild(galleryItem);
+            
+            // Add entrance animation
             galleryItem.classList.add('loading');
             setTimeout(() => {
                 galleryItem.classList.remove('loading');
                 galleryItem.classList.add('animate-in');
             }, index * 50);
+        });
+        
+        // Remove transition effect and add loaded state
+        galleryContainer.classList.remove('page-transition');
+        galleryContainer.classList.add('page-loaded');
+        
+        // Update pagination controls
+        updatePaginationButtons(eventType);
+        updatePageInfo(eventType);
+        
+        // Re-initialize image modal for new images
+        initGalleryImageModal();
+        
+        // Scroll gallery into view (smoothly)
+        const gallerySection = document.querySelector(`#${eventType}-gallery`);
+        if (gallerySection) {
+            gallerySection.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'nearest'
+            });
         }
-    });
+    }, 150); // Small delay for smooth transition
+}
+
+function updatePaginationButtons(eventType) {
+    const pagination = window.galleryPagination[eventType];
+    const prevBtn = document.querySelector(`#${eventType}-prev`);
+    const nextBtn = document.querySelector(`#${eventType}-next`);
     
-    // Mark as loaded
-    galleryContainer.dataset.loaded = 'true';
+    if (prevBtn) {
+        prevBtn.disabled = pagination.currentPage <= 1;
+    }
     
-    // Re-initialize image modal for new images
-    initGalleryImageModal();
+    if (nextBtn) {
+        nextBtn.disabled = pagination.currentPage >= pagination.totalPages;
+    }
+}
+
+function updatePageInfo(eventType) {
+    const pagination = window.galleryPagination[eventType];
+    const pageInfo = document.querySelector(`#${eventType}-page-info`);
+    
+    if (pageInfo) {
+        pageInfo.textContent = `Page ${pagination.currentPage} of ${pagination.totalPages}`;
+    }
 }
 
 function getEventName(eventType) {
@@ -1188,3 +1336,51 @@ function prefetchEventImages() {
 
 // Initial prefetch
 prefetchEventImages();
+
+// Keyboard navigation for gallery pagination
+function initKeyboardNavigation() {
+    document.addEventListener('keydown', function(e) {
+        // Only handle keyboard navigation when an event gallery is visible
+        const activeEventTab = document.querySelector('.event-tab.active');
+        if (!activeEventTab) return;
+        
+        const eventType = activeEventTab.dataset.event;
+        const pagination = window.galleryPagination && window.galleryPagination[eventType];
+        if (!pagination) return;
+        
+        // Left arrow or 'p' for previous page
+        if ((e.key === 'ArrowLeft' || e.key.toLowerCase() === 'p') && !e.ctrlKey && !e.shiftKey) {
+            e.preventDefault();
+            if (pagination.currentPage > 1) {
+                loadGalleryPage(eventType, pagination.currentPage - 1);
+            }
+        }
+        
+        // Right arrow or 'n' for next page
+        if ((e.key === 'ArrowRight' || e.key.toLowerCase() === 'n') && !e.ctrlKey && !e.shiftKey) {
+            e.preventDefault();
+            if (pagination.currentPage < pagination.totalPages) {
+                loadGalleryPage(eventType, pagination.currentPage + 1);
+            }
+        }
+        
+        // Home key for first page
+        if (e.key === 'Home' && !e.ctrlKey && !e.shiftKey) {
+            e.preventDefault();
+            if (pagination.currentPage > 1) {
+                loadGalleryPage(eventType, 1);
+            }
+        }
+        
+        // End key for last page
+        if (e.key === 'End' && !e.ctrlKey && !e.shiftKey) {
+            e.preventDefault();
+            if (pagination.currentPage < pagination.totalPages) {
+                loadGalleryPage(eventType, pagination.totalPages);
+            }
+        }
+    });
+}
+
+// Initialize keyboard navigation
+initKeyboardNavigation();
