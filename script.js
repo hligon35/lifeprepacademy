@@ -659,9 +659,16 @@ function initEventTabs() {
         tab.addEventListener('click', function() {
             const eventType = this.getAttribute('data-event');
             
+            console.log('🔄 Switching to event tab:', eventType);
+            
             // Remove active class from all tabs and details
             eventTabs.forEach(t => t.classList.remove('active'));
             eventDetails.forEach(d => d.classList.remove('active'));
+            
+            // Clear all gallery loaded states to force refresh
+            document.querySelectorAll('.gallery-grid').forEach(grid => {
+                grid.dataset.loaded = 'false';
+            });
             
             // Add active class to clicked tab and corresponding content
             this.classList.add('active');
@@ -669,8 +676,10 @@ function initEventTabs() {
             if (targetContent) {
                 targetContent.classList.add('active');
                 
-                // Load gallery if not already loaded
-                loadEventGallery(eventType);
+                // Force load gallery
+                setTimeout(() => {
+                    loadEventGallery(eventType);
+                }, 100);
             }
             
             // Track tab click
@@ -683,107 +692,115 @@ function initEventTabs() {
 
 // Event Galleries Functionality
 function initEventPhotos() {
-    // Define photo collections for each event using actual filenames
+    console.log('🎯 Initializing event photos...');
+    
+    // Define photo collections for each event using optimized medium-sized images
     window.eventPhotos = {
         mmhe: [
-            'photos/mmhe/IMG_3799.jpeg',
-            'photos/mmhe/IMG_3800.jpeg',
-            'photos/mmhe/IMG_3803.jpeg',
-            'photos/mmhe/IMG_3804.jpeg',
-            'photos/mmhe/IMG_3808.jpeg',
-            'photos/mmhe/IMG_3809.jpeg',
-            'photos/mmhe/IMG_3815.jpeg',
-            'photos/mmhe/IMG_3817.jpeg',
-            'photos/mmhe/IMG_3821.jpeg',
-            'photos/mmhe/IMG_3822.jpeg',
-            'photos/mmhe/IMG_3824.jpeg',
-            'photos/mmhe/IMG_3827.jpeg',
-            'photos/mmhe/IMG_3828.jpeg',
-            'photos/mmhe/IMG_3829.jpeg',
-            'photos/mmhe/IMG_3830.jpeg',
-            'photos/mmhe/IMG_3831.jpeg',
-            'photos/mmhe/IMG_3833.jpeg',
-            'photos/mmhe/IMG_3834.jpeg',
-            'photos/mmhe/IMG_3840.jpeg',
-            'photos/mmhe/IMG_3841.jpeg',
-            'photos/mmhe/IMG_3848.jpeg',
-            'photos/mmhe/IMG_3850.jpeg',
-            'photos/mmhe/IMG_3860.jpeg',
-            'photos/mmhe/IMG_3861.jpeg',
-            'photos/mmhe/IMG_3863.jpeg',
-            'photos/mmhe/IMG_3864.jpeg',
-            'photos/mmhe/IMG_3882.jpeg',
-            'photos/mmhe/IMG_3883.jpeg',
-            'photos/mmhe/IMG_3884.jpeg',
-            'photos/mmhe/IMG_3885.jpeg',
-            'photos/mmhe/IMG_3886.jpeg',
-            'photos/mmhe/IMG_3890.jpeg',
-            'photos/mmhe/IMG_3891.jpeg',
-            'photos/mmhe/IMG_3894.jpeg',
-            'photos/mmhe/IMG_3895.jpeg',
-            'photos/mmhe/IMG_3898.jpeg',
-            'photos/mmhe/IMG_3900.jpeg',
-            'photos/mmhe/IMG_3901.jpeg',
-            'photos/mmhe/IMG_3907.jpeg',
-            'photos/mmhe/IMG_3908.jpeg',
-            'photos/mmhe/IMG_3911.jpeg',
-            'photos/mmhe/IMG_3918.jpeg',
-            'photos/mmhe/IMG_3924.jpeg',
-            'photos/mmhe/IMG_3925.jpeg',
-            'photos/mmhe/IMG_3926.jpeg',
-            'photos/mmhe/IMG_3955.jpeg',
-            'photos/mmhe/IMG_3956.jpeg',
-            'photos/mmhe/IMG_3957.jpeg',
-            'photos/mmhe/IMG_3960.jpeg',
-            'photos/mmhe/IMG_3961.jpeg',
-            'photos/mmhe/IMG_3962.jpeg',
-            'photos/mmhe/IMG_3963.jpeg',
-            'photos/mmhe/IMG_3966.jpeg',
-            'photos/mmhe/IMG_3967.jpeg'
+            'photos/mmhe/IMG_3799_medium.webp',
+            'photos/mmhe/IMG_3800_medium.webp',
+            'photos/mmhe/IMG_3803_medium.webp',
+            'photos/mmhe/IMG_3804_medium.webp',
+            'photos/mmhe/IMG_3808_medium.webp',
+            'photos/mmhe/IMG_3809_medium.webp',
+            'photos/mmhe/IMG_3815_medium.webp',
+            'photos/mmhe/IMG_3817_medium.webp',
+            'photos/mmhe/IMG_3821_medium.webp',
+            'photos/mmhe/IMG_3822_medium.webp',
+            'photos/mmhe/IMG_3824_medium.webp',
+            'photos/mmhe/IMG_3827_medium.webp',
+            'photos/mmhe/IMG_3828_medium.webp',
+            'photos/mmhe/IMG_3829_medium.webp',
+            'photos/mmhe/IMG_3830_medium.webp',
+            'photos/mmhe/IMG_3831_medium.webp',
+            'photos/mmhe/IMG_3833_medium.webp',
+            'photos/mmhe/IMG_3834_medium.webp',
+            'photos/mmhe/IMG_3840_medium.webp',
+            'photos/mmhe/IMG_3841_medium.webp',
+            'photos/mmhe/IMG_3848_medium.webp',
+            'photos/mmhe/IMG_3850_medium.webp',
+            'photos/mmhe/IMG_3860_medium.webp',
+            'photos/mmhe/IMG_3861_medium.webp',
+            'photos/mmhe/IMG_3863_medium.webp',
+            'photos/mmhe/IMG_3864_medium.webp',
+            'photos/mmhe/IMG_3882_medium.webp',
+            'photos/mmhe/IMG_3883_medium.webp',
+            'photos/mmhe/IMG_3884_medium.webp',
+            'photos/mmhe/IMG_3885_medium.webp',
+            'photos/mmhe/IMG_3886_medium.webp',
+            'photos/mmhe/IMG_3890_medium.webp',
+            'photos/mmhe/IMG_3891_medium.webp',
+            'photos/mmhe/IMG_3894_medium.webp',
+            'photos/mmhe/IMG_3895_medium.webp',
+            'photos/mmhe/IMG_3898_medium.webp',
+            'photos/mmhe/IMG_3900_medium.webp',
+            'photos/mmhe/IMG_3901_medium.webp',
+            'photos/mmhe/IMG_3907_medium.webp',
+            'photos/mmhe/IMG_3908_medium.webp',
+            'photos/mmhe/IMG_3911_medium.webp',
+            'photos/mmhe/IMG_3918_medium.webp',
+            'photos/mmhe/IMG_3924_medium.webp',
+            'photos/mmhe/IMG_3925_medium.webp',
+            'photos/mmhe/IMG_3926_medium.webp',
+            'photos/mmhe/IMG_3955_medium.webp',
+            'photos/mmhe/IMG_3956_medium.webp',
+            'photos/mmhe/IMG_3957_medium.webp',
+            'photos/mmhe/IMG_3960_medium.webp',
+            'photos/mmhe/IMG_3961_medium.webp',
+            'photos/mmhe/IMG_3962_medium.webp',
+            'photos/mmhe/IMG_3963_medium.webp',
+            'photos/mmhe/IMG_3966_medium.webp',
+            'photos/mmhe/IMG_3967_medium.webp'
         ],
         discpan: [
-            'photos/discpan/1-_DSC1395.jpg',
-            'photos/discpan/2-_DSC1397.jpg',
-            'photos/discpan/3-_DSC1398.jpg',
-            'photos/discpan/4-_DSC1400.jpg',
-            'photos/discpan/5-_DSC1401.jpg',
-            'photos/discpan/6-_DSC1404.jpg',
-            'photos/discpan/7-_DSC1405.jpg',
-            'photos/discpan/8-_DSC1413.jpg',
-            'photos/discpan/9-_DSC1415.jpg',
-            'photos/discpan/10-_DSC1416.jpg',
-            'photos/discpan/11-_DSC1418.jpg',
-            'photos/discpan/12-_DSC1421.jpg',
-            'photos/discpan/13-_DSC1422.jpg',
-            'photos/discpan/14-_DSC1425.jpg',
-            'photos/discpan/15-_DSC1428.jpg',
-            'photos/discpan/16-_DSC1430.jpg',
-            'photos/discpan/17-_DSC1433.jpg',
-            'photos/discpan/18-_DSC1435.jpg',
-            'photos/discpan/19-_DSC1438.jpg',
-            'photos/discpan/20-_DSC1444.jpg',
-            'photos/discpan/21-_DSC1446.jpg',
-            'photos/discpan/22-_DSC1457.jpg',
-            'photos/discpan/23-_DSC1459.jpg',
-            'photos/discpan/24-_DSC1463.jpg',
-            'photos/discpan/25-_DSC1474.jpg',
-            'photos/discpan/26-_DSC1481.jpg',
-            'photos/discpan/27-_DSC1493.jpg',
-            'photos/discpan/28-_DSC1496.jpg'
+            'photos/discpan/1-_DSC1395_medium.webp',
+            'photos/discpan/2-_DSC1397_medium.webp',
+            'photos/discpan/3-_DSC1398_medium.webp',
+            'photos/discpan/4-_DSC1400_medium.webp',
+            'photos/discpan/5-_DSC1401_medium.webp',
+            'photos/discpan/6-_DSC1404_medium.webp',
+            'photos/discpan/7-_DSC1405_medium.webp',
+            'photos/discpan/8-_DSC1413_medium.webp',
+            'photos/discpan/9-_DSC1415_medium.webp',
+            'photos/discpan/10-_DSC1416_medium.webp',
+            'photos/discpan/11-_DSC1418_medium.webp',
+            'photos/discpan/12-_DSC1421_medium.webp',
+            'photos/discpan/13-_DSC1422_medium.webp',
+            'photos/discpan/14-_DSC1425_medium.webp',
+            'photos/discpan/15-_DSC1428_medium.webp',
+            'photos/discpan/16-_DSC1430_medium.webp',
+            'photos/discpan/17-_DSC1433_medium.webp',
+            'photos/discpan/18-_DSC1435_medium.webp',
+            'photos/discpan/19-_DSC1438_medium.webp',
+            'photos/discpan/20-_DSC1444_medium.webp',
+            'photos/discpan/21-_DSC1446_medium.webp',
+            'photos/discpan/22-_DSC1457_medium.webp',
+            'photos/discpan/23-_DSC1459_medium.webp',
+            'photos/discpan/24-_DSC1463_medium.webp',
+            'photos/discpan/25-_DSC1474_medium.webp',
+            'photos/discpan/26-_DSC1481_medium.webp',
+            'photos/discpan/27-_DSC1493_medium.webp',
+            'photos/discpan/28-_DSC1496_medium.webp'
         ],
         erf: [
-            'photos/erf/FullSizeRender.jpeg',
-            'photos/erf/IMG_0883 2.jpeg',
-            'photos/erf/IMG_0883.jpeg',
-            'photos/erf/IMG_0884 2.jpeg',
-            'photos/erf/IMG_0884.jpeg',
-            'photos/erf/IMG_3636.jpeg',
-            'photos/erf/IMG_3640.jpeg',
-            'photos/erf/IMG_3641.jpeg',
-            'photos/erf/IMG_3646.jpeg',
-            'photos/erf/IMG_3647.jpeg'
+            'photos/erf/FullSizeRender_medium.webp',
+            'photos/erf/IMG_0883%202_medium.webp',
+            'photos/erf/IMG_0883_medium.webp',
+            'photos/erf/IMG_0884%202_medium.webp',
+            'photos/erf/IMG_0884_medium.webp',
+            'photos/erf/IMG_3636_medium.webp',
+            'photos/erf/IMG_3640_medium.webp',
+            'photos/erf/IMG_3641_medium.webp',
+            'photos/erf/IMG_3646_medium.webp',
+            'photos/erf/IMG_3647_medium.webp'
         ]
     };
+    
+    console.log('✅ Event photos initialized:', {
+        mmhe: window.eventPhotos.mmhe.length,
+        discpan: window.eventPhotos.discpan.length,
+        erf: window.eventPhotos.erf.length
+    });
 }
 
 function loadEventGallery(eventType) {
@@ -791,14 +808,22 @@ function loadEventGallery(eventType) {
     const paginationContainer = document.querySelector(`#${eventType}-pagination`);
     if (!galleryContainer) return;
     
+    console.log('🖼️ Loading gallery for:', eventType);
+    
     // Check if gallery is already loaded
-    if (galleryContainer.dataset.loaded === 'true') return;
+    if (galleryContainer.dataset.loaded === 'true') {
+        console.log('Gallery already loaded for:', eventType);
+        return;
+    }
     
     // Show loading state
     galleryContainer.innerHTML = '<div class="gallery-loading">Loading photos...</div>';
     
     // Get photos for this event
     const photos = window.eventPhotos ? window.eventPhotos[eventType] : [];
+    
+    console.log('Photos found for', eventType, ':', photos.length);
+    console.log('First 3 photos:', photos.slice(0, 3));
     
     if (!photos || photos.length === 0) {
         // Show empty state
@@ -934,10 +959,30 @@ function loadGalleryPage(eventType, pageNumber) {
             galleryItem.dataset.eventType = eventType;
             galleryItem.dataset.photoIndex = actualIndex;
             
+            // Create picture element with WebP and JPEG fallback
+            const picture = document.createElement('picture');
+            
+            // WebP source
+            const webpSource = document.createElement('source');
+            webpSource.srcset = photoUrl;
+            webpSource.type = 'image/webp';
+            
+            // JPEG fallback
+            const jpegSource = document.createElement('source');
+            const jpegUrl = photoUrl.replace('_medium.webp', '_medium.jpeg');
+            jpegSource.srcset = jpegUrl;
+            jpegSource.type = 'image/jpeg';
+            
+            // Main img element (fallback)
             const img = document.createElement('img');
-            img.src = photoUrl;
+            img.src = jpegUrl; // Use JPEG as ultimate fallback
             img.alt = `${getEventName(eventType)} - Photo ${actualIndex + 1}`;
             img.loading = 'lazy';
+            
+            // Append sources to picture
+            picture.appendChild(webpSource);
+            picture.appendChild(jpegSource);
+            picture.appendChild(img);
             
             // Create overlay for styling
             const overlay = document.createElement('div');
@@ -967,7 +1012,7 @@ function loadGalleryPage(eventType, pageNumber) {
                 });
             });
             
-            galleryItem.appendChild(img);
+            galleryItem.appendChild(picture);
             galleryItem.appendChild(overlay);
             galleryContainer.appendChild(galleryItem);
             

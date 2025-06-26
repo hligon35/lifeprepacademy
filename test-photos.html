@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-grid { display: grid; grid-template-columns: repeat(3, 200px); gap: 10px; }
+        .test-item { border: 2px solid #ccc; padding: 10px; }
+        .test-item img { width: 100%; height: 150px; object-fit: cover; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Photo Loading Test</h1>
+    <p>Testing if optimized WebP images are accessible...</p>
+    
+    <div class="test-grid" id="test-grid">
+        <!-- Images will be loaded here -->
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        const testPhotos = [
+            'photos/mmhe/IMG_3799_medium.webp',
+            'photos/mmhe/IMG_3800_medium.webp',
+            'photos/mmhe/IMG_3803_medium.webp',
+            'photos/discpan/1-_DSC1395_medium.webp',
+            'photos/discpan/2-_DSC1397_medium.webp',
+            'photos/erf/FullSizeRender_medium.webp'
+        ];
+        
+        const testGrid = document.getElementById('test-grid');
+        const results = document.getElementById('results');
+        let successCount = 0;
+        let errorCount = 0;
+        
+        testPhotos.forEach((photoUrl, index) => {
+            const testItem = document.createElement('div');
+            testItem.className = 'test-item';
+            
+            const img = document.createElement('img');
+            img.src = photoUrl;
+            img.alt = `Test photo ${index + 1}`;
+            
+            const label = document.createElement('p');
+            label.textContent = photoUrl;
+            
+            img.addEventListener('load', function() {
+                console.log('✅ Loaded:', photoUrl);
+                label.className = 'success';
+                label.textContent += ' ✅ LOADED';
+                successCount++;
+                updateResults();
+            });
+            
+            img.addEventListener('error', function() {
+                console.error('❌ Failed to load:', photoUrl);
+                label.className = 'error';
+                label.textContent += ' ❌ FAILED';
+                errorCount++;
+                updateResults();
+            });
+            
+            testItem.appendChild(img);
+            testItem.appendChild(label);
+            testGrid.appendChild(testItem);
+        });
+        
+        function updateResults() {
+            results.innerHTML = `
+                <h2>Results:</h2>
+                <p class="success">✅ Successfully loaded: ${successCount}</p>
+                <p class="error">❌ Failed to load: ${errorCount}</p>
+                <p>Total tested: ${testPhotos.length}</p>
+            `;
+        }
+        
+        // Initialize results
+        updateResults();
+    </script>
+</body>
+</html>
