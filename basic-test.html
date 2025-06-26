@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Basic Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .test-item {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        button {
+            background: #281156;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #3d1a78;
+        }
+        img {
+            max-width: 150px;
+            margin: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Basic Functionality Test</h1>
+        <p>Testing if basic web functionality works in this directory.</p>
+        
+        <div class="test-item">
+            <h3>1. CSS Test</h3>
+            <p id="css-result" class="success">✅ CSS is working (you can see styled content)</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>2. JavaScript Test</h3>
+            <button onclick="testJS()">Test JavaScript</button>
+            <p id="js-result">Click the button above</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>3. Image Loading Test</h3>
+            <p>Logo Image:</p>
+            <img src="logo.png" alt="Logo" onload="imageLoaded('logo')" onerror="imageError('logo')">
+            <p id="logo-result">Testing...</p>
+            
+            <p>Hero Image:</p>
+            <img src="groupPhoto.avif" alt="Hero" onload="imageLoaded('hero')" onerror="imageError('hero')">
+            <p id="hero-result">Testing...</p>
+            
+            <p>Sample Event Photo:</p>
+            <img src="photos/mmhe/IMG_3799.jpeg" alt="Event" onload="imageLoaded('event')" onerror="imageError('event')">
+            <p id="event-result">Testing...</p>
+        </div>
+        
+        <div class="test-item">
+            <h3>4. File Access Test</h3>
+            <button onclick="testFiles()">Test File Access</button>
+            <div id="file-results"></div>
+        </div>
+        
+        <div class="test-item">
+            <h3>5. Open Main Website</h3>
+            <button onclick="window.open('index.html', '_blank')">🌐 Open index.html</button>
+            <button onclick="window.open('simple.html', '_blank')">🌐 Open simple.html</button>
+            <button onclick="window.open('debug.html', '_blank')">🔧 Open debug.html</button>
+        </div>
+        
+        <div class="test-item">
+            <h3>6. System Information</h3>
+            <button onclick="showSystemInfo()">Show System Info</button>
+            <pre id="system-info" style="background: #f0f0f0; padding: 10px; margin: 10px 0;"></pre>
+        </div>
+    </div>
+    
+    <script>
+        console.log('🧪 BASIC TEST PAGE LOADED');
+        console.log('Current directory:', window.location.href);
+        
+        function testJS() {
+            document.getElementById('js-result').innerHTML = 
+                '<span class="success">✅ JavaScript is working perfectly!</span>';
+            console.log('JavaScript test passed');
+        }
+        
+        function imageLoaded(type) {
+            document.getElementById(type + '-result').innerHTML = 
+                '<span class="success">✅ ' + type + ' image loaded successfully</span>';
+            console.log('✅ ' + type + ' image loaded');
+        }
+        
+        function imageError(type) {
+            document.getElementById(type + '-result').innerHTML = 
+                '<span class="error">❌ ' + type + ' image failed to load</span>';
+            console.log('❌ ' + type + ' image failed');
+        }
+        
+        function testFiles() {
+            const files = [
+                'style.css',
+                'script.js',
+                'script-optimized.js'
+            ];
+            
+            let results = '<h4>File Access Results:</h4>';
+            
+            files.forEach(file => {
+                fetch(file, { method: 'HEAD' })
+                    .then(response => {
+                        if (response.ok) {
+                            results += '<p class="success">✅ ' + file + ' - Accessible</p>';
+                        } else {
+                            results += '<p class="error">❌ ' + file + ' - Not found (' + response.status + ')</p>';
+                        }
+                        document.getElementById('file-results').innerHTML = results;
+                    })
+                    .catch(error => {
+                        results += '<p class="error">❌ ' + file + ' - Error: ' + error.message + '</p>';
+                        document.getElementById('file-results').innerHTML = results;
+                    });
+            });
+        }
+        
+        function showSystemInfo() {
+            const info = {
+                'URL': window.location.href,
+                'Protocol': window.location.protocol,
+                'Host': window.location.host || 'file system',
+                'Browser': navigator.userAgent.split(')')[0] + ')',
+                'Viewport': window.innerWidth + 'x' + window.innerHeight,
+                'Language': navigator.language,
+                'Platform': navigator.platform,
+                'Cookie Enabled': navigator.cookieEnabled,
+                'Online': navigator.onLine,
+                'Document Ready': document.readyState
+            };
+            
+            document.getElementById('system-info').textContent = 
+                JSON.stringify(info, null, 2);
+                
+            console.table(info);
+        }
+        
+        // Auto-run system info
+        setTimeout(showSystemInfo, 1000);
+        
+        console.log('Basic test page ready');
+    </script>
+</body>
+</html>

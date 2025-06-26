@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lifeprep Academy Foundation - Simple Version</title>
+    <meta name="description" content="Lifeprep Academy Foundation - Empowering Lives Through Education">
+    
+    <!-- Basic styles only -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Fallback for hero background -->
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, rgba(40, 17, 86, 0.9), rgba(61, 26, 120, 0.9)), 
+                        url('groupPhoto.avif') center/cover !important;
+            min-height: 70vh;
+            display: flex;
+            align-items: center;
+            color: white;
+            text-align: center;
+            padding: 5rem 0;
+        }
+        
+        .debug-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-info">
+        <div>🔧 Simple Version</div>
+        <div id="load-status">Loading...</div>
+    </div>
+
+    <div class="content-wrapper">
+        <header>
+            <nav>
+                <div class="logo">
+                    <img src="logo.png" alt="Lifeprep Academy Foundation Logo">
+                </div>
+                <ul>
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#about">About Us</a></li>
+                    <li><a href="#programs">Programs</a></li>
+                    <li><a href="#events">Events</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <section id="home" class="hero-section">
+                <div class="hero-content">
+                    <h1>Empowering Lives Through Education</h1>
+                    <p class="hero-subtitle">Lifeprep Academy Foundation transforms communities through quality education and mentorship.</p>
+                    <div class="cta-buttons">
+                        <a href="#programs" class="btn btn-hero">Explore Programs</a>
+                        <a href="#contact" class="btn btn-hero">Get Involved</a>
+                    </div>
+                </div>
+            </section>
+
+            <section id="about" class="about-section">
+                <div class="container">
+                    <h2>About Lifeprep Academy Foundation</h2>
+                    <div class="about-content">
+                        <div class="about-text">
+                            <p>Founded with a vision to transform lives through education, Lifeprep Academy Foundation has been at the forefront of community development for over 5 years.</p>
+                            <div class="mission-vision">
+                                <div class="mission">
+                                    <h3>Our Mission</h3>
+                                    <p>To provide accessible, quality education and mentorship programs that empower individuals to reach their full potential.</p>
+                                </div>
+                                <div class="vision">
+                                    <h3>Our Vision</h3>
+                                    <p>A world where every individual has access to the tools and knowledge needed to build a successful life.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="stats">
+                            <div class="stat-item">
+                                <span class="stat-number">500+</span>
+                                <span class="stat-label">Students Impacted</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">25+</span>
+                                <span class="stat-label">Programs Offered</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">95%</span>
+                                <span class="stat-label">Success Rate</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="programs" class="programs-section">
+                <div class="container">
+                    <h2>Our Programs</h2>
+                    <div class="programs-grid">
+                        <article class="program-card">
+                            <h3>Educational Support</h3>
+                            <p>Comprehensive tutoring and academic support programs for students of all ages.</p>
+                            <a href="#contact" class="btn btn-outline">Learn More</a>
+                        </article>
+                        <article class="program-card">
+                            <h3>Mentorship Program</h3>
+                            <p>One-on-one mentoring to guide personal and professional development.</p>
+                            <a href="#contact" class="btn btn-outline">Learn More</a>
+                        </article>
+                        <article class="program-card">
+                            <h3>Skills Development</h3>
+                            <p>Practical workshops and training in essential life and career skills.</p>
+                            <a href="#contact" class="btn btn-outline">Learn More</a>
+                        </article>
+                        <article class="program-card">
+                            <h3>Scholarship Program</h3>
+                            <p>Financial assistance for deserving students to pursue higher education.</p>
+                            <a href="#contact" class="btn btn-outline">Learn More</a>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <section id="events" class="events-section">
+                <div class="container">
+                    <h2>Events</h2>
+                    
+                    <div class="event-tabs">
+                        <button class="event-tab active" data-event="mmhe">Men's Mental Health Expo</button>
+                        <button class="event-tab" data-event="discpan">Discussion Panel</button>
+                        <button class="event-tab" data-event="erf">Ed Reed Foundation</button>
+                    </div>
+                    
+                    <div class="event-content">
+                        <div class="event-details active" id="mmhe-content">
+                            <div class="event-info-header">
+                                <h3>Men's Mental Health Expo</h3>
+                                <p class="event-description">A comprehensive expo focused on men's mental health awareness.</p>
+                            </div>
+                            <div class="event-gallery" id="mmhe-gallery">
+                                <div class="gallery-grid">
+                                    <div class="gallery-loading">Loading images...</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="event-details" id="discpan-content">
+                            <div class="event-info-header">
+                                <h3>Discussion Panel</h3>
+                                <p class="event-description">Interactive panel discussions with community leaders.</p>
+                            </div>
+                            <div class="event-gallery" id="discpan-gallery">
+                                <div class="gallery-grid">
+                                    <!-- Photos will be loaded -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="event-details" id="erf-content">
+                            <div class="event-info-header">
+                                <h3>Ed Reed Foundation</h3>
+                                <p class="event-description">Partnership events with the Ed Reed Foundation.</p>
+                            </div>
+                            <div class="event-gallery" id="erf-gallery">
+                                <div class="gallery-grid">
+                                    <!-- Photos will be loaded -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="contact" class="contact-section">
+                <div class="container">
+                    <h2>Get Involved</h2>
+                    <div class="contact-content">
+                        <div class="contact-info">
+                            <h3>Contact Information</h3>
+                            <address>
+                                <p><strong>Email:</strong> <a href="mailto:info@lifeprepacademyfoundation.com">info@lifeprepacademyfoundation.com</a></p>
+                                <p><strong>Phone:</strong> <a href="tel:+1234567890">(123) 456-7890</a></p>
+                                <p><strong>Address:</strong> 123 Education Street, Learning City, LC 12345</p>
+                            </address>
+                        </div>
+                        <form class="contact-form">
+                            <h3>Send us a Message</h3>
+                            <div class="form-group">
+                                <label for="name">Name</label>
+                                <input type="text" id="name" name="name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" name="email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="message">Message</label>
+                                <textarea id="message" name="message" rows="5" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Send Message</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-section">
+                        <h4>Lifeprep Academy Foundation</h4>
+                        <p>Empowering lives through education.</p>
+                    </div>
+                    <div class="footer-section">
+                        <h4>Contact</h4>
+                        <p>info@lifeprepacademyfoundation.com</p>
+                        <p>(123) 456-7890</p>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <p>&copy; 2025 Lifeprep Academy Foundation. All rights reserved.</p>
+                </div>
+            </div>
+        </footer>
+
+        <!-- Use original script for now -->
+        <script src="script.js"></script>
+        
+        <script>
+            // Simple debug script
+            document.getElementById('load-status').textContent = '✅ Loaded';
+            console.log('Simple version loaded successfully');
+            console.log('URL:', window.location.href);
+            console.log('Protocol:', window.location.protocol);
+            
+            // Test if images are accessible
+            setTimeout(() => {
+                const testImg = new Image();
+                testImg.onload = () => console.log('✅ Images accessible');
+                testImg.onerror = () => console.log('❌ Images not accessible');
+                testImg.src = 'logo.png';
+            }, 1000);
+        </script>
+    </div>
+</body>
+</html>

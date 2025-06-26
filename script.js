@@ -2,7 +2,16 @@
 
 // DOM Content Loaded Event
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize all functionality
+    // Initialize photos first for immediate loading
+    initEventPhotos();
+    
+    // Load default gallery immediately
+    loadEventGallery('mmhe');
+    
+    // Prefetch other images in background
+    setTimeout(prefetchEventImages, 1000);
+    
+    // Initialize other functionality
     initSmoothScrolling();
     initMobileMenu();
     initFormValidation();
@@ -11,7 +20,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initLazyLoading();
     initAnalytics();
     initEventTabs();
-    initEventGalleries();
 });
 
 // Smooth scrolling for navigation links
@@ -643,6 +651,9 @@ function initEventTabs() {
     
     if (eventTabs.length === 0) return;
     
+    // Initialize the photo arrays first
+    initEventPhotos();
+    
     eventTabs.forEach(tab => {
         tab.addEventListener('click', function() {
             const eventType = this.getAttribute('data-event');
@@ -666,37 +677,110 @@ function initEventTabs() {
         });
     });
     
-    // Load the default gallery (Men's Mental Health Expo)
-    loadEventGallery('mmhe');
+    // Default gallery is already loaded in the main initialization
 }
 
 // Event Galleries Functionality
-function initEventGalleries() {
-    // Define photo collections for each event
+function initEventPhotos() {
+    // Define photo collections for each event using actual filenames
     window.eventPhotos = {
         mmhe: [
-            'photos/mmhe/photo1.jpg',
-            'photos/mmhe/photo2.jpg',
-            'photos/mmhe/photo3.jpg',
-            'photos/mmhe/photo4.jpg',
-            'photos/mmhe/photo5.jpg',
-            'photos/mmhe/photo6.jpg'
+            'photos/mmhe/IMG_3799.jpeg',
+            'photos/mmhe/IMG_3800.jpeg',
+            'photos/mmhe/IMG_3803.jpeg',
+            'photos/mmhe/IMG_3804.jpeg',
+            'photos/mmhe/IMG_3808.jpeg',
+            'photos/mmhe/IMG_3809.jpeg',
+            'photos/mmhe/IMG_3815.jpeg',
+            'photos/mmhe/IMG_3817.jpeg',
+            'photos/mmhe/IMG_3821.jpeg',
+            'photos/mmhe/IMG_3822.jpeg',
+            'photos/mmhe/IMG_3824.jpeg',
+            'photos/mmhe/IMG_3827.jpeg',
+            'photos/mmhe/IMG_3828.jpeg',
+            'photos/mmhe/IMG_3829.jpeg',
+            'photos/mmhe/IMG_3830.jpeg',
+            'photos/mmhe/IMG_3831.jpeg',
+            'photos/mmhe/IMG_3833.jpeg',
+            'photos/mmhe/IMG_3834.jpeg',
+            'photos/mmhe/IMG_3840.jpeg',
+            'photos/mmhe/IMG_3841.jpeg',
+            'photos/mmhe/IMG_3848.jpeg',
+            'photos/mmhe/IMG_3850.jpeg',
+            'photos/mmhe/IMG_3860.jpeg',
+            'photos/mmhe/IMG_3861.jpeg',
+            'photos/mmhe/IMG_3863.jpeg',
+            'photos/mmhe/IMG_3864.jpeg',
+            'photos/mmhe/IMG_3882.jpeg',
+            'photos/mmhe/IMG_3883.jpeg',
+            'photos/mmhe/IMG_3884.jpeg',
+            'photos/mmhe/IMG_3885.jpeg',
+            'photos/mmhe/IMG_3886.jpeg',
+            'photos/mmhe/IMG_3890.jpeg',
+            'photos/mmhe/IMG_3891.jpeg',
+            'photos/mmhe/IMG_3894.jpeg',
+            'photos/mmhe/IMG_3895.jpeg',
+            'photos/mmhe/IMG_3898.jpeg',
+            'photos/mmhe/IMG_3900.jpeg',
+            'photos/mmhe/IMG_3901.jpeg',
+            'photos/mmhe/IMG_3907.jpeg',
+            'photos/mmhe/IMG_3908.jpeg',
+            'photos/mmhe/IMG_3911.jpeg',
+            'photos/mmhe/IMG_3918.jpeg',
+            'photos/mmhe/IMG_3924.jpeg',
+            'photos/mmhe/IMG_3925.jpeg',
+            'photos/mmhe/IMG_3926.jpeg',
+            'photos/mmhe/IMG_3955.jpeg',
+            'photos/mmhe/IMG_3956.jpeg',
+            'photos/mmhe/IMG_3957.jpeg',
+            'photos/mmhe/IMG_3960.jpeg',
+            'photos/mmhe/IMG_3961.jpeg',
+            'photos/mmhe/IMG_3962.jpeg',
+            'photos/mmhe/IMG_3963.jpeg',
+            'photos/mmhe/IMG_3966.jpeg',
+            'photos/mmhe/IMG_3967.jpeg'
         ],
         discpan: [
-            'photos/discpan/photo1.jpg',
-            'photos/discpan/photo2.jpg',
-            'photos/discpan/photo3.jpg',
-            'photos/discpan/photo4.jpg',
-            'photos/discpan/photo5.jpg'
+            'photos/discpan/1-_DSC1395.jpg',
+            'photos/discpan/2-_DSC1397.jpg',
+            'photos/discpan/3-_DSC1398.jpg',
+            'photos/discpan/4-_DSC1400.jpg',
+            'photos/discpan/5-_DSC1401.jpg',
+            'photos/discpan/6-_DSC1404.jpg',
+            'photos/discpan/7-_DSC1405.jpg',
+            'photos/discpan/8-_DSC1413.jpg',
+            'photos/discpan/9-_DSC1415.jpg',
+            'photos/discpan/10-_DSC1416.jpg',
+            'photos/discpan/11-_DSC1418.jpg',
+            'photos/discpan/12-_DSC1421.jpg',
+            'photos/discpan/13-_DSC1422.jpg',
+            'photos/discpan/14-_DSC1425.jpg',
+            'photos/discpan/15-_DSC1428.jpg',
+            'photos/discpan/16-_DSC1430.jpg',
+            'photos/discpan/17-_DSC1433.jpg',
+            'photos/discpan/18-_DSC1435.jpg',
+            'photos/discpan/19-_DSC1438.jpg',
+            'photos/discpan/20-_DSC1444.jpg',
+            'photos/discpan/21-_DSC1446.jpg',
+            'photos/discpan/22-_DSC1457.jpg',
+            'photos/discpan/23-_DSC1459.jpg',
+            'photos/discpan/24-_DSC1463.jpg',
+            'photos/discpan/25-_DSC1474.jpg',
+            'photos/discpan/26-_DSC1481.jpg',
+            'photos/discpan/27-_DSC1493.jpg',
+            'photos/discpan/28-_DSC1496.jpg'
         ],
         erf: [
-            'photos/erf/photo1.jpg',
-            'photos/erf/photo2.jpg',
-            'photos/erf/photo3.jpg',
-            'photos/erf/photo4.jpg',
-            'photos/erf/photo5.jpg',
-            'photos/erf/photo6.jpg',
-            'photos/erf/photo7.jpg'
+            'photos/erf/FullSizeRender.jpeg',
+            'photos/erf/IMG_0883 2.jpeg',
+            'photos/erf/IMG_0883.jpeg',
+            'photos/erf/IMG_0884 2.jpeg',
+            'photos/erf/IMG_0884.jpeg',
+            'photos/erf/IMG_3636.jpeg',
+            'photos/erf/IMG_3640.jpeg',
+            'photos/erf/IMG_3641.jpeg',
+            'photos/erf/IMG_3646.jpeg',
+            'photos/erf/IMG_3647.jpeg'
         ]
     };
 }
@@ -712,7 +796,7 @@ function loadEventGallery(eventType) {
     galleryContainer.innerHTML = '<div class="gallery-loading">Loading photos...</div>';
     
     // Get photos for this event
-    const photos = window.eventPhotos[eventType];
+    const photos = window.eventPhotos ? window.eventPhotos[eventType] : [];
     
     if (!photos || photos.length === 0) {
         // Show empty state
@@ -730,7 +814,59 @@ function loadEventGallery(eventType) {
     
     // Create gallery items
     photos.forEach((photoUrl, index) => {
-        createGalleryItem(galleryContainer, photoUrl, eventType, index);
+        const galleryItem = document.createElement('div');
+        galleryItem.className = 'gallery-item';
+        galleryItem.dataset.eventType = eventType;
+        galleryItem.dataset.photoIndex = index;
+        
+        const img = document.createElement('img');
+        img.src = photoUrl;
+        img.alt = `${getEventName(eventType)} - Photo ${index + 1}`;
+        // Only use lazy loading for images after the first 6 to ensure immediate visibility
+        if (index > 5 && eventType !== 'mmhe') {
+            img.loading = 'lazy';
+        }
+        
+        // Create overlay for styling
+        const overlay = document.createElement('div');
+        overlay.className = 'gallery-overlay';
+        
+        const caption = document.createElement('div');
+        caption.className = 'gallery-caption';
+        caption.textContent = `${getEventName(eventType)} - Photo ${index + 1}`;
+        
+        overlay.appendChild(caption);
+        
+        img.addEventListener('error', function() {
+            galleryItem.innerHTML = `
+                <div class="gallery-placeholder">
+                    <div class="placeholder-content">
+                        <h4>Photo ${index + 1}</h4>
+                        <p>Image not available</p>
+                    </div>
+                </div>
+            `;
+            galleryItem.classList.add('placeholder');
+        });
+        
+        img.addEventListener('load', function() {
+            galleryItem.addEventListener('click', function() {
+                openImageModal(photoUrl, img.alt, eventType, index);
+            });
+        });
+        
+        galleryItem.appendChild(img);
+        galleryItem.appendChild(overlay);
+        galleryContainer.appendChild(galleryItem);
+        
+        // Add entrance animation only if this is not the initial load (mmhe)
+        if (eventType !== 'mmhe' || galleryContainer.dataset.loaded === 'true') {
+            galleryItem.classList.add('loading');
+            setTimeout(() => {
+                galleryItem.classList.remove('loading');
+                galleryItem.classList.add('animate-in');
+            }, index * 50);
+        }
     });
     
     // Mark as loaded
@@ -738,59 +874,6 @@ function loadEventGallery(eventType) {
     
     // Re-initialize image modal for new images
     initGalleryImageModal();
-}
-
-function createGalleryItem(container, photoUrl, eventType, index) {
-    const galleryItem = document.createElement('div');
-    galleryItem.className = 'gallery-item';
-    galleryItem.dataset.eventType = eventType;
-    galleryItem.dataset.photoIndex = index;
-    
-    // Create image with error handling
-    const img = document.createElement('img');
-    img.src = photoUrl;
-    img.alt = `${getEventName(eventType)} - Photo ${index + 1}`;
-    img.loading = 'lazy';
-    
-    // Create overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'gallery-overlay';
-    
-    const caption = document.createElement('div');
-    caption.className = 'gallery-caption';
-    caption.textContent = `${getEventName(eventType)} - Photo ${index + 1}`;
-    
-    overlay.appendChild(caption);
-    
-    // Handle image load error
-    img.addEventListener('error', function() {
-        galleryItem.innerHTML = `
-            <div class="gallery-placeholder">
-                <div class="placeholder-content">
-                    <h4>Photo ${index + 1}</h4>
-                    <p>Image not available</p>
-                </div>
-            </div>
-        `;
-        galleryItem.classList.add('placeholder');
-    });
-    
-    // Handle successful image load
-    img.addEventListener('load', function() {
-        // Add click handler for modal
-        galleryItem.addEventListener('click', function() {
-            openImageModal(photoUrl, img.alt, eventType, index);
-        });
-    });
-    
-    galleryItem.appendChild(img);
-    galleryItem.appendChild(overlay);
-    container.appendChild(galleryItem);
-    
-    // Add entrance animation
-    setTimeout(() => {
-        galleryItem.classList.add('animate-in');
-    }, index * 100);
 }
 
 function getEventName(eventType) {
@@ -1079,3 +1162,29 @@ function createGalleryModal() {
     
     return modal;
 }
+
+// Prefetch remaining images for better performance
+function prefetchEventImages() {
+    if (!window.eventPhotos) return;
+    
+    // Prefetch remaining MMHE images (after first 6)
+    const mmheImages = window.eventPhotos.mmhe.slice(6);
+    mmheImages.forEach(imageUrl => {
+        const img = new Image();
+        img.src = imageUrl;
+    });
+    
+    // Prefetch other event images
+    ['discpan', 'erf'].forEach(eventType => {
+        const images = window.eventPhotos[eventType];
+        if (images) {
+            images.forEach(imageUrl => {
+                const img = new Image();
+                img.src = imageUrl;
+            });
+        }
+    });
+}
+
+// Initial prefetch
+prefetchEventImages();

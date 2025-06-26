@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Lifeprep Academy</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            line-height: 1.6;
+            background: #f9f9f9;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .warning { color: orange; font-weight: bold; }
+        .status { margin: 10px 0; }
+        img { border: 2px solid #ddd; margin: 5px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Lifeprep Academy - Debug Page</h1>
+    <p>This page helps diagnose why the main site isn't loading.</p>
+    
+    <div class="test-section">
+        <h2>1. Critical Resources Test</h2>
+        <div class="status">CSS File: <span id="css-status" class="warning">Testing...</span></div>
+        <div class="status">JavaScript File: <span id="js-status" class="warning">Testing...</span></div>
+        <div class="status">Logo Image: <span id="logo-status" class="warning">Testing...</span></div>
+        <div class="status">Hero Background: <span id="hero-status" class="warning">Testing...</span></div>
+        
+        <div style="margin-top: 20px;">
+            <img src="logo.png" alt="Logo" style="max-width: 80px;" 
+                 onload="setStatus('logo-status', '✅ Logo loaded', 'success')" 
+                 onerror="setStatus('logo-status', '❌ Logo failed', 'error')">
+                 
+            <img src="groupPhoto.avif" alt="Hero" style="max-width: 100px;" 
+                 onload="setStatus('hero-status', '✅ Hero image loaded', 'success')" 
+                 onerror="setStatus('hero-status', '❌ Hero image failed', 'error')">
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Optimized Images Test</h2>
+        <p>Testing if the newly optimized images are working:</p>
+        
+        <h4>MMHE Event Images:</h4>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0;">
+            <div style="text-align: center;">
+                <img src="photos/mmhe/IMG_3799_medium.webp" alt="WebP" style="max-width: 100px;" 
+                     onload="console.log('✅ WebP loaded')" onerror="console.log('❌ WebP failed')">
+                <small>WebP Medium</small>
+            </div>
+            <div style="text-align: center;">
+                <img src="photos/mmhe/IMG_3799_medium.jpeg" alt="JPEG" style="max-width: 100px;" 
+                     onload="console.log('✅ JPEG loaded')" onerror="console.log('❌ JPEG failed')">
+                <small>JPEG Medium</small>
+            </div>
+            <div style="text-align: center;">
+                <img src="photos/mmhe/IMG_3799.jpeg" alt="Original" style="max-width: 100px;" 
+                     onload="console.log('✅ Original loaded')" onerror="console.log('❌ Original failed')">
+                <small>Original</small>
+            </div>
+        </div>
+        
+        <h4>Discussion Panel Images:</h4>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0;">
+            <div style="text-align: center;">
+                <img src="photos/discpan/1-_DSC1395_medium.webp" alt="Disc WebP" style="max-width: 100px;" 
+                     onload="console.log('✅ Disc WebP loaded')" onerror="console.log('❌ Disc WebP failed')">
+                <small>WebP Medium</small>
+            </div>
+            <div style="text-align: center;">
+                <img src="photos/discpan/1-_DSC1395.jpg" alt="Disc Original" style="max-width: 100px;" 
+                     onload="console.log('✅ Disc Original loaded')" onerror="console.log('❌ Disc Original failed')">
+                <small>Original</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Main Website Test</h2>
+        <p>Try loading the main website:</p>
+        <button onclick="window.open('index.html', '_blank')" style="padding: 10px 20px; font-size: 16px;">
+            🌐 Open Main Website
+        </button>
+        
+        <div style="margin-top: 20px;">
+            <h4>Or load main CSS/JS directly:</h4>
+            <button onclick="testMainCSS()">Test style.css</button>
+            <button onclick="testMainJS()">Test script-optimized.js</button>
+            <div id="main-test-result"></div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Console Logs</h2>
+        <p>Check the browser console (F12) for detailed error messages.</p>
+        <button onclick="showConsoleInfo()">Log System Info</button>
+        <pre id="console-info" style="background: #f4f4f4; padding: 10px; margin-top: 10px;"></pre>
+    </div>
+    
+    <script>
+        console.log('🔧 DEBUG PAGE LOADED');
+        console.log('Current URL:', window.location.href);
+        console.log('Protocol:', window.location.protocol);
+        console.log('Browser:', navigator.userAgent);
+        
+        function setStatus(elementId, message, className) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = message;
+                element.className = className;
+            }
+        }
+        
+        function testMainCSS() {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'style.css';
+            link.onload = () => {
+                document.getElementById('main-test-result').innerHTML = 
+                    '<p class="success">✅ style.css loaded successfully</p>';
+            };
+            link.onerror = () => {
+                document.getElementById('main-test-result').innerHTML = 
+                    '<p class="error">❌ style.css failed to load</p>';
+            };
+            document.head.appendChild(link);
+        }
+        
+        function testMainJS() {
+            const script = document.createElement('script');
+            script.src = 'script-optimized.js';
+            script.onload = () => {
+                document.getElementById('main-test-result').innerHTML += 
+                    '<p class="success">✅ script-optimized.js loaded successfully</p>';
+            };
+            script.onerror = () => {
+                document.getElementById('main-test-result').innerHTML += 
+                    '<p class="error">❌ script-optimized.js failed to load</p>';
+            };
+            document.head.appendChild(script);
+        }
+        
+        function showConsoleInfo() {
+            const info = {
+                'URL': window.location.href,
+                'Protocol': window.location.protocol,
+                'Host': window.location.host,
+                'Browser': navigator.userAgent.split(')')[0] + ')',
+                'Viewport': window.innerWidth + 'x' + window.innerHeight,
+                'Document Ready': document.readyState,
+                'Images Supported': 'WebP: ' + supportsWebP() + ', AVIF: ' + supportsAVIF()
+            };
+            
+            document.getElementById('console-info').textContent = 
+                JSON.stringify(info, null, 2);
+            
+            console.table(info);
+        }
+        
+        function supportsWebP() {
+            const canvas = document.createElement('canvas');
+            return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+        }
+        
+        function supportsAVIF() {
+            const canvas = document.createElement('canvas');
+            return canvas.toDataURL('image/avif').indexOf('data:image/avif') === 0;
+        }
+        
+        // Test CSS loading
+        setTimeout(() => {
+            const computed = window.getComputedStyle(document.body);
+            if (computed.fontFamily.includes('Arial')) {
+                setStatus('css-status', '✅ CSS is working', 'success');
+            } else {
+                setStatus('css-status', '⚠️ CSS may have issues', 'warning');
+            }
+        }, 100);
+        
+        // Test main script accessibility
+        setTimeout(() => {
+            fetch('script-optimized.js', { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        setStatus('js-status', '✅ JS file accessible', 'success');
+                    } else {
+                        setStatus('js-status', '❌ JS file not found', 'error');
+                    }
+                })
+                .catch(() => {
+                    setStatus('js-status', '⚠️ Cannot test JS file (CORS)', 'warning');
+                });
+        }, 200);
+        
+        // Global error handler
+        window.addEventListener('error', (e) => {
+            console.error('🚨 ERROR:', e.error);
+            console.error('Details:', {
+                message: e.message,
+                filename: e.filename,
+                line: e.lineno,
+                column: e.colno
+            });
+        });
+        
+        console.log('Debug page ready. Check the tests above.');
+    </script>
+</body>
+</html>

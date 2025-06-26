@@ -14,7 +14,7 @@
     <meta property="og:title" content="Lifeprep Academy Foundation | Empowering Lives Through Education">
     <meta property="og:description" content="Transforming lives through quality education, mentorship, and community development programs.">
     <meta property="og:image" content="./groupPhoto.avif">
-    <meta property="og:url" content="https://lifeprepacademy.org">
+    <meta property="og:url" content="https://www.lifeprepacademyfoundation.com/">
     
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
@@ -25,10 +25,21 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="logo.png">
     <link rel="apple-touch-icon" href="logo.png">
-    <link rel="canonical" href="https://lifeprepacademy.org">
+    <link rel="canonical" href="https://www.lifeprepacademyfoundation.com/">
     <link rel="manifest" href="manifest.json">
     
+    <!-- Preload critical resources for faster loading -->
+    <link rel="preload" href="style.css" as="style">
+    <link rel="preload" href="script.js" as="script">
+    <link rel="preload" href="groupPhoto.avif" as="image">
+    
+    <!-- Preload optimized event images (WebP with JPEG fallback) -->
+    <link rel="preload" href="photos/mmhe/IMG_3799_medium.webp" as="image">
+    <link rel="preload" href="photos/mmhe/IMG_3800_medium.webp" as="image">
+    <link rel="preload" href="photos/mmhe/IMG_3803_medium.webp" as="image">
+    
     <link rel="stylesheet" href="style.css">
+    <!-- <link rel="stylesheet" href="performance-optimizations.css"> -->
     
     <!-- Schema.org JSON-LD for better SEO -->
     <script type="application/ld+json">
@@ -36,7 +47,7 @@
         "@context": "https://schema.org",
         "@type": "NonprofitOrganization",
         "name": "Lifeprep Academy Foundation",
-        "url": "https://lifeprepacademy.org",
+        "url": "https://www.lifeprepacademyfoundation.com/",
         "logo": "./logo.png",
         "description": "Lifeprep Academy Foundation is dedicated to transforming lives through quality education, mentorship, and community development programs.",
         "foundingDate": "2020",
@@ -49,7 +60,7 @@
         "contactPoint": {
             "@type": "ContactPoint",
             "contactType": "customer support",
-            "email": "info@lifeprepacademy.org"
+            "email": "info@lifeprepacademyfoundation.com"
         }
     }
     </script>
@@ -81,8 +92,8 @@
                     <h1>Empowering Lives Through Education</h1>
                     <p class="hero-subtitle">Lifeprep Academy Foundation transforms communities by providing quality education, mentorship, and development programs that prepare individuals for success in life.</p>
                     <div class="cta-buttons">
-                        <a href="#programs" class="btn btn-primary">Explore Programs</a>
-                        <a href="#contact" class="btn btn-secondary">Get Involved</a>
+                        <a href="#programs" class="btn btn-hero">Explore Programs</a>
+                        <a href="#contact" class="btn btn-hero">Get Involved</a>
                     </div>
                 </div>
                 <img src="groupPhoto.avif" alt="Lifeprep Academy Foundation community group photo showing diverse participants in educational programs" class="hero-image">
@@ -212,6 +223,37 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Coming Soon Events -->
+                    <div class="coming-soon-section">
+                        <h3>Coming Soon</h3>
+                        <p class="coming-soon-intro">We're working on exciting new events and initiatives! Stay connected to be the first to know:</p>
+                        
+                        <div class="upcoming-events">
+                            <div class="upcoming-event">
+                                <h4>📚 Youth Leadership Summit</h4>
+                                <p>Empowering the next generation of leaders through workshops and mentorship opportunities.</p>
+                            </div>
+                            <div class="upcoming-event">
+                                <h4>🎓 Educational Resource Fair</h4>
+                                <p>Connecting families with educational resources, scholarships, and learning opportunities.</p>
+                            </div>
+                            <div class="upcoming-event">
+                                <h4>🤝 Community Partnership Expo</h4>
+                                <p>Building bridges between local organizations to strengthen community support networks.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="coming-soon-cta">
+                            <p><strong>Don't miss out!</strong> Follow us on social media for the latest updates and announcements:</p>
+                            <div class="social-links-inline">
+                                <a href="#" class="social-link" aria-label="Follow us on Facebook">📘 Facebook</a>
+                                <a href="#" class="social-link" aria-label="Follow us on Twitter">🐦 Twitter</a>
+                                <a href="#" class="social-link" aria-label="Follow us on Instagram">📸 Instagram</a>
+                                <a href="#" class="social-link" aria-label="Follow us on LinkedIn">💼 LinkedIn</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -246,7 +288,7 @@
                         <div class="contact-info">
                             <h3>Contact Information</h3>
                             <address>
-                                <p><strong>Email:</strong> <a href="mailto:info@lifeprepacademy.org">info@lifeprepacademy.org</a></p>
+                                <p><strong>Email:</strong> <a href="mailto:info@lifeprepacademyfoundation.com">info@lifeprepacademyfoundation.com</a></p>
                                 <p><strong>Phone:</strong> <a href="tel:+1234567890">(123) 456-7890</a></p>
                                 <p><strong>Address:</strong> 123 Education Street, Learning City, LC 12345</p>
                             </address>
@@ -301,10 +343,10 @@
                     </div>
                     <div class="footer-section">
                         <h4>Contact Info</h4>
-                        <p>Email: info@lifeprepacademy.org</p>
+                        <p>Email: info@lifeprepacademyfoundation.com</p>
                         <p>Phone: (123) 456-7890</p>
                     </div>
-                    <div class="footer-section">
+                    <!-- <div class="footer-section">
                         <h4>Connect With Us</h4>
                         <div class="social-links">
                             <a href="#" aria-label="Facebook">FB</a>
@@ -312,7 +354,7 @@
                             <a href="#" aria-label="Instagram">IG</a>
                             <a href="#" aria-label="LinkedIn">LI</a>
                         </div>
-                    </div>
+                    </div> -->
                 </div>
                 <div class="footer-bottom">
                     <p>&copy; 2025 Lifeprep Academy Foundation. All rights reserved. | <a href="#privacy">Privacy Policy</a> | <a href="#terms">Terms of Service</a></p>
@@ -320,7 +362,43 @@
             </div>
         </footer>
 
-        <script src="script.js"></script>
+        <script src="script.js" defer></script>
+        
+        <!-- Debug Script -->
+        <script>
+            console.log('🔧 DEBUG: Page loading started');
+            console.log('Current URL:', window.location.href);
+            console.log('Protocol:', window.location.protocol);
+            
+            window.addEventListener('DOMContentLoaded', function() {
+                console.log('✅ DOM Content Loaded');
+                
+                // Check if images are loading
+                const images = document.querySelectorAll('img');
+                console.log('Found', images.length, 'images');
+                
+                // Check if CSS is loaded
+                const computed = window.getComputedStyle(document.body);
+                console.log('Body font family:', computed.fontFamily);
+                
+                // Monitor for any errors
+                setTimeout(() => {
+                    console.log('🔍 Page status after 2 seconds:');
+                    console.log('- Document ready state:', document.readyState);
+                    console.log('- Images loaded:', document.querySelectorAll('img[src]').length);
+                    console.log('- Stylesheets:', document.querySelectorAll('link[rel="stylesheet"]').length);
+                }, 2000);
+            });
+            
+            window.addEventListener('load', function() {
+                console.log('✅ Window fully loaded');
+            });
+            
+            window.addEventListener('error', function(e) {
+                console.error('🚨 Error detected:', e.error);
+                console.error('File:', e.filename, 'Line:', e.lineno);
+            });
+        </script>
     </div>
 </body>
 </html>

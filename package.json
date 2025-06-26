@@ -1,0 +1,17 @@
+{
+  "name": "lifeprep-academy-optimization",
+  "version": "1.0.0",
+  "description": "Image optimization tools for Lifeprep Academy Foundation website",
+  "main": "optimize-images.js",
+  "scripts": {
+    "optimize": "node optimize-images.js",
+    "serve": "npx http-server -p 3000"
+  },
+  "devDependencies": {
+    "sharp": "^0.32.6",
+    "http-server": "^14.1.1"
+  },
+  "keywords": ["image-optimization", "performance", "web"],
+  "author": "Lifeprep Academy Foundation",
+  "license": "MIT"
+}

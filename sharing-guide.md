@@ -65,8 +65,8 @@ Thanks!"
 - ✅ No technical knowledge needed
 
 ### After Approval:
-- 🚀 **Custom Domain**: Add lifeprepacademy.org ($10/year)
-- 📧 **Email Setup**: Create info@lifeprepacademy.org
+- 🚀 **Custom Domain**: Add lifeprepacademyfoundation.com ($10/year)
+- 📧 **Email Setup**: Create info@lifeprepacademyfoundation.com
 - 📊 **Analytics**: Add Google Analytics
 - 🔍 **SEO**: Submit to Google Search Console
 
