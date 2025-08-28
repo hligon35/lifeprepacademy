@@ -52,9 +52,14 @@ function initMobileMenu() {
     const navMenu = document.querySelector('nav ul');
     
     if (mobileMenuToggle && navMenu) {
+        // Initialize ARIA state
+    navMenu.classList.remove('active');
+    navMenu.setAttribute('aria-hidden', 'true');
+        mobileMenuToggle.setAttribute('aria-expanded', 'false');
         mobileMenuToggle.addEventListener('click', function() {
-            navMenu.classList.toggle('active');
-            this.setAttribute('aria-expanded', navMenu.classList.contains('active'));
+            const isActive = navMenu.classList.toggle('active');
+            this.setAttribute('aria-expanded', isActive);
+            navMenu.setAttribute('aria-hidden', isActive ? 'false' : 'true');
         });
 
         // Close mobile menu when clicking on a link
@@ -66,9 +71,37 @@ function initMobileMenu() {
         });
 
         // Close mobile menu when clicking outside
-        document.addEventListener('click', function(e) {
+    document.addEventListener('click', function(e) {
+            // allow clicks on the toggle to pass through without closing
             if (!navMenu.contains(e.target) && !mobileMenuToggle.contains(e.target)) {
                 navMenu.classList.remove('active');
+                navMenu.setAttribute('aria-hidden', 'true');
+                mobileMenuToggle.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && navMenu.classList.contains('active')) {
+                navMenu.classList.remove('active');
+                navMenu.setAttribute('aria-hidden', 'true');
+                mobileMenuToggle.setAttribute('aria-expanded', 'false');
+                mobileMenuToggle.focus();
+            }
+        });
+
+        // Close on resize/orientation change to avoid stuck-open state
+        window.addEventListener('resize', debounce(() => {
+            if (navMenu.classList.contains('active')) {
+                navMenu.classList.remove('active');
+                navMenu.setAttribute('aria-hidden', 'true');
+                mobileMenuToggle.setAttribute('aria-expanded', 'false');
+            }
+        }, 150));
+        window.addEventListener('orientationchange', () => {
+            if (navMenu.classList.contains('active')) {
+                navMenu.classList.remove('active');
+                navMenu.setAttribute('aria-hidden', 'true');
                 mobileMenuToggle.setAttribute('aria-expanded', 'false');
             }
         });
@@ -82,9 +115,13 @@ function updateActiveNavigation(activeHref = null) {
     
     if (activeHref) {
         // Remove active class from all links
-        navLinks.forEach(link => link.classList.remove('active'));
+        navLinks.forEach(link => { link.classList.remove('active'); link.removeAttribute('aria-current'); });
         // Add active class to clicked link
-        document.querySelector(`nav a[href="${activeHref}"]`)?.classList.add('active');
+        const activeLink = document.querySelector(`nav a[href="${activeHref}"]`);
+        if (activeLink) {
+            activeLink.classList.add('active');
+            activeLink.setAttribute('aria-current', 'true');
+        }
         return;
     }
 
@@ -100,8 +137,10 @@ function updateActiveNavigation(activeHref = null) {
 
     navLinks.forEach(link => {
         link.classList.remove('active');
+        link.removeAttribute('aria-current');
         if (link.getAttribute('href') === `#${current}`) {
             link.classList.add('active');
+            link.setAttribute('aria-current', 'true');
         }
     });
 }
@@ -215,6 +254,11 @@ function showError(field, message) {
     
     field.parentNode.appendChild(errorDiv);
     field.style.borderColor = '#dc3545';
+    // Announce error to screen readers
+    const status = document.getElementById('contact-form-status');
+    if (status) {
+        status.textContent = message;
+    }
 }
 
 function clearFieldError(field) {
@@ -246,6 +290,11 @@ function showSuccessMessage(message) {
     
     const form = document.querySelector('.contact-form');
     form.insertBefore(successDiv, form.firstChild);
+    // Announce success to screen readers
+    const status = document.getElementById('contact-form-status');
+    if (status) {
+        status.textContent = message;
+    }
     
     // Remove success message after 5 seconds
     setTimeout(() => {
@@ -654,6 +703,18 @@ function initEventTabs() {
     
     // Initialize the photo arrays first
     initEventPhotos();
+    // Initialize ARIA states and roving tabindex for tabs
+    eventTabs.forEach((t, i) => {
+        const selected = t.classList.contains('active');
+        t.setAttribute('role', 'tab');
+        t.setAttribute('aria-selected', selected ? 'true' : 'false');
+        t.setAttribute('tabindex', selected ? '0' : '-1');
+    });
+    eventDetails.forEach(panel => {
+        const active = panel.classList.contains('active');
+        panel.setAttribute('role', 'tabpanel');
+        if (!active) panel.setAttribute('hidden', '');
+    });
     
     eventTabs.forEach(tab => {
         tab.addEventListener('click', function() {
@@ -662,8 +723,15 @@ function initEventTabs() {
             console.log('🔄 Switching to event tab:', eventType);
             
             // Remove active class from all tabs and details
-            eventTabs.forEach(t => t.classList.remove('active'));
-            eventDetails.forEach(d => d.classList.remove('active'));
+            eventTabs.forEach(t => {
+                t.classList.remove('active');
+                t.setAttribute('aria-selected', 'false');
+                t.setAttribute('tabindex', '-1');
+            });
+            eventDetails.forEach(d => {
+                d.classList.remove('active');
+                d.setAttribute('hidden', '');
+            });
             
             // Clear all gallery loaded states to force refresh
             document.querySelectorAll('.gallery-grid').forEach(grid => {
@@ -672,9 +740,12 @@ function initEventTabs() {
             
             // Add active class to clicked tab and corresponding content
             this.classList.add('active');
+            this.setAttribute('aria-selected', 'true');
+            this.removeAttribute('tabindex');
             const targetContent = document.getElementById(`${eventType}-content`);
             if (targetContent) {
                 targetContent.classList.add('active');
+                targetContent.removeAttribute('hidden');
                 
                 // Force load gallery
                 setTimeout(() => {
@@ -684,6 +755,31 @@ function initEventTabs() {
             
             // Track tab click
             trackEvent('event_tab_click', 'events', eventType);
+        });
+        // Keyboard navigation: Left/Right/Home/End for tabs
+        tab.addEventListener('keydown', function(e) {
+            const tabs = Array.from(eventTabs);
+            const currentIndex = tabs.indexOf(this);
+            let targetIndex = null;
+            switch (e.key) {
+                case 'ArrowRight':
+                    targetIndex = (currentIndex + 1) % tabs.length;
+                    break;
+                case 'ArrowLeft':
+                    targetIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+                    break;
+                case 'Home':
+                    targetIndex = 0;
+                    break;
+                case 'End':
+                    targetIndex = tabs.length - 1;
+                    break;
+            }
+            if (targetIndex !== null) {
+                e.preventDefault();
+                tabs[targetIndex].focus();
+                tabs[targetIndex].click();
+            }
         });
     });
     
@@ -940,6 +1036,11 @@ function loadGalleryPage(eventType, pageNumber) {
     
     if (!pagination || !galleryContainer) return;
     
+    // Add transition effect and announce busy state
+    const galleryRegion = document.querySelector(`#${eventType}-gallery`);
+    if (galleryRegion) {
+        galleryRegion.setAttribute('aria-busy', 'true');
+    }
     // Add transition effect
     galleryContainer.classList.add('page-transition');
     
@@ -954,6 +1055,8 @@ function loadGalleryPage(eventType, pageNumber) {
         
         // Clear gallery
         galleryContainer.innerHTML = '';
+        // Mark container as a list for accessibility
+        galleryContainer.setAttribute('role', 'list');
         
         // Create gallery items for current page
         pagePhotos.forEach((photoUrl, index) => {
@@ -962,22 +1065,24 @@ function loadGalleryPage(eventType, pageNumber) {
             galleryItem.className = 'gallery-item';
             galleryItem.dataset.eventType = eventType;
             galleryItem.dataset.photoIndex = actualIndex;
+            galleryItem.setAttribute('role', 'listitem');
 
             // Use thumbnail for display, but open medium in modal
             const thumbUrl = photoUrl.replace('_medium.webp', '_thumbnail.webp');
             const thumbJpegUrl = photoUrl.replace('_medium.webp', '_thumbnail.jpeg');
+            const mediumJpegUrl = photoUrl.replace('_medium.webp', '_medium.jpeg');
 
             // Create picture element with WebP and JPEG fallback for thumbnail
             const picture = document.createElement('picture');
 
             // WebP source (thumbnail)
             const webpSource = document.createElement('source');
-            webpSource.srcset = thumbUrl;
+            webpSource.srcset = `${thumbUrl} 1x, ${photoUrl} 2x`;
             webpSource.type = 'image/webp';
 
             // JPEG fallback (thumbnail)
             const jpegSource = document.createElement('source');
-            jpegSource.srcset = thumbJpegUrl;
+            jpegSource.srcset = `${thumbJpegUrl} 1x, ${mediumJpegUrl} 2x`;
             jpegSource.type = 'image/jpeg';
 
             // Main img element (fallback, thumbnail)
@@ -986,6 +1091,9 @@ function loadGalleryPage(eventType, pageNumber) {
             img.alt = `${getEventName(eventType)} - Photo ${actualIndex + 1}`;
             img.loading = 'lazy';
             img.decoding = 'async';
+            img.width = 300;
+            img.height = 300;
+            img.sizes = '(max-width: 480px) 45vw, (max-width: 900px) 30vw, 300px';
 
             // Append sources to picture
             picture.appendChild(webpSource);
@@ -1041,7 +1149,7 @@ function loadGalleryPage(eventType, pageNumber) {
         galleryContainer.classList.remove('page-transition');
         galleryContainer.classList.add('page-loaded');
         
-        // Update pagination controls
+    // Update pagination controls
         updatePaginationButtons(eventType);
         updatePageInfo(eventType);
         
@@ -1055,6 +1163,7 @@ function loadGalleryPage(eventType, pageNumber) {
                 behavior: 'smooth', 
                 block: 'nearest'
             });
+            gallerySection.setAttribute('aria-busy', 'false');
         }
     }, 150); // Small delay for smooth transition
 }
@@ -1147,19 +1256,49 @@ function initGalleryImageModal() {
         currentPhotos = window.eventPhotos[eventType] || [];
         
         modal.style.display = 'block';
+        modal.setAttribute('aria-hidden', 'false');
         modalImg.src = src;
         modalImg.alt = alt;
         modalCaption.textContent = alt;
         updateCounter();
         updateNavigationButtons();
+        // Save last focused element and trap focus inside modal
+        modal._lastFocus = document.activeElement;
         document.body.style.overflow = 'hidden';
+        const focusable = [closeBtn, prevBtn, nextBtn];
+        // Ensure buttons are focusable
+        focusable.forEach(el => el && el.setAttribute('tabindex', '0'));
+        closeBtn.focus();
+        const trapFocus = (e) => {
+            if (e.key !== 'Tab') return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        };
+        modal.addEventListener('keydown', trapFocus);
+        modal._trap = trapFocus;
         
         trackEvent('gallery_image_view', 'events', `${eventType}_${index}`);
     }
     
     function closeGalleryModal() {
         modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
+        if (modal._trap) {
+            modal.removeEventListener('keydown', modal._trap);
+            modal._trap = null;
+        }
+        if (modal._lastFocus && typeof modal._lastFocus.focus === 'function') {
+            modal._lastFocus.focus();
+            modal._lastFocus = null;
+        }
     }
     
     function showPreviousImage() {
@@ -1208,14 +1347,17 @@ function initGalleryImageModal() {
 function createGalleryModal() {
     const modal = document.createElement('div');
     modal.className = 'gallery-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-hidden', 'true');
     modal.innerHTML = `
         <div class="modal-content">
-            <span class="modal-close">&times;</span>
-            <img class="modal-image" src="" alt="">
-            <div class="modal-caption"></div>
-            <div class="modal-counter"></div>
-            <button class="modal-nav modal-prev">&#10094;</button>
-            <button class="modal-nav modal-next">&#10095;</button>
+            <span class="modal-close" aria-label="Close image viewer" tabindex="0">&times;</span>
+            <img id="gallery-modal-image" class="modal-image" src="" alt="">
+            <div id="gallery-modal-caption" class="modal-caption"></div>
+            <div class="modal-counter" aria-live="polite"></div>
+            <button class="modal-nav modal-prev" aria-label="Previous image">&#10094;</button>
+            <button class="modal-nav modal-next" aria-label="Next image">&#10095;</button>
         </div>
     `;
     
@@ -1442,3 +1584,74 @@ function initKeyboardNavigation() {
 
 // Initialize keyboard navigation
 initKeyboardNavigation();
+
+(function initDonateModal(){
+  const donateBtn = document.getElementById('donate-btn');
+  const modal = document.getElementById('donate-modal');
+  if(!donateBtn || !modal) return;
+
+  const open = () => {
+    lastFocused = document.activeElement;
+    modal.setAttribute('aria-hidden','false');
+    document.documentElement.classList.add('modal-open');
+    document.body.classList.add('modal-open');
+    // focus first focusable
+    setTimeout(()=>{
+      const first = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      (first || modal).focus();
+    },0);
+    document.addEventListener('keydown', onKeydown);
+  };
+  const close = () => {
+    modal.setAttribute('aria-hidden','true');
+    document.documentElement.classList.remove('modal-open');
+    document.body.classList.remove('modal-open');
+    document.removeEventListener('keydown', onKeydown);
+    if(lastFocused && lastFocused.focus) lastFocused.focus();
+  };
+  let lastFocused = null;
+
+  const onKeydown = (e) => {
+    if(e.key === 'Escape') { e.preventDefault(); close(); }
+    if(e.key === 'Tab') {
+      // trap focus
+      const focusables = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if(focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if(e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  };
+
+  modal.addEventListener('click', (e)=>{
+    if(e.target.matches('[data-close-modal]')) close();
+  });
+
+  donateBtn.addEventListener('click', ()=> open());
+
+  // Link buttons
+  const stripeBtn = document.getElementById('donate-stripe');
+  const paypalBtn = document.getElementById('donate-paypal');
+  const stripeLink = donateBtn.getAttribute('data-stripe-link');
+  const paypalLink = donateBtn.getAttribute('data-paypal-link');
+
+  if(stripeBtn){
+    stripeBtn.addEventListener('click', ()=>{
+      if(stripeLink && stripeLink !== '#') {
+        window.open(stripeLink, '_blank', 'noopener,noreferrer');
+      } else {
+        alert('Stripe link not configured yet.');
+      }
+    });
+  }
+  if(paypalBtn){
+    paypalBtn.addEventListener('click', ()=>{
+      if(paypalLink && paypalLink !== '#') {
+        window.open(paypalLink, '_blank', 'noopener,noreferrer');
+      } else {
+        alert('PayPal link not configured yet.');
+      }
+    });
+  }
+})();

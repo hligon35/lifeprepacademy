@@ -10,7 +10,8 @@ const STATIC_ASSETS = [
     '/logo.png',
     '/groupPhoto.avif',
     '/eventa.avif',
-    '/manifest.json'
+    '/manifest.json',
+    '/offline.html'
 ];
 
 // Install event - cache static assets

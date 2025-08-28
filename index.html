@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lifeprep Academy Foundation | Empowering Lives Through Education</title>
-    <meta name="description" content="Lifeprep Academy Foundation is dedicated to transforming lives through quality education, mentorship, and community development programs. Join us in making a difference.">
+    <meta name="description" content="LifePrep Academy Foundation advances mental wellness, athletic development, financial literacy, and youth leadership in Baltimore through hands-on programs and community partnerships.">
     <meta name="keywords" content="lifeprep academy, education foundation, nonprofit, community development, mentorship, scholarships, youth programs">
     <meta name="author" content="Lifeprep Academy Foundation">
     <meta name="robots" content="index, follow">
@@ -12,15 +12,18 @@
     <!-- Open Graph / Social Media Meta Tags -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="Lifeprep Academy Foundation | Empowering Lives Through Education">
-    <meta property="og:description" content="Transforming lives through quality education, mentorship, and community development programs.">
-    <meta property="og:image" content="./groupPhoto.avif">
+    <meta property="og:description" content="Advancing mental wellness, athletic development, financial literacy, and youth leadership through community-centered programs in Baltimore.">
+    <meta property="og:image" content="https://www.lifeprepacademyfoundation.com/groupPhoto.avif">
     <meta property="og:url" content="https://www.lifeprepacademyfoundation.com/">
+    <meta property="og:site_name" content="Lifeprep Academy Foundation">
+    <meta property="og:locale" content="en_US">
     
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Lifeprep Academy Foundation">
-    <meta name="twitter:description" content="Transforming lives through quality education and community development.">
-    <meta name="twitter:image" content="./groupPhoto.avif">
+    <meta name="twitter:description" content="Advancing mental wellness, athletic development, financial literacy, and youth leadership in Baltimore.">
+    <meta name="twitter:image" content="https://www.lifeprepacademyfoundation.com/groupPhoto.avif">
+    <meta name="theme-color" content="#281156">
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="logo.png">
@@ -29,16 +32,31 @@
     <link rel="manifest" href="manifest.json">
     
     <!-- Preload critical resources for faster loading -->
-    <link rel="preload" href="style.css" as="style">
+    <link rel="preload" href="style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <link rel="preload" href="script.js" as="script">
     <link rel="preload" href="groupPhoto.avif" as="image">
     
-    <!-- Preload optimized event images (WebP with JPEG fallback) -->
-    <link rel="preload" href="photos/mmhe/IMG_3799_medium.webp" as="image">
-    <link rel="preload" href="photos/mmhe/IMG_3800_medium.webp" as="image">
-    <link rel="preload" href="photos/mmhe/IMG_3803_medium.webp" as="image">
+    <!-- Remove non-critical gallery preloads to reduce contention -->
     
-    <link rel="stylesheet" href="style.css">
+        <noscript><link rel="stylesheet" href="style.css"></noscript>
+        <!-- Small critical CSS to improve first paint (header/hero/skip link/buttons) -->
+        <style>
+            :root{--primary-color:#281156;--secondary-color:#f9b515}
+            *{box-sizing:border-box}
+            html{scroll-behavior:smooth}
+            body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;line-height:1.6;color:#292929;background:#f8f9fa;margin:0}
+            .skip-link{position:absolute;left:-9999px;top:auto;background:#fff;color:#000;padding:.5rem .75rem;border-radius:4px;box-shadow:0 2px 15px rgba(0,0,0,.1);z-index:1000}
+            .skip-link:focus{left:1rem;top:1rem}
+            header{background:linear-gradient(135deg,#281156,#3d1a78);color:#fff;padding:1rem 0;position:sticky;top:0;z-index:100;box-shadow:0 2px 15px rgba(0,0,0,.1)}
+            nav{display:flex;justify-content:space-between;align-items:center;max-width:1200px;margin:0 auto;padding:0 1rem}
+            .logo img{height:100px;width:auto;background-color:rgba(255,255,255,.4);padding:8px 12px;border-radius:8px}
+            #primary-nav{list-style:none;gap:2rem}
+            #primary-nav a{color:#fff;text-decoration:none;font-weight:500;padding:.5rem 1rem;border-radius:8px}
+            .hero-section{background:linear-gradient(135deg,rgba(40,17,86,.9),rgba(61,26,120,.9)),url('groupPhoto.avif') center/cover;color:#fff;padding:5rem 0;text-align:center;min-height:70vh;display:flex;align-items:center}
+            .hero-content{max-width:1200px;margin:0 auto;padding:0 1rem}
+            .btn.btn-hero{background:#f9b515;color:#281156;border:2px solid #281156;display:inline-block;padding:.75rem 1.5rem;border-radius:8px;text-decoration:none;font-weight:600}
+            a:focus-visible,button:focus-visible{outline:2px solid #f9b515;outline-offset:2px}
+        </style>
     <!-- <link rel="stylesheet" href="performance-optimizations.css"> -->
     
     <!-- Schema.org JSON-LD for better SEO -->
@@ -49,13 +67,15 @@
         "name": "Lifeprep Academy Foundation",
         "url": "https://www.lifeprepacademyfoundation.com/",
         "logo": "./logo.png",
-        "description": "Lifeprep Academy Foundation is dedicated to transforming lives through quality education, mentorship, and community development programs.",
+        "description": "LifePrep Academy Foundation advances mental wellness, athletic development, financial literacy, and youth leadership in Baltimore.",
         "foundingDate": "2020",
         "address": {
             "@type": "PostalAddress",
-            "addressLocality": "Your City",
-            "addressRegion": "Your State",
-            "addressCountry": "Your Country"
+            "streetAddress": "6230 Old Dobbin Lane Suite 230",
+            "addressLocality": "Columbia",
+            "addressRegion": "MD",
+            "postalCode": "21046",
+            "addressCountry": "US"
         },
         "contactPoint": {
             "@type": "ContactPoint",
@@ -66,6 +86,7 @@
     </script>
 </head>
 <body>
+    <a class="skip-link" href="#home">Skip to main content</a>
     <div class="background-logo-container">
     </div>
     <div class="content-wrapper">
@@ -74,15 +95,15 @@
                 <div class="logo">
                     <img src="logo.png" alt="Lifeprep Academy Foundation Logo">
                 </div>
-                <ul>
-                    <li><a href="#home" aria-label="Go to Home section">Home</a></li>
+                <ul id="primary-nav">
+                    <li><a href="#home" aria-label="Go to Home section" aria-current="true">Home</a></li>
                     <li><a href="#about" aria-label="Go to About Us section">About Us</a></li>
                     <li><a href="#programs" aria-label="Go to Programs section">Programs</a></li>
                     <li><a href="#events" aria-label="Go to Events section">Events</a></li>
                     <li><a href="#impact" aria-label="Go to Impact section">Impact</a></li>
                     <li><a href="#contact" aria-label="Go to Contact section">Contact</a></li>
                 </ul>
-                <button class="mobile-menu-toggle" aria-label="Toggle mobile menu">☰</button>
+                <button class="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-controls="primary-nav" aria-expanded="false">☰</button>
             </nav>
         </header>
 
@@ -90,13 +111,13 @@
             <section id="home" class="hero-section">
                 <div class="hero-content">
                     <h1>Empowering Lives Through Education</h1>
-                    <p class="hero-subtitle">Lifeprep Academy Foundation transforms communities by providing quality education, mentorship, and development programs that prepare individuals for success in life.</p>
+                    <p class="hero-subtitle">Lifeprep Academy Foundation transforms communities by providing quality education, mentorship, and development programs that prepare individuals for success in life. We work alongside families, schools, and community partners to connect learning with real opportunities and long‑term well‑being.</p>
                     <div class="cta-buttons">
                         <a href="#programs" class="btn btn-hero">Explore Programs</a>
                         <a href="#contact" class="btn btn-hero">Get Involved</a>
                     </div>
                 </div>
-                <img src="groupPhoto.avif" alt="Lifeprep Academy Foundation community group photo showing diverse participants in educational programs" class="hero-image">
+                <img src="groupPhoto.avif" alt="Lifeprep Academy Foundation community group photo showing diverse participants in educational programs" class="hero-image" width="1920" height="1080" fetchpriority="high" decoding="async">
             </section>
 
             <section id="about" class="about-section">
@@ -105,14 +126,22 @@
                     <div class="about-content">
                         <div class="about-text">
                             <p>At LifePrep Academy Foundation, we are dedicated to providing mental health resources, athletic training, financial literacy workshops, and youth advancement opportunities. Our website serves as a platform to raise awareness and facilitate donations, supporting our mission to empower individuals in Baltimore, Maryland.</p>
+                            <p>We focus on practical, hands‑on learning, trusted mentorship, and accessible resources so every participant can take the next step with confidence.</p>
                             <div class="mission-vision">
                                 <div class="mission">
                                     <h3>Our Mission</h3>
                                     <p>To provide opportunities for underserved communities by promoting both mental and physical health awareness, mentorship and financial literacy.</p>
+                                    <p>We pursue this mission by meeting learners where they are, building supportive relationships, and connecting them to clear pathways in school, work, and life.</p>
                                 </div>
                                 <div class="offerings">
                                     <h3>Our Offerings</h3>
                                     <p>Life Prep Academy offers various services that help to drive our mission. If you are interested in any of the services listed below, feel free to reach out to us via email at info@lifeprepacademyfoundation.com or by using the form included in the Contact Us section of this site.<br>We look forward to working with you!</p>
+                                    <ul class="offerings-list">
+                                        <li>Interactive workshops and school assemblies</li>
+                                        <li>Small‑group coaching and mentorship circles</li>
+                                        <li>Team clinics and athletic development sessions</li>
+                                        <li>Family nights and community engagement events</li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -140,23 +169,23 @@
                     <div class="programs-grid">
                         <article class="program-card">
                             <h3>Mental Health Resources</h3>
-                            <p>Spreading awareness about the importance of mental health is a top priority of Life Prep Academy. We partner with local and national health organizations to facilitate workshops and provide resources, so that people within the community are empowered and encourage to prioritize their mental health as well.</p>
-                            <a href="#contact" class="btn btn-outline">Learn More</a>
+                            <p>Spreading awareness about the importance of mental health is a top priority of Life Prep Academy. We partner with local and national health organizations to facilitate workshops and provide resources, so that people within the community are empowered and encourage to prioritize their mental health as well. Sessions include coping strategies, stress management, and how to access local support—reducing stigma and building resilience.</p>
+                            <a href="#contact" class="btn btn-outline" aria-label="Learn more about Mental Health Resources">Learn more about Mental Health Resources</a>
                         </article>
                         <article class="program-card">
                             <h3>Athletic Training</h3>
-                            <p>Life Prep Academy offers individual and team athletic training for ages 8-18 in Baltimore City and surrounding areas.</p>
-                            <a href="#contact" class="btn btn-outline">Learn More</a>
+                            <p>Life Prep Academy offers individual and team athletic training for ages 8-18 in Baltimore City and surrounding areas. Programming blends fundamentals, speed and strength training, and character‑building that translates beyond the field.</p>
+                            <a href="#contact" class="btn btn-outline" aria-label="Learn more about Athletic Training">Learn more about Athletic Training</a>
                         </article>
                         <article class="program-card">
                             <h3>Financial Literacy Workshops</h3>
-                            <p>We’ve partnered with financial advisors to facilitate workshops to empower members of our community to make informed financial decisions, navigate financial traumas and to take control of their financial well-being.</p>
-                            <a href="#contact" class="btn btn-outline">Learn More</a>
+                            <p>We’ve partnered with financial advisors to facilitate workshops to empower members of our community to make informed financial decisions, navigate financial traumas and to take control of their financial well-being. Participants leave with a simple action plan and tools they can use right away to build long‑term stability.</p>
+                            <a href="#contact" class="btn btn-outline" aria-label="Learn more about Financial Literacy Workshops">Learn more about Financial Literacy Workshops</a>
                         </article>
                         <article class="program-card">
                             <h3>Youth and Community Advancement Opportunities</h3>
-                            <p>It is important that we make ourselves accessible to Baltimore City’s Youth and use our resources to aid in their advancement. Life Prep Academy welcomes all requests for community outreach and mentorship opportunities.</p>
-                            <a href="#contact" class="btn btn-outline">Learn More</a>
+                            <p>It is important that we make ourselves accessible to Baltimore City’s Youth and use our resources to aid in their advancement. Life Prep Academy welcomes all requests for community outreach and mentorship opportunities. We connect youth to mentorship, leadership opportunities, community projects, and next‑step pathways in education and careers.</p>
+                            <a href="#contact" class="btn btn-outline" aria-label="Learn more about Youth and Community Advancement">Learn more about Youth & Community Advancement</a>
                         </article>
                     </div>
                 </div>
@@ -167,21 +196,21 @@
                     <h2>Events</h2>
                     
                     <!-- Event Selection Tabs -->
-                    <div class="event-tabs">
-                        <button class="event-tab active" data-event="mmhe">Men's Mental Health Expo</button>
-                        <button class="event-tab" data-event="discpan">Discussion Panel</button>
-                        <button class="event-tab" data-event="erf">Ed Reed Foundation</button>
+                    <div class="event-tabs" role="tablist" aria-label="Event galleries">
+                        <button id="mmhe-tab" class="event-tab active" role="tab" aria-selected="true" aria-controls="mmhe-content" data-event="mmhe">Men's Mental Health Expo</button>
+                        <button id="discpan-tab" class="event-tab" role="tab" aria-selected="false" aria-controls="discpan-content" data-event="discpan">Discussion Panel</button>
+                        <button id="erf-tab" class="event-tab" role="tab" aria-selected="false" aria-controls="erf-content" data-event="erf">Ed Reed Foundation</button>
                     </div>
                     
                     <!-- Event Content -->
                     <div class="event-content">
                         <!-- Men's Mental Health Expo -->
-                        <div class="event-details active" id="mmhe-content">
+                        <div class="event-details active" id="mmhe-content" role="tabpanel" aria-labelledby="mmhe-tab">
                             <div class="event-info-header">
                                 <h3>Men's Mental Health Expo</h3>
                                 <p class="event-description">
                                     A comprehensive expo focused on men's mental health awareness, featuring workshops, 
-                                    panel discussions, and resources to support mental wellness in our community.
+                                    panel discussions, and resources to support mental wellness in our community. Expect expert‑led sessions, lived experiences, and actionable resources you can use and share.
                                 </p>
                             </div>
                             <div class="event-gallery" id="mmhe-gallery">
@@ -203,12 +232,12 @@
                         </div>
                         
                         <!-- Discussion Panel -->
-                        <div class="event-details" id="discpan-content">
+                        <div class="event-details" id="discpan-content" role="tabpanel" aria-labelledby="discpan-tab" hidden>
                             <div class="event-info-header">
                                 <h3>Discussion Panel</h3>
                                 <p class="event-description">
                                     Interactive panel discussions bringing together community leaders, educators, 
-                                    and participants to share insights and drive meaningful conversations about education and development.
+                                    and participants to share insights and drive meaningful conversations about education and development. These conversations surface practical solutions, elevate youth voice, and strengthen support networks citywide.
                                 </p>
                             </div>
                             <div class="event-gallery" id="discpan-gallery">
@@ -230,12 +259,12 @@
                         </div>
                         
                         <!-- Ed Reed Foundation -->
-                        <div class="event-details" id="erf-content">
+                        <div class="event-details" id="erf-content" role="tabpanel" aria-labelledby="erf-tab" hidden>
                             <div class="event-info-header">
                                 <h3>Ed Reed Foundation</h3>
                                 <p class="event-description">
                                     Partnership events and initiatives with the Ed Reed Foundation, focusing on 
-                                    youth development, education, and community empowerment programs.
+                                    youth development, education, and community empowerment programs. Together, we expand access to positive experiences and success‑ready skills for Baltimore youth.
                                 </p>
                             </div>
                             <div class="event-gallery" id="erf-gallery">
@@ -260,7 +289,7 @@
                     <!-- Coming Soon Events -->
                     <div class="coming-soon-section">
                         <h3>More Events Coming Soon!!!</h3>
-                        <p class="coming-soon-intro">We're working on exciting new events and initiatives! Stay connected to be the first to know:</p>
+                        <p class="coming-soon-intro">We're working on exciting new events and initiatives! Stay connected to be the first to know: Check back often and follow us on social to be first to know.</p>
                         
                         <div class="upcoming-events">
                             <div class="upcoming-event">
@@ -322,6 +351,17 @@
                 </div>
             </section> -->
 
+            <section id="donate" class="donate-section">
+                <div class="container">
+                    <h2>Donate</h2>
+                    <p class="donate-intro">Your gift fuels mental wellness, athletic development, financial literacy, and youth leadership across Baltimore. Give securely by card or PayPal.</p>
+                    <button id="donate-btn" class="btn btn-primary" aria-haspopup="dialog" aria-controls="donate-modal" data-stripe-link="#" data-paypal-link="#">
+                        Donate securely
+                    </button>
+                    <p class="donate-secure">Secured by Stripe and PayPal</p>
+                </div>
+            </section>
+
             <section id="contact" class="contact-section">
                 <div class="container">
                     <h2>Get Involved</h2>
@@ -335,14 +375,15 @@
                             </address>
                             <div class="social-links">
                                 <h4>Follow Us</h4>
-                                <a href="#" aria-label="Facebook"><img class="social-icon" src="photos/SocialIcons/facebook.png" alt="Facebook" width="20" height="20"> Facebook</a>
-                                <a href="#" aria-label="Twitter/X"><img class="social-icon" src="photos/SocialIcons/XSocialIcon.png" alt="Twitter/X" width="20" height="20"> Twitter</a>
-                                <a href="#" aria-label="Instagram"><img class="social-icon" src="photos/SocialIcons/IGicon.jpg" alt="Instagram" width="20" height="20"> Instagram</a>
-                                <a href="#" aria-label="LinkedIn"><img class="social-icon" src="photos/SocialIcons/linkedin.png" alt="LinkedIn" width="20" height="20"> LinkedIn</a>
+                                <a href="#" aria-label="Facebook" target="_blank" rel="me noopener noreferrer"><img class="social-icon" src="photos/SocialIcons/facebook.png" alt="Facebook" width="20" height="20"> Facebook</a>
+                                <a href="#" aria-label="Twitter/X" target="_blank" rel="me noopener noreferrer"><img class="social-icon" src="photos/SocialIcons/XSocialIcon.png" alt="Twitter/X" width="20" height="20"> Twitter</a>
+                                <a href="#" aria-label="Instagram" target="_blank" rel="me noopener noreferrer"><img class="social-icon" src="photos/SocialIcons/IGicon.jpg" alt="Instagram" width="20" height="20"> Instagram</a>
+                                <a href="#" aria-label="LinkedIn" target="_blank" rel="me noopener noreferrer"><img class="social-icon" src="photos/SocialIcons/linkedin.png" alt="LinkedIn" width="20" height="20"> LinkedIn</a>
                             </div>
                         </div>
-                        <form class="contact-form" action="#" method="POST">
+                        <form class="contact-form" action="#" method="POST" aria-describedby="contact-form-status">
                             <h3>Send us a Message</h3>
+                            <div id="contact-form-status" class="visually-hidden" aria-live="polite"></div>
                             <div class="form-group">
                                 <label for="name">Full Name *</label>
                                 <input type="text" id="name" name="name" required>
@@ -403,43 +444,30 @@
             </div>
         </footer>
 
-        <script src="script.js" defer></script>
+    <script src="script.js" defer></script>
         
-        <!-- Debug Script -->
-        <script>
-            console.log('🔧 DEBUG: Page loading started');
-            console.log('Current URL:', window.location.href);
-            console.log('Protocol:', window.location.protocol);
-            
-            window.addEventListener('DOMContentLoaded', function() {
-                console.log('✅ DOM Content Loaded');
-                
-                // Check if images are loading
-                const images = document.querySelectorAll('img');
-                console.log('Found', images.length, 'images');
-                
-                // Check if CSS is loaded
-                const computed = window.getComputedStyle(document.body);
-                console.log('Body font family:', computed.fontFamily);
-                
-                // Monitor for any errors
-                setTimeout(() => {
-                    console.log('🔍 Page status after 2 seconds:');
-                    console.log('- Document ready state:', document.readyState);
-                    console.log('- Images loaded:', document.querySelectorAll('img[src]').length);
-                    console.log('- Stylesheets:', document.querySelectorAll('link[rel="stylesheet"]').length);
-                }, 2000);
-            });
-            
-            window.addEventListener('load', function() {
-                console.log('✅ Window fully loaded');
-            });
-            
-            window.addEventListener('error', function(e) {
-                console.error('🚨 Error detected:', e.error);
-                console.error('File:', e.filename, 'Line:', e.lineno);
-            });
-        </script>
+        <!-- Donate Modal -->
+        <div id="donate-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="donate-title" aria-hidden="true">
+            <div class="modal-overlay" data-close-modal></div>
+            <div class="modal-content" role="document">
+                <button class="modal-close" aria-label="Close donate dialog" data-close-modal>&times;</button>
+                <h2 id="donate-title">Donate</h2>
+                <p class="modal-lead">Choose a payment method below. You’ll complete your donation on our trusted provider’s checkout.</p>
+                <div class="donate-options">
+                    <div class="option-card">
+                        <h3 class="option-title">Card via <span class="badge badge-stripe">Stripe</span></h3>
+                        <p class="option-desc">Donate with any major debit/credit card. Fast, secure, and encrypted.</p>
+                        <button class="btn btn-stripe" id="donate-stripe">Donate with Card</button>
+                    </div>
+                    <div class="option-card">
+                        <h3 class="option-title">Pay with <span class="badge badge-paypal">PayPal</span></h3>
+                        <p class="option-desc">Use your PayPal balance or linked payment methods. No account needed for most cards.</p>
+                        <button class="btn btn-paypal" id="donate-paypal">Donate with PayPal</button>
+                    </div>
+                </div>
+                <p class="donate-trust">🔒 Your donation is protected with industry‑standard encryption. We never store your payment details.</p>
+            </div>
+        </div>
     </div>
 </body>
 </html>

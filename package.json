@@ -5,11 +5,16 @@
   "main": "optimize-images.js",
   "scripts": {
     "optimize": "node optimize-images.js",
-    "serve": "npx http-server -p 3000"
+  "serve": "npx http-server -p 3000",
+  "build:css": "npx csso style.css -o style.min.css",
+  "build:js": "npx terser script.js -o script.min.js --compress --mangle",
+  "build": "npm run build:css && npm run build:js"
   },
   "devDependencies": {
-    "sharp": "^0.32.6",
-    "http-server": "^14.1.1"
+  "sharp": "^0.32.6",
+  "http-server": "^14.1.1",
+  "csso": "^5.0.5",
+  "terser": "^5.31.0"
   },
   "keywords": ["image-optimization", "performance", "web"],
   "author": "Lifeprep Academy Foundation",
