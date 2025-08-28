@@ -143,6 +143,22 @@ nav {
     position: relative; /* anchor mobile dropdown */
 }
 
+/* Brand cluster (logo + title) */
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.site-title {
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    white-space: nowrap;
+}
+
 .logo img {
     height: 100px;
     width: auto;
@@ -1284,6 +1300,11 @@ footer {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    /* Reduce logo size by ~30% on mobile */
+    .logo img { height: 70px; }
+    /* Allow title to wrap under logo if space is tight */
+    .brand { gap: 0.5rem; align-items: center; }
+    .site-title { white-space: normal; line-height: 1.2; }
     .container {
         padding: 0 1rem;
     }
