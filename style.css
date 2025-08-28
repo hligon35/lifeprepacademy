@@ -293,14 +293,14 @@ section:nth-child(even) {
     align-items: start;
 }
 
-.mission-vision {
+.mission-offerings {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 2rem;
     margin-top: 2rem;
 }
 
-.mission, .vision {
+.mission, .offerings {
     background-color: var(--background-white);
     padding: 2rem;
     border-radius: var(--border-radius);
@@ -1206,7 +1206,7 @@ footer {
         gap: 2rem;
     }
     
-    .mission-vision {
+    .mission-offerings {
         grid-template-columns: 1fr;
         gap: 1.5rem;
     }
