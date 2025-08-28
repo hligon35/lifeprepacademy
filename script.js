@@ -697,6 +697,7 @@ function initEventPhotos() {
     // Define photo collections for each event using optimized medium-sized images
     window.eventPhotos = {
         mmhe: [
+            // All medium webp images in mmhe
             'photos/mmhe/IMG_3799_medium.webp',
             'photos/mmhe/IMG_3800_medium.webp',
             'photos/mmhe/IMG_3803_medium.webp',
@@ -753,15 +754,8 @@ function initEventPhotos() {
             'photos/mmhe/IMG_3967_medium.webp'
         ],
         discpan: [
+            // All medium webp images in discpan
             'photos/discpan/1-_DSC1395_medium.webp',
-            'photos/discpan/2-_DSC1397_medium.webp',
-            'photos/discpan/3-_DSC1398_medium.webp',
-            'photos/discpan/4-_DSC1400_medium.webp',
-            'photos/discpan/5-_DSC1401_medium.webp',
-            'photos/discpan/6-_DSC1404_medium.webp',
-            'photos/discpan/7-_DSC1405_medium.webp',
-            'photos/discpan/8-_DSC1413_medium.webp',
-            'photos/discpan/9-_DSC1415_medium.webp',
             'photos/discpan/10-_DSC1416_medium.webp',
             'photos/discpan/11-_DSC1418_medium.webp',
             'photos/discpan/12-_DSC1421_medium.webp',
@@ -772,6 +766,7 @@ function initEventPhotos() {
             'photos/discpan/17-_DSC1433_medium.webp',
             'photos/discpan/18-_DSC1435_medium.webp',
             'photos/discpan/19-_DSC1438_medium.webp',
+            'photos/discpan/2-_DSC1397_medium.webp',
             'photos/discpan/20-_DSC1444_medium.webp',
             'photos/discpan/21-_DSC1446_medium.webp',
             'photos/discpan/22-_DSC1457_medium.webp',
@@ -780,9 +775,18 @@ function initEventPhotos() {
             'photos/discpan/25-_DSC1474_medium.webp',
             'photos/discpan/26-_DSC1481_medium.webp',
             'photos/discpan/27-_DSC1493_medium.webp',
-            'photos/discpan/28-_DSC1496_medium.webp'
+            'photos/discpan/28-_DSC1496_medium.webp',
+            'photos/discpan/3-_DSC1398_medium.webp',
+            'photos/discpan/4-_DSC1400_medium.webp',
+            'photos/discpan/5-_DSC1401_medium.webp',
+            'photos/discpan/6-_DSC1404_medium.webp',
+            'photos/discpan/7-_DSC1405_medium.webp',
+            'photos/discpan/8-_DSC1413_medium.webp',
+            'photos/discpan/9-_DSC1415_medium.webp'
         ],
         erf: [
+            // All medium webp images in erf
+            'photos/erf/FullSizeRender_medium.webp',
             'photos/erf/FullSizeRender_medium.webp',
             'photos/erf/IMG_0883%202_medium.webp',
             'photos/erf/IMG_0883_medium.webp',
@@ -958,42 +962,46 @@ function loadGalleryPage(eventType, pageNumber) {
             galleryItem.className = 'gallery-item';
             galleryItem.dataset.eventType = eventType;
             galleryItem.dataset.photoIndex = actualIndex;
-            
-            // Create picture element with WebP and JPEG fallback
+
+            // Use thumbnail for display, but open medium in modal
+            const thumbUrl = photoUrl.replace('_medium.webp', '_thumbnail.webp');
+            const thumbJpegUrl = photoUrl.replace('_medium.webp', '_thumbnail.jpeg');
+
+            // Create picture element with WebP and JPEG fallback for thumbnail
             const picture = document.createElement('picture');
-            
-            // WebP source
+
+            // WebP source (thumbnail)
             const webpSource = document.createElement('source');
-            webpSource.srcset = photoUrl;
+            webpSource.srcset = thumbUrl;
             webpSource.type = 'image/webp';
-            
-            // JPEG fallback
+
+            // JPEG fallback (thumbnail)
             const jpegSource = document.createElement('source');
-            const jpegUrl = photoUrl.replace('_medium.webp', '_medium.jpeg');
-            jpegSource.srcset = jpegUrl;
+            jpegSource.srcset = thumbJpegUrl;
             jpegSource.type = 'image/jpeg';
-            
-            // Main img element (fallback)
+
+            // Main img element (fallback, thumbnail)
             const img = document.createElement('img');
-            img.src = jpegUrl; // Use JPEG as ultimate fallback
+            img.src = thumbJpegUrl;
             img.alt = `${getEventName(eventType)} - Photo ${actualIndex + 1}`;
             img.loading = 'lazy';
-            
+            img.decoding = 'async';
+
             // Append sources to picture
             picture.appendChild(webpSource);
             picture.appendChild(jpegSource);
             picture.appendChild(img);
-            
+
             // Create overlay for styling
             const overlay = document.createElement('div');
             overlay.className = 'gallery-overlay';
-            
+
             const caption = document.createElement('div');
             caption.className = 'gallery-caption';
             caption.textContent = `Photo ${actualIndex + 1}`;
-            
+
             overlay.appendChild(caption);
-            
+
             img.addEventListener('error', function() {
                 galleryItem.innerHTML = `
                     <div class="gallery-placeholder">
@@ -1005,17 +1013,19 @@ function loadGalleryPage(eventType, pageNumber) {
                 `;
                 galleryItem.classList.add('placeholder');
             });
-            
+
             img.addEventListener('load', function() {
+                // Mark as loaded so CSS fades it in
+                img.classList.add('loaded');
                 galleryItem.addEventListener('click', function() {
                     openImageModal(photoUrl, img.alt, eventType, actualIndex);
                 });
             });
-            
+
             galleryItem.appendChild(picture);
             galleryItem.appendChild(overlay);
             galleryContainer.appendChild(galleryItem);
-            
+
             // Add entrance animation
             galleryItem.classList.add('loading');
             setTimeout(() => {
@@ -1024,7 +1034,10 @@ function loadGalleryPage(eventType, pageNumber) {
             }, index * 50);
         });
         
-        // Remove transition effect and add loaded state
+    // Re-attach lazy loading to any new images just added
+    initLazyLoading();
+
+    // Remove transition effect and add loaded state
         galleryContainer.classList.remove('page-transition');
         galleryContainer.classList.add('page-loaded');
         

@@ -739,7 +739,9 @@ img[loading="lazy"].loaded {
 }
 
 .social-links a {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     margin-right: 1rem;
     color: var(--accent-color);
     text-decoration: none;
@@ -760,6 +762,9 @@ img[loading="lazy"].loaded {
 }
 
 .social-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     color: var(--accent-color);
     text-decoration: none;
     font-weight: 500;
@@ -773,6 +778,14 @@ img[loading="lazy"].loaded {
     background-color: var(--accent-color);
     color: white;
     transform: translateY(-2px);
+}
+
+/* Social icon images */
+.social-icon {
+    display: block;
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
 }
 
 /* Contact Form */
@@ -970,6 +983,13 @@ footer {
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 2rem;
     margin-bottom: 2rem;
+    /* Ensure sections align from the top and don't stretch unevenly */
+    align-items: start;
+}
+
+.footer-section {
+    /* Align footer headers with their content (override container's center) */
+    text-align: left;
 }
 
 .footer-section h4 {
@@ -985,6 +1005,9 @@ footer {
 
 .footer-section ul {
     list-style: none;
+    /* Remove default left padding so content lines up with headers */
+    padding-left: 0;
+    margin: 0;
 }
 
 .footer-section ul li {
