@@ -1300,8 +1300,8 @@ footer {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    /* Reduce logo size by ~30% on mobile */
-    .logo img { height: 70px; }
+    /* Reduce logo size by ~20% on mobile */
+    .logo img { height: 80px; }
     /* Allow title to wrap under logo if space is tight */
     .brand { gap: 0.5rem; align-items: center; }
     .site-title { white-space: normal; line-height: 1.2; }
