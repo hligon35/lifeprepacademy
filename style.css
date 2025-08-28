@@ -319,7 +319,8 @@ section:nth-child(even) {
 
 .mission-offerings, .mission-vision {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* Use minmax(0,1fr) to allow tracks to shrink and avoid overflow */
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 2rem;
     margin-top: 2rem;
 }
@@ -333,7 +334,7 @@ section:nth-child(even) {
 
 .stats {
     display: grid; /* one row across */
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1.5rem;
 }
 
@@ -1294,9 +1295,10 @@ footer {
         gap: 2rem;
     }
     
-    .mission-offerings {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
+    .mission-offerings,
+    .mission-vision {
+        grid-template-columns: 1fr; /* stack on mobile */
+        gap: 1.25rem;
     }
     
     .programs-grid {
@@ -1309,6 +1311,10 @@ footer {
         grid-template-columns: 1fr; /* Stack on small screens */
         gap: 1rem;
     }
+
+    /* Ensure cards don't force overflow on narrow screens */
+    .mission, .offerings, .stat-item { min-width: 0; overflow-wrap: break-word; }
+    .about-content { overflow-x: clip; }
     
     .upcoming-events {
         grid-template-columns: 1fr;
