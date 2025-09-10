@@ -381,12 +381,12 @@
                             <div class="social-links">
                                 <h4>Follow Us</h4>
                                 <a href="#" aria-label="Facebook" target="_blank" rel="me noopener noreferrer"><img class="social-icon" src="photos/SocialIcons/facebook.png" alt="Facebook" width="20" height="20"> Facebook</a>
-                                <a href="#" aria-label="Twitter/X" target="_blank" rel="me noopener noreferrer"><img class="social-icon" src="photos/SocialIcons/XSocialIcon.png" alt="Twitter/X" width="20" height="20"> Twitter</a>
+                                <!-- <a href="#" aria-label="Twitter/X" target="_blank" rel="me noopener noreferrer"><img class="social-icon" src="photos/SocialIcons/XSocialIcon.png" alt="Twitter/X" width="20" height="20"> Twitter</a> -->
                                 <a href="#" aria-label="Instagram" target="_blank" rel="me noopener noreferrer"><img class="social-icon" src="photos/SocialIcons/IGicon.jpg" alt="Instagram" width="20" height="20"> Instagram</a>
-                                <a href="#" aria-label="LinkedIn" target="_blank" rel="me noopener noreferrer"><img class="social-icon" src="photos/SocialIcons/linkedin.png" alt="LinkedIn" width="20" height="20"> LinkedIn</a>
+                                <!-- <a href="#" aria-label="LinkedIn" target="_blank" rel="me noopener noreferrer"><img class="social-icon" src="photos/SocialIcons/linkedin.png" alt="LinkedIn" width="20" height="20"> LinkedIn</a> -->
                             </div>
                         </div>
-                        <form class="contact-form" action="#" method="POST" aria-describedby="contact-form-status">
+                        <form class="contact-form" id="contactForm" action="https://script.google.com/macros/s/AKfycbyezkiRnbcOS3tmEW-A4Z8MklJ19PAIlBuaAf2QNmiinnEIbaCuDLKG_pvleCl85fxh/exec" method="POST" aria-describedby="contact-form-status">
                             <h3>Send us a Message</h3>
                             <div id="contact-form-status" class="visually-hidden" aria-live="polite"></div>
                             <div class="form-group">
@@ -406,7 +406,35 @@
                                 <textarea id="message" name="message" rows="5" required></textarea>
                             </div>
                             <button type="submit" class="btn btn-primary">Send Message</button>
-                        </form>
+                                                </form>
+                                                <script>
+                                                // Replace 'YOUR_GOOGLE_APPS_SCRIPT_URL' with your deployed Apps Script Web App URL
+                                                document.addEventListener('DOMContentLoaded', function() {
+                                                    const form = document.getElementById('contactForm');
+                                                    const statusDiv = document.getElementById('contact-form-status');
+                                                    form.addEventListener('submit', function(e) {
+                                                        e.preventDefault();
+                                                        statusDiv.textContent = '';
+                                                        statusDiv.classList.remove('error');
+                                                        const formData = new FormData(form);
+                                                        fetch(form.action, {
+                                                            method: 'POST',
+                                                            mode: 'no-cors',
+                                                            body: formData
+                                                        })
+                                                        .then(() => {
+                                                            statusDiv.textContent = 'Thank you! Your message has been sent.';
+                                                            statusDiv.classList.remove('visually-hidden');
+                                                            form.reset();
+                                                        })
+                                                        .catch(() => {
+                                                            statusDiv.textContent = 'Sorry, there was an error sending your message.';
+                                                            statusDiv.classList.remove('visually-hidden');
+                                                            statusDiv.classList.add('error');
+                                                        });
+                                                    });
+                                                });
+                                                </script>
                     </div>
                 </div>
             </section>
