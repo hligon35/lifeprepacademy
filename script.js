@@ -794,8 +794,6 @@ function initEventPhotos() {
     window.eventPhotos = {
         mmhe: [
             // All medium webp images in mmhe
-            'photos/mmhe/IMG_3799_medium.webp',
-            'photos/mmhe/IMG_3800_medium.webp',
             'photos/mmhe/IMG_3803_medium.webp',
             'photos/mmhe/IMG_3804_medium.webp',
             'photos/mmhe/IMG_3808_medium.webp',
