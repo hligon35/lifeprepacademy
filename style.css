@@ -847,6 +847,38 @@ img[loading="lazy"].loaded {
     box-shadow: var(--shadow);
 }
 
+/* Sponsor/Vendor form styled like contact form */
+.sponsor-vendor-form {
+    background-color: var(--background-white);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    max-width: 700px;
+    margin: 1.5rem auto;
+    text-align: left;
+}
+
+/* Compact two-column layout to reduce height */
+.sponsor-vendor-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem 1.25rem; /* rows x columns */
+}
+.sponsor-vendor-form .form-group {
+    margin-bottom: 0; /* handled by grid gap */
+}
+.sponsor-vendor-form .form-group label { margin-bottom: 0.35rem; }
+
+/* Make last row (select) span both columns on desktop for balance */
+.sponsor-vendor-form #sv-inquiry { width: 100%; }
+/* Make the form-group that contains the select span both columns */
+.sponsor-vendor-form .form-group:has(#sv-inquiry) { grid-column: 1 / -1; }
+
+/* Stack to single column on small screens */
+@media (max-width: 640px) {
+  .sponsor-vendor-form { grid-template-columns: 1fr; }
+}
+
 .contact-form h3 {
     color: var(--primary-color);
     margin-bottom: 1.5rem;
@@ -865,6 +897,7 @@ img[loading="lazy"].loaded {
 }
 
 .form-group input,
+.form-group select,
 .form-group textarea {
     width: 100%;
     padding: 0.75rem;
@@ -876,6 +909,7 @@ img[loading="lazy"].loaded {
 }
 
 .form-group input:focus,
+.form-group select:focus,
 .form-group textarea:focus {
     outline: none;
     border-color: var(--accent-color);
@@ -904,36 +938,6 @@ img[loading="lazy"].loaded {
 .donate-intro { margin: 0.5rem auto 1.5rem; max-width: 700px; }
 .donate-secure { color: #64748b; font-size: .9rem; margin-top: .75rem; }
 
-/* Donate Modal */
-#donate-modal[aria-hidden="true"] { display: none; }
-#donate-modal[aria-hidden="false"] { display: block; }
-#donate-modal .modal-overlay {
-    position: fixed; inset: 0; background: rgba(15, 23, 42, .6); z-index: 1000;
-}
-#donate-modal .modal-content {
-    position: fixed; inset: 50% auto auto 50%; transform: translate(-50%, -50%);
-    width: min(92vw, 560px); max-height: 90vh; overflow: auto; background: #fff; border-radius: 12px; padding: 1.25rem 1.25rem 1.5rem;
-    box-shadow: 0 10px 30px rgba(0,0,0,.18); z-index: 1001;
-    display: flex; flex-direction: column;
-}
-#donate-modal .modal-close {
-    position: absolute; top: .5rem; right: .75rem; font-size: 1.75rem; line-height: 1; background: transparent; border: 0; cursor: pointer;
-}
-.modal-lead { margin-top: .25rem; margin-bottom: 1rem; color: #475569; text-align: left; }
-.donate-options { display: grid; grid-template-columns: 1fr; gap: 1rem; margin: 1rem 0 0; align-items: stretch; width: 100%; }
-.option-card { border: 1px solid var(--border-color); border-radius: 10px; padding: 1rem; text-align: left; background: var(--background-white); box-shadow: 0 1px 2px rgba(0,0,0,.04); display: flex; flex-direction: column; min-width: 0; gap: .75rem; }
-.option-title { font-size: 1.1rem; margin: 0 0 .25rem; text-align: left; }
-.option-desc { margin: 0; color: var(--text-light); }
-.option-card .btn { width: 100%; white-space: nowrap; word-break: normal; overflow-wrap: normal; margin-top: auto; display: block; min-height: 44px; }
-.option-desc { overflow-wrap: anywhere; }
-.donate-trust { margin-top: 1rem; color: #475569; }
-.badge { display: inline-block; padding: .15rem .4rem; border-radius: 999px; font-size: .8rem; vertical-align: baseline; }
-.badge-stripe { background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; }
-.badge-paypal { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-.btn-stripe { background: #635bff; color: #fff; }
-.btn-paypal { background: #ffc439; color: #111827; }
-.btn-stripe:hover { background: #4b46df; }
-.btn-paypal:hover { background: #e0ad32; }
 
 .impact-content {
     display: grid;
@@ -1421,20 +1425,7 @@ footer {
     }
 }
 
-/* Responsive: two columns on wider screens, one column on small screens */
-@media (min-width: 640px) {
-    #donate-modal .donate-options { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.25rem; align-items: stretch; }
-}
-
-@media (max-width: 767.98px) {
-    /* Force single column on small screens */
-    #donate-modal .donate-options { grid-template-columns: 1fr !important; }
-}
-
-/* Remove decorative underline on modal title only */
-#donate-modal h2::after { display: none; }
-#donate-modal h2 { text-align: left; }
-#donate-modal p { word-break: normal; overflow-wrap: normal; }
+/* Donate Modal removed; styles cleaned up */
 
 /* Widen About section container slightly for better aesthetics */
 .about-section .container {

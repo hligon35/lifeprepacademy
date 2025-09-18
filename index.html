@@ -48,7 +48,7 @@
             .skip-link{position:absolute;left:-9999px;top:auto;background:#fff;color:#000;padding:.5rem .75rem;border-radius:4px;box-shadow:0 2px 15px rgba(0,0,0,.1);z-index:1000}
             .skip-link:focus{left:1rem;top:1rem}
             header{background:linear-gradient(135deg,#281156,#3d1a78);color:#fff;padding:1rem 0;position:sticky;top:0;z-index:100;box-shadow:0 2px 15px rgba(0,0,0,.1)}
-            nav{display:flex;justify-content:space-between;align-items:center;max-width:1200px;margin:0 auto;padding:0 2rem}
+            nav{display:flex;justify-content:space-between;align-items:center;max-width:1200px;margin:0 auto;padding:0 1rem}
             .logo img{height:100px;width:auto;background-color:rgba(255,255,255,.4);padding:8px 12px;border-radius:8px}
             #primary-nav{list-style:none;gap:2rem}
             #primary-nav a{color:#fff;text-decoration:none;font-weight:500;padding:.5rem 1rem;border-radius:8px}
@@ -97,7 +97,7 @@
                         <img src="logo.png" alt="Lifeprep Academy Foundation Logo">
                     </div>
                     <a href="#home" class="site-title" aria-label="Lifeprep Academy Foundation home">
-                        Lifeprep Academy Foundation
+                        Lifeprep Academy<br>   Foundation
                     </a>
                 </div>
                 <ul id="primary-nav">
@@ -106,7 +106,7 @@
                     <li><a href="#programs" aria-label="Go to Programs section">Programs</a></li>
                     <li><a href="#events" aria-label="Go to Events section">Events</a></li>
                     <li><a href="#impact" aria-label="Go to Impact section">Impact</a></li>
-                    <li><a href="#donate" aria-label="Go to Donate section">Donate</a></li>
+                    <li><a href="https://give.cornerstone.cc/lifeprepacademyfnd" target="_blank" rel="noopener noreferrer" aria-label="Donate (opens in new tab)">Donate</a></li>
                     <li><a href="#contact" aria-label="Go to Contact section">Contact</a></li>
                 </ul>
                 <button class="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-controls="primary-nav" aria-expanded="false">☰</button>
@@ -121,7 +121,7 @@
                     <div class="cta-buttons">
                         <a href="#programs" class="btn btn-hero">Explore Programs</a>
                         <a href="#contact" class="btn btn-hero">Get Involved</a>
-                        <a href="#donate" class="btn btn-hero">Donate</a>
+                        <a href="https://give.cornerstone.cc/lifeprepacademyfnd" class="btn btn-hero" target="_blank" rel="noopener noreferrer">Donate</a>
                     </div>
                 </div>
                 <img src="groupPhoto.avif" alt="Lifeprep Academy Foundation community group photo showing diverse participants in educational programs" class="hero-image" width="1920" height="1080" fetchpriority="high" decoding="async">
@@ -267,8 +267,37 @@
                     <!-- Coming Soon Events -->
                     <div class="coming-soon-section">
                         <h3>More Events Coming Soon!!!</h3>
-                        <p class="coming-soon-intro">We're working on exciting new events and initiatives! Stay connected to be the first to know: Check back often and follow us on social to be first to know.</p>
-                        
+                        <p class="coming-soon-intro"><b>Men's Mental Health Awareness Weekend 2.0 Loading...</b></p>
+                        <p> Looking to be a Sponsor or Vendor? For more information, fill out form below.</p>
+
+                        <form class="sponsor-vendor-form" action="#contact" method="post" aria-label="Sponsor or Vendor Inquiry Form">
+                            <div class="form-group">
+                                <label for="sv-company">Company Name:</label>
+                                <input type="text" id="sv-company" name="name" required aria-required="true" autocomplete="organization">
+                            </div>
+                            <div class="form-group">
+                                <label for="sv-owner">Owner/Representative Name:</label>
+                                <input type="text" id="sv-owner" name="ownerName" required aria-required="true" autocomplete="name">
+                            </div>
+                            <div class="form-group">
+                                <label for="sv-email">Email:</label>
+                                <input type="email" id="sv-email" name="email" required aria-required="true" autocomplete="email">
+                            </div>
+                            <div class="form-group">
+                                <label for="sv-phone">Phone Number:</label>
+                                <input type="tel" id="sv-phone" name="phone" required aria-required="true" autocomplete="tel">
+                            </div>
+                            <div class="form-group">
+                                <label for="sv-inquiry">Inquiry Type:</label>
+                                <select id="sv-inquiry" name="inquiryType" required aria-required="true">
+                                    <option value="" disabled selected>Select an option</option>
+                                    <option value="sponsorship">Sponsorship</option>
+                                    <option value="vendor">Vendor</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </form>
+
                         <div class="upcoming-events">
                             <div class="upcoming-event">
                                 <h4>📚 Youth Leadership Summit</h4>
@@ -332,11 +361,10 @@
             <section id="donate" class="donate-section">
                 <div class="container">
                     <h2>Donate</h2>
-                    <p class="donate-intro">Your gift fuels mental wellness, athletic development, financial literacy, and youth leadership across Baltimore. Give securely by card or PayPal.</p>
-                    <button id="donate-btn" class="btn btn-primary" aria-haspopup="dialog" aria-controls="donate-modal" data-stripe-link="#" data-paypal-link="#">
+                    <p class="donate-intro">Your gift fuels mental wellness, athletic development, financial literacy, and youth leadership across Baltimore.</p>
+                    <a class="btn btn-primary" href="https://give.cornerstone.cc/lifeprepacademyfnd" target="_blank" rel="noopener noreferrer">
                         Donate securely
-                    </button>
-                    <p class="donate-secure">Secured by Stripe and PayPal</p>
+                    </a>
                 </div>
             </section>
 
@@ -437,10 +465,12 @@
                     <div class="footer-section">
                         <h4>Connect With Us</h4>
                         <div class="social-links">
-                            <a href="https://www.facebook.com/profile.php?id=61580380810980" aria-label="Facebook">Facebook</a>
-                            <!-- <a href="#" aria-label="Twitter">Twitter</a> -->
-                            <a href="https://www.instagram.com/lpa_foundation/" aria-label="Instagram">Instagram</a>
-                            <!-- <a href="#" aria-label="LinkedIn">LinkedIn</a> -->
+                            <a href="https://www.facebook.com/profile.php?id=61580380810980" aria-label="Facebook" target="_blank" rel="me noopener noreferrer">
+                                <img class="social-icon" src="photos/SocialIcons/facebook.png" alt="Facebook" width="20" height="20"> Facebook
+                            </a>
+                            <a href="https://www.instagram.com/lpa_foundation/" aria-label="Instagram" target="_blank" rel="me noopener noreferrer">
+                                <img class="social-icon" src="photos/SocialIcons/IGicon.jpg" alt="Instagram" width="20" height="20"> Instagram
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -452,28 +482,6 @@
 
     <script src="script.js" defer></script>
         
-        <!-- Donate Modal -->
-        <div id="donate-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="donate-title" aria-hidden="true">
-            <div class="modal-overlay" data-close-modal></div>
-            <div class="modal-content" role="document">
-                <button class="modal-close" aria-label="Close donate dialog" data-close-modal>&times;</button>
-                <h2 id="donate-title">Donate</h2>
-                <p class="modal-lead">Choose a payment method below. You’ll complete your donation on our trusted provider’s checkout.</p>
-                <div class="donate-options">
-                    <div class="option-card">
-                        <h3 class="option-title">Card via <span class="badge badge-stripe">Stripe</span></h3>
-                        <p class="option-desc">Donate with any major debit/credit card. Fast, secure, and encrypted.</p>
-                        <button class="btn btn-stripe" id="donate-stripe">Donate with Card</button>
-                    </div>
-                    <div class="option-card">
-                        <h3 class="option-title">Pay with <span class="badge badge-paypal">PayPal</span></h3>
-                        <p class="option-desc">Use your PayPal balance or linked payment methods. No account needed for most cards.</p>
-                        <button class="btn btn-paypal" id="donate-paypal">Donate with PayPal</button>
-                    </div>
-                </div>
-                <p class="donate-trust">🔒 Your donation is protected with industry‑standard encryption. We never store your payment details.</p>
-            </div>
-        </div>
     </div>
 </body>
 </html>
