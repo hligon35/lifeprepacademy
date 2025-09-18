@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initLazyLoading();
     initAnalytics();
     initEventTabs();
-    initKeyboardNavigation();
+    // Removed initKeyboardNavigation (keyboard shortcuts disabled)
 });
 
 // Smooth scrolling for navigation links
@@ -80,15 +80,7 @@ function initMobileMenu() {
             }
         });
 
-        // Close on Escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && navMenu.classList.contains('active')) {
-                navMenu.classList.remove('active');
-                navMenu.setAttribute('aria-hidden', 'true');
-                mobileMenuToggle.setAttribute('aria-expanded', 'false');
-                mobileMenuToggle.focus();
-            }
-        });
+        // (Keyboard shortcut for closing via Escape removed)
 
         // Close on resize/orientation change to avoid stuck-open state
         window.addEventListener('resize', debounce(() => {
@@ -375,22 +367,7 @@ function initImageModal() {
         }
     });
 
-    // Keyboard navigation
-    document.addEventListener('keydown', function(e) {
-        if (modal.style.display === 'block') {
-            switch(e.key) {
-                case 'Escape':
-                    closeModal();
-                    break;
-                case 'ArrowLeft':
-                    prevBtn.click();
-                    break;
-                case 'ArrowRight':
-                    nextBtn.click();
-                    break;
-            }
-        }
-    });
+    // Removed keyboard navigation (Arrow/Escape) for modal per request
 }
 
 function createModal() {
@@ -756,31 +733,7 @@ function initEventTabs() {
             // Track tab click
             trackEvent('event_tab_click', 'events', eventType);
         });
-        // Keyboard navigation: Left/Right/Home/End for tabs
-        tab.addEventListener('keydown', function(e) {
-            const tabs = Array.from(eventTabs);
-            const currentIndex = tabs.indexOf(this);
-            let targetIndex = null;
-            switch (e.key) {
-                case 'ArrowRight':
-                    targetIndex = (currentIndex + 1) % tabs.length;
-                    break;
-                case 'ArrowLeft':
-                    targetIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-                    break;
-                case 'Home':
-                    targetIndex = 0;
-                    break;
-                case 'End':
-                    targetIndex = tabs.length - 1;
-                    break;
-            }
-            if (targetIndex !== null) {
-                e.preventDefault();
-                tabs[targetIndex].focus();
-                tabs[targetIndex].click();
-            }
-        });
+        // Removed keyboard navigation for tabs
     });
     
     // Default gallery is already loaded in the main initialization
@@ -978,8 +931,7 @@ function setupPaginationControls(eventType) {
     if (pagination.totalPages > 1) {
         paginationContainer.classList.remove('hidden');
         
-        // Add keyboard shortcuts info
-        addKeyboardShortcutsInfo(eventType);
+    // Removed keyboard shortcuts info injection
     }
     
     // Update page info
@@ -1008,25 +960,7 @@ function setupPaginationControls(eventType) {
     updatePaginationButtons(eventType);
 }
 
-function addKeyboardShortcutsInfo(eventType) {
-    const galleryContainer = document.querySelector(`#${eventType}-gallery`);
-    if (!galleryContainer) return;
-    
-    // Check if shortcuts info already exists
-    if (galleryContainer.querySelector('.gallery-shortcuts')) return;
-    
-    const shortcutsDiv = document.createElement('div');
-    shortcutsDiv.className = 'gallery-shortcuts';
-    shortcutsDiv.innerHTML = `
-        <strong>Keyboard shortcuts:</strong> 
-        <kbd>←</kbd> Previous page · 
-        <kbd>→</kbd> Next page · 
-        <kbd>Home</kbd> First page · 
-        <kbd>End</kbd> Last page
-    `;
-    
-    galleryContainer.appendChild(shortcutsDiv);
-}
+// Removed addKeyboardShortcutsInfo function (no longer needed)
 
 function loadGalleryPage(eventType, pageNumber) {
     const pagination = window.galleryPagination[eventType];
@@ -1232,21 +1166,7 @@ function initGalleryImageModal() {
         }
     });
     
-    document.addEventListener('keydown', function(e) {
-        if (modal.style.display === 'block') {
-            switch(e.key) {
-                case 'Escape':
-                    closeGalleryModal();
-                    break;
-                case 'ArrowLeft':
-                    showPreviousImage();
-                    break;
-                case 'ArrowRight':
-                    showNextImage();
-                    break;
-            }
-        }
-    });
+    // Removed keyboard event listeners for gallery modal
     
     function openImageModal(src, alt, eventType, index) {
         currentEvent = eventType;
@@ -1535,53 +1455,7 @@ function prefetchEventImages() {
 // Initial prefetch
 prefetchEventImages();
 
-// Keyboard navigation for gallery pagination
-function initKeyboardNavigation() {
-    document.addEventListener('keydown', function(e) {
-        // Only handle keyboard navigation when an event gallery is visible
-        const activeEventTab = document.querySelector('.event-tab.active');
-        if (!activeEventTab) return;
-        
-        const eventType = activeEventTab.dataset.event;
-        const pagination = window.galleryPagination && window.galleryPagination[eventType];
-        if (!pagination) return;
-        
-        // Left arrow or 'p' for previous page
-        if ((e.key === 'ArrowLeft' || e.key.toLowerCase() === 'p') && !e.ctrlKey && !e.shiftKey) {
-            e.preventDefault();
-            if (pagination.currentPage > 1) {
-                loadGalleryPage(eventType, pagination.currentPage - 1);
-            }
-        }
-        
-        // Right arrow or 'n' for next page
-        if ((e.key === 'ArrowRight' || e.key.toLowerCase() === 'n') && !e.ctrlKey && !e.shiftKey) {
-            e.preventDefault();
-            if (pagination.currentPage < pagination.totalPages) {
-                loadGalleryPage(eventType, pagination.currentPage + 1);
-            }
-        }
-        
-        // Home key for first page
-        if (e.key === 'Home' && !e.ctrlKey && !e.shiftKey) {
-            e.preventDefault();
-            if (pagination.currentPage > 1) {
-                loadGalleryPage(eventType, 1);
-            }
-        }
-        
-        // End key for last page
-        if (e.key === 'End' && !e.ctrlKey && !e.shiftKey) {
-            e.preventDefault();
-            if (pagination.currentPage < pagination.totalPages) {
-                loadGalleryPage(eventType, pagination.totalPages);
-            }
-        }
-    });
-}
-
-// Initialize keyboard navigation
-initKeyboardNavigation();
+// Removed initKeyboardNavigation and associated global key handlers
 
 (function initDonateModal(){
   const donateBtn = document.getElementById('donate-btn');
@@ -1610,8 +1484,8 @@ initKeyboardNavigation();
   let lastFocused = null;
 
   const onKeydown = (e) => {
-    if(e.key === 'Escape') { e.preventDefault(); close(); }
-    if(e.key === 'Tab') {
+    // Removed Escape and Tab key handling for modal focus trap
+    if(false) {
       // trap focus
       const focusables = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
       if(focusables.length === 0) return;
