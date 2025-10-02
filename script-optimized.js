@@ -123,9 +123,8 @@ function loadLazyImage(img) {
 function initEventPhotos() {
     // Store only essential data, load images progressively
     window.eventPhotos = {
-        mmhe: generateImageList('mmhe', 54),
-        discpan: generateImageList('discpan', 28),
-        erf: generateImageList('erf', 10)
+        mmhe: generateImageList('mmhe', 29),
+        discpan: generateImageList('discpan', 15)
     };
 }
 
@@ -135,18 +134,15 @@ function generateImageList(eventType, count) {
     
     // Different naming patterns for different events
     if (eventType === 'mmhe') {
-        const imageNumbers = [3799, 3800, 3803, 3804, 3808, 3809, 3815, 3817, 3821, 3822, 3824, 3827, 3828, 3829, 3830, 3831, 3833, 3834, 3840, 3841, 3848, 3850, 3860, 3861, 3863, 3864, 3882, 3883, 3884, 3885, 3886, 3890, 3891, 3894, 3895, 3898, 3900, 3901, 3907, 3908, 3911, 3918, 3924, 3925, 3926, 3955, 3956, 3957, 3960, 3961, 3962, 3963, 3966, 3967];
+        const imageNumbers = [3803, 3804, 3808, 3809, 3815, 3817, 3821, 3822, 3824, 3827, 3828, 3829, 3833, 3834, 3840, 3848, 3850, 3860, 3861, 3890, 3891, 3898, 3907, 3911, 3918, 3924, 3926, 3955, 3966];
         imageNumbers.forEach(num => {
-            images.push(`${basePath}IMG_${num}.jpeg`);
+            images.push(`${basePath}IMG_${num}_medium.webp`);
         });
     } else if (eventType === 'discpan') {
-        for (let i = 1; i <= count; i++) {
-            images.push(`${basePath}${i}-_DSC${1394 + i}.jpg`);
-        }
-    } else if (eventType === 'erf') {
-        const erfImages = ['FullSizeRender.jpeg', 'IMG_0883 2.jpeg', 'IMG_0883.jpeg', 'IMG_0884 2.jpeg', 'IMG_0884.jpeg', 'IMG_3636.jpeg', 'IMG_3640.jpeg', 'IMG_3641.jpeg', 'IMG_3646.jpeg', 'IMG_3647.jpeg'];
-        erfImages.forEach(img => {
-            images.push(`${basePath}${img}`);
+        const discpanNumbers = [1, 4, 6, 8, 9, 11, 13, 14, 15, 16, 17, 19, 21, 23, 24];
+        discpanNumbers.forEach(num => {
+            const dscNum = 1394 + num;
+            images.push(`${basePath}${num}-_DSC${dscNum}_medium.webp`);
         });
     }
     

@@ -847,36 +847,42 @@ img[loading="lazy"].loaded {
     box-shadow: var(--shadow);
 }
 
-/* Sponsor/Vendor form styled like contact form */
-.sponsor-vendor-form {
-    background-color: var(--background-white);
-    padding: 2rem;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
+/* Sponsor/Vendor buttons styled to take up same space as old form */
+.sponsor-vendor-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
     max-width: 700px;
     margin: 1.5rem auto;
-    text-align: left;
+    padding: 2rem;
+    background-color: var(--background-white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
 }
 
-/* Compact two-column layout to reduce height */
-.sponsor-vendor-form {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem 1.25rem; /* rows x columns */
+.sponsor-vendor-btn {
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    white-space: nowrap;
+    /* Ensure proper button behavior inheritance */
+    transition: var(--transition);
+    cursor: pointer;
 }
-.sponsor-vendor-form .form-group {
-    margin-bottom: 0; /* handled by grid gap */
-}
-.sponsor-vendor-form .form-group label { margin-bottom: 0.35rem; }
 
-/* Make last row (select) span both columns on desktop for balance */
-.sponsor-vendor-form #sv-inquiry { width: 100%; }
-/* Make the form-group that contains the select span both columns */
-.sponsor-vendor-form .form-group:has(#sv-inquiry) { grid-column: 1 / -1; }
+.sponsor-vendor-btn:hover {
+    background: var(--secondary-color) !important;
+    color: var(--primary-color) !important;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
 
 /* Stack to single column on small screens */
 @media (max-width: 640px) {
-  .sponsor-vendor-form { grid-template-columns: 1fr; }
+  .sponsor-vendor-buttons { 
+    grid-template-columns: 1fr; 
+    gap: 1rem;
+  }
 }
 
 .contact-form h3 {
