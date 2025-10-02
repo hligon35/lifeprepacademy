@@ -6,25 +6,28 @@ if ('scrollRestoration' in history) {
 
 // DOM Content Loaded Event
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize photos first for immediate loading
-    initEventPhotos();
-    
-    // Load default gallery immediately WITHOUT scrolling
-    loadEventGallery('mmhe', { scroll: false });
-    
-    // Prefetch other images in background
-    setTimeout(prefetchEventImages, 1000);
-    
+    const hasEventsSection = !!document.querySelector('#events');
+
+    if (hasEventsSection) {
+        // Initialize photos first for immediate loading
+        initEventPhotos();
+        // Load default gallery immediately WITHOUT scrolling
+        loadEventGallery('mmhe', { scroll: false });
+        // Prefetch other images in background
+        setTimeout(prefetchEventImages, 1000);
+        initEventTabs();
+    }
+
     // Initialize other functionality
-    initSmoothScrolling();
+    initSmoothScrolling(); // only affects same-page hash links
     initMobileMenu();
     initFormValidation();
     initImageModal();
     initScrollAnimations();
     initLazyLoading();
     initAnalytics();
-    initEventTabs();
-    // Removed initKeyboardNavigation (keyboard shortcuts disabled)
+    highlightCurrentPage();
+
     // Force initial position to top ONLY if user didn't load with a hash anchor
     requestAnimationFrame(() => {
         if (!location.hash && window.scrollY > 0) {
@@ -38,6 +41,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// Highlight current page in multi-page nav
+function highlightCurrentPage() {
+    const path = window.location.pathname.split('/').pop() || 'index.html';
+    const navLinks = document.querySelectorAll('#primary-nav a');
+    navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('http')) return;
+        const target = href.split('/').pop();
+        if ((path === '' && target === 'index.html') || path === target) {
+            link.classList.add('active');
+            link.setAttribute('aria-current', 'page');
+        }
+    });
+}
 
 // Smooth scrolling for navigation links
 function initSmoothScrolling() {

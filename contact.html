@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contact | Lifeprep Academy Foundation</title>
+    <meta name="description" content="Get in touch with Lifeprep Academy Foundation about programs, partnerships, sponsorships, or volunteering." />
+    <link rel="icon" type="image/png" href="logo.png" />
+    <link rel="canonical" href="https://www.lifeprepacademyfoundation.com/contact.html" />
+    <link rel="preload" href="style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="style.css"></noscript>
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div class="content-wrapper">
+        <header>
+            <nav role="navigation" aria-label="Main navigation">
+                <div class="brand">
+                    <div class="logo"><img src="logo.png" alt="Lifeprep Academy Foundation Logo"></div>
+                    <a href="index.html" class="site-title">Lifeprep Academy<br>Foundation</a>
+                </div>
+                <ul id="primary-nav">
+                    <li><a href="about.html">About Us</a></li>
+                    <li><a href="programs.html">Programs</a></li>
+                    <li><a href="events.html">Events</a></li>
+                    <li><a href="https://give.cornerstone.cc/lifeprepacademyfnd" target="_blank" rel="noopener noreferrer">Donate</a></li>
+                    <li><a href="contact.html" aria-current="page">Contact</a></li>
+                </ul>
+                <button class="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-controls="primary-nav" aria-expanded="false">☰</button>
+            </nav>
+        </header>
+        <main id="main-content">
+            <section class="contact-section">
+                <div class="container">
+                    <h1>Get Involved</h1>
+                    <div class="contact-content">
+                        <div class="contact-info">
+                            <h3>Contact Information</h3>
+                            <address>
+                                <p><strong>Email:</strong> <a href="mailto:info@lifeprepacademyfoundation.com">info@lifeprepacademyfoundation.com</a></p>
+                                <p><strong>Phone:</strong> <a href="tel:+15026255421">(502) 625-5421</a></p>
+                                <p><strong>Address:</strong> 6230 Old Dobbin Lane Suite 230, Columbia, Md 21046</p>
+                            </address>
+                            <div class="social-links">
+                                <h4>Follow Us</h4>
+                                <a href="https://www.facebook.com/profile.php?id=61580380810980" target="_blank" rel="noopener noreferrer">Facebook</a>
+                                <a href="https://www.instagram.com/lpa_foundation/" target="_blank" rel="noopener noreferrer">Instagram</a>
+                            </div>
+                        </div>
+                        <form class="contact-form" id="contactForm" action="https://script.google.com/macros/s/AKfycbzyhjb5lEKQhrxYbmJCDBRsLh62v5Ii59rbmmEA7VCATSfX44Um5bSa3rZisyYMY3Fw/exec" method="POST" aria-describedby="contact-form-status">
+                            <h3>Send us a Message</h3>
+                            <div id="contact-form-status" class="visually-hidden" aria-live="polite"></div>
+                            <div class="form-group"><label for="name">Full Name *</label><input type="text" id="name" name="name" required></div>
+                            <div class="form-group"><label for="email">Email Address *</label><input type="email" id="email" name="email" required></div>
+                            <div class="form-group"><label for="subject">Subject *</label><select id="subject" name="subject" required><option value="" disabled selected>Select a subject</option><option value="General Inquiry">General Inquiry</option><option value="Mental Health Resources Program">Mental Health Resources Program</option><option value="Athletic Training Program">Athletic Training Program</option><option value="Financial Literacy Workshops">Financial Literacy Workshops</option><option value="Youth & Community Advancement">Youth & Community Advancement</option><option value="Sponsorship Opportunity">Sponsorship Opportunity</option><option value="Vendor Opportunity">Vendor Opportunity</option><option value="Donation / Funding">Donation / Funding</option><option value="Partnership / Collaboration">Partnership / Collaboration</option><option value="Volunteer Interest">Volunteer Interest</option><option value="Media / Press">Media / Press</option><option value="Website Feedback">Website Feedback</option></select></div>
+                            <div class="form-group"><label for="message">Message *</label><textarea id="message" name="message" rows="5" required></textarea></div>
+                            <button type="submit" class="btn btn-primary">Send Message</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <footer role="contentinfo">
+            <div class="container">
+                <div class="footer-content">
+                    <div class="footer-section"><h4>Lifeprep Academy Foundation</h4><p>Empowering lives through education and community development.</p></div>
+                    <div class="footer-section"><h4>Quick Links</h4><ul><li><a href="about.html">About Us</a></li><li><a href="programs.html">Programs</a></li><li><a href="events.html">Events</a></li><li><a href="contact.html" aria-current="page">Contact</a></li></ul></div>
+                    <div class="footer-section"><h4>Contact Info</h4><p>Email: info@lifeprepacademyfoundation.com</p><p>Phone: (502) 625-5421</p></div>
+                    <div class="footer-section"><h4>Connect With Us</h4><div class="social-links"><a href="https://www.facebook.com/profile.php?id=61580380810980" target="_blank" rel="noopener noreferrer">Facebook</a> <a href="https://www.instagram.com/lpa_foundation/" target="_blank" rel="noopener noreferrer">Instagram</a></div></div>
+                </div>
+                <div class="footer-bottom"><p>&copy; 2025 Lifeprep Academy Foundation. All rights reserved.</p></div>
+            </div>
+        </footer>
+    </div>
+    <script src="script.js" defer></script>
+    <script>
+        // Contact form AJAX submission with JSON handling
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('contactForm');
+            const statusDiv = document.getElementById('contact-form-status');
+            const FETCH_URL = form.getAttribute('action');
+            function setStatus(message, isError = false) {
+                statusDiv.textContent = message;
+                statusDiv.classList.remove('visually-hidden');
+                statusDiv.classList.toggle('error', isError);
+            }
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                setStatus('Sending...', false);
+                const formData = new FormData(form);
+                formData.append('userAgent', navigator.userAgent || '');
+                formData.append('page', window.location.href);
+                try {
+                    const response = await fetch(FETCH_URL, { method: 'POST', body: formData });
+                    let data = {}; try { data = await response.json(); } catch (_) {}
+                    if (!response.ok || data.status === 'error') { throw new Error(data.message || 'Submission failed'); }
+                    setStatus(data.message || 'Thank you! Your message has been sent.');
+                    form.reset();
+                } catch (err) { setStatus(err.message || 'Sorry, there was an error sending your message.', true); }
+            });
+        });
+    </script>
+</body>
+</html>
