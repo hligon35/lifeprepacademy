@@ -505,13 +505,13 @@ section:nth-child(even) {
 .gallery-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 3.5rem;
+    gap: 3rem;
     margin-top: 3rem;
-    max-width: 1800px;
+    max-width: 2400px; /* allow wider row */
     margin-left: auto;
     margin-right: auto;
     justify-items: center;
-    padding: 0 2rem;
+    padding: 0 4rem; /* widen outer margins so items can grow while staying centered */
 }
 
 .gallery-item {
@@ -524,10 +524,27 @@ section:nth-child(even) {
     cursor: pointer;
     opacity: 1;
     transform: translateY(0);
-    /* Square aspect ratio with increased margins */
-    aspect-ratio: 1/1;
-    height: 480px;
+    aspect-ratio: 1 / 1;
     width: 100%;
+    max-width: 520px; /* enlarge individual square */
+}
+
+/* Fallback for older browsers without aspect-ratio support */
+.gallery-item::before {
+    content: '';
+    float: left;
+    padding-top: 100%;
+}
+.gallery-item::after { content: ''; display: block; clear: both; }
+
+@media (min-width: 1400px) {
+    .gallery-grid { padding: 0 6rem; gap: 3.25rem; }
+    .gallery-item { max-width: 560px; }
+}
+
+@media (min-width: 1800px) {
+    .gallery-grid { padding: 0 8rem; gap: 3.5rem; }
+    .gallery-item { max-width: 600px; }
 }
 
 .gallery-item picture {
@@ -1042,6 +1059,19 @@ footer .social-links .social-icon {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     max-width: 600px;
 }
+
+/* Inline partner CTA variant under Events heading */
+.inline-partner-cta { 
+    margin: 1.25rem 0 2rem; 
+}
+.inline-partner-cta .btn { 
+    background: var(--secondary-color); 
+    color: var(--primary-color); 
+}
+.inline-partner-cta .btn:hover { 
+    background: var(--primary-color); 
+    color:#fff; 
+}
 .partner-cta {
     position: relative;
     display: flex;
@@ -1247,7 +1277,7 @@ footer::before {
 
 .footer-content {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
     gap: 2.5rem;
     margin-bottom: 3rem;
     align-items: start;
@@ -1267,6 +1297,25 @@ footer::before {
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     transition: var(--transition);
+    position: relative;
+    overflow: hidden; /* contain slight hover translations */
+    word-break: normal;
+    overflow-wrap: normal;
+}
+
+/* Footer specific width tuning */
+.footer-about { flex: 1.1; }
+.footer-links { flex: 1; }
+.footer-contact { flex: 1.65; max-width: 620px; }
+.footer-social { flex: 0.75; max-width: 180px; }
+
+@media (max-width: 1024px) {
+    .footer-contact { max-width: 520px; }
+    .footer-social { max-width: 200px; }
+}
+
+@media (max-width: 768px) {
+    .footer-about, .footer-links, .footer-contact, .footer-social { flex: unset; max-width: 480px; }
 }
 
 .footer-section:hover {
@@ -1491,19 +1540,25 @@ footer::before {
 
 .gallery-overlay {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-    color: white;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
     padding: 1rem;
-    transform: translateY(100%);
-    transition: var(--transition);
+    background: linear-gradient(to top, rgba(0,0,0,0.65), rgba(0,0,0,0.15) 45%, rgba(0,0,0,0));
+    color: #fff;
+    opacity: 0;
+    transition: opacity .35s ease, transform .35s ease;
+    transform: translateY(10px);
 }
 
-.gallery-item:hover .gallery-overlay {
+.gallery-item:hover .gallery-overlay,
+.gallery-item:focus-within .gallery-overlay {
+    opacity: 1;
     transform: translateY(0);
 }
+
+.gallery-item:focus-within .gallery-overlay { outline: none; }
 
 .gallery-caption {
     font-size: 0.9rem;
@@ -1598,7 +1653,20 @@ footer::before {
     }
     
     .footer-content { grid-template-columns: 1fr; gap: 1.75rem; justify-items: center; }
-    .footer-section { text-align: center; padding: 1.25rem 1rem; max-width: 480px; width:100%; margin:0 auto; }
+    .footer-section { 
+        text-align: center; 
+        padding: 1.25rem 1rem; 
+        max-width: 480px; 
+        width:100%; 
+        margin:0 auto; 
+        display:flex; 
+        flex-direction:column; 
+        align-items:center; 
+        overflow: hidden; 
+        word-break: normal;
+        overflow-wrap: normal;
+    }
+    .footer-section h4::after { left:50%; transform:translateX(-50%); }
     .footer-section ul { padding-left: 0; }
     .footer-section ul li { display: flex; justify-content: center; }
     .footer-section h4 { text-align: center; }
@@ -1672,6 +1740,32 @@ footer::before {
     .social-links-inline {
         justify-content: center;
     }
+}
+
+/* Large screen footer: switch to flex for better proportional control */
+@media (min-width: 900px) {
+    .footer-content {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: flex-start;
+        gap: 0; /* replace uniform gap with per-section margins */
+    }
+    .footer-content > .footer-section { margin-right: 2.5rem; }
+    .footer-content > .footer-section:last-child { margin-right: 0; }
+    /* Reduce the space to the right of the contact section specifically */
+    .footer-contact { margin-right: 1.25rem !important; }
+    .footer-section { width: auto; }
+    .footer-about { flex: 1 1 240px; }
+    .footer-links { flex: 0.9 1 210px; }
+    .footer-contact { flex: 1.9 1 420px; max-width: none; }
+    .footer-social { flex: 0.6 1 160px; }
+    /* Ensure contact paragraph doesn't wrap too early */
+    .footer-contact p { white-space: nowrap; }
+}
+
+/* Allow wrapping again on very narrow but still larger than mobile if needed */
+@media (min-width: 900px) and (max-width: 1100px) {
+    .footer-contact p { white-space: normal; }
 }
 
 /* Ensure contact content stays side by side on larger screens */
