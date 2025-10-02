@@ -1,17 +1,45 @@
 // Enhanced JavaScript for Lifeprep Academy Foundation Website
 
-// DOM Content Loaded Event
-document.addEventListener('DOMContentLoaded', function() {
-    // Disable scroll restoration and ensure page starts at the top
+// Prevent page from scrolling on load - must be first
+(function() {
+    // Disable scroll restoration immediately
     if ('scrollRestoration' in history) {
         history.scrollRestoration = 'manual';
     }
     
-    if (window.location.hash === '' || window.location.hash === '#') {
-        setTimeout(() => {
-            window.scrollTo(0, 0);
-        }, 10);
+    // Force scroll to top immediately and repeatedly
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    
+    // Clear any hash from URL that might cause scrolling
+    if (window.location.hash) {
+        window.history.replaceState(null, null, window.location.pathname + window.location.search);
     }
+    
+    // Prevent any scrolling during page load
+    const preventScroll = () => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+    };
+    
+    // Call preventScroll multiple times during load
+    preventScroll();
+    setTimeout(preventScroll, 1);
+    setTimeout(preventScroll, 10);
+    setTimeout(preventScroll, 50);
+    setTimeout(preventScroll, 100);
+    setTimeout(preventScroll, 200);
+    setTimeout(preventScroll, 500);
+})();
+
+// DOM Content Loaded Event
+document.addEventListener('DOMContentLoaded', function() {
+    // Additional scroll prevention after DOM is loaded
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
     
     // Initialize photos first for immediate loading
     initEventPhotos();
@@ -30,8 +58,29 @@ document.addEventListener('DOMContentLoaded', function() {
     initScrollAnimations();
     initLazyLoading();
     initAnalytics();
+    
+    // Final comprehensive scroll reset after all initialization
+    setTimeout(() => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        // Prevent any further automatic scrolling
+        document.documentElement.style.scrollBehavior = 'auto';
+        window.scrollTo(0, 0);
+        document.documentElement.style.scrollBehavior = '';
+    }, 1100);
     initEventTabs();
     initKeyboardNavigation();
+});
+
+// Additional scroll prevention on window load
+window.addEventListener('load', function() {
+    // Final scroll reset after everything is fully loaded
+    setTimeout(() => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+    }, 100);
 });
 
 // Smooth scrolling for navigation links
