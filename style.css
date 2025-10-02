@@ -452,6 +452,45 @@ section:nth-child(even) {
     background-color: var(--background-white);
 }
 
+/* Corner CTA buttons inside Events */
+.events-section .container {
+    position: relative;
+}
+
+.event-corner-btn {
+    position: absolute;
+    top: 0.5rem;
+    padding: 0.75rem 1rem;
+    line-height: 1.1;
+    font-size: 0.85rem;
+    text-align: center;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.25rem;
+    min-width: 90px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.event-corner-btn.sponsor-btn { left: 0.5rem; }
+.event-corner-btn.vendor-btn { right: 0.5rem; }
+
+@media (min-width: 640px) {
+    .event-corner-btn { font-size: 0.9rem; min-width: 110px; }
+}
+
+@media (max-width: 620px) {
+    /* Stack buttons at top if too narrow */
+    .event-corner-btn.sponsor-btn { left: 50%; transform: translateX(-105%); }
+    .event-corner-btn.vendor-btn { right: 50%; transform: translateX(105%); }
+}
+
+@media (max-width: 480px) {
+    .event-corner-btn { position: static; transform: none !important; margin: 0 0 0.75rem; }
+    .events-section .container { display: flex; flex-direction: column; align-items: center; }
+    .events-section h2 { margin-top: 1rem; }
+}
+
 /* Event Tabs */
 .event-tabs {
     display: flex;
