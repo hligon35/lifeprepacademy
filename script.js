@@ -1,4 +1,8 @@
 // Enhanced JavaScript for Lifeprep Academy Foundation Website
+// Prevent browser from restoring a scrolled position on reload
+if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+}
 
 // DOM Content Loaded Event
 document.addEventListener('DOMContentLoaded', function() {
@@ -21,6 +25,18 @@ document.addEventListener('DOMContentLoaded', function() {
     initAnalytics();
     initEventTabs();
     // Removed initKeyboardNavigation (keyboard shortcuts disabled)
+    // Force initial position to top ONLY if user didn't load with a hash anchor
+    requestAnimationFrame(() => {
+        if (!location.hash && window.scrollY > 0) {
+            window.scrollTo(0, 0);
+        }
+    });
+    // Extra safeguard after assets settle
+    window.addEventListener('load', () => {
+        if (!location.hash && window.scrollY > 10) {
+            window.scrollTo(0, 0);
+        }
+    });
 });
 
 // Smooth scrolling for navigation links
@@ -724,14 +740,11 @@ function initEventTabs() {
                 targetContent.classList.add('active');
                 targetContent.removeAttribute('hidden');
                 
-                // Force load gallery
+                // Force load gallery (auto scroll disabled to prevent jump away from hero)
                 setTimeout(() => {
                     loadEventGallery(eventType);
-                    
-                    // Smooth scroll to center the gallery in viewport
-                    setTimeout(() => {
-                        scrollToGallery(eventType);
-                    }, 200);
+                    // Disabled automatic scroll:
+                    // setTimeout(() => { scrollToGallery(eventType); }, 200);
                 }, 100);
             }
             
