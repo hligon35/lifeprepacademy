@@ -429,27 +429,28 @@ section:nth-child(even) {
 }
 
 .event-tab {
-    background-color: var(--primary-color);
-    border: 2px solid var(--secondary-color);
-    color: var(--secondary-color);
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
     padding: 0.75rem 1.5rem;
-    border-radius: var(--border-radius);
+    border-radius: 50px;
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition);
     white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
 }
 
 .event-tab:hover {
-    background-color: var(--secondary-color);
+    background: var(--secondary-color);
     color: var(--primary-color);
-    border-color: var(--primary-color);
+    transform: translateY(-2px);
 }
 
 .event-tab.active {
-    background-color: var(--secondary-color);
+    background: var(--secondary-color);
     color: var(--primary-color);
-    border-color: var(--primary-color);
+    box-shadow: 0 6px 16px -4px rgba(0,0,0,0.25);
 }
 
 /* Event Content */
@@ -985,16 +986,10 @@ footer .social-links .social-icon {
 }
 
 .donate-section {
-<<<<<<< HEAD
-    /* Reverted to prior simpler light background (removed dark overlay image) */
-    background: linear-gradient(135deg, #f9f5ff, #efe9fa);
-    color: var(--primary-color);
-    padding: 3.5rem 0;
-=======
+    /* Unified resolved style: dark image background (original aesthetic) */
     background: linear-gradient(rgba(40,17,86,0.85), rgba(40,17,86,0.9)), url('eventa.avif') center/cover fixed;
     color: #fff;
     padding: 4rem 0;
->>>>>>> 118c8316c56091feb013cf37638b3f689c1e8246
 }
 .donate-section .container { text-align:center; max-width:960px; }
 .donate-intro { margin: 0 0 1.75rem; font-size:1.05rem; line-height:1.5; }
@@ -1252,20 +1247,18 @@ footer::before {
 
 .footer-content {
     display: grid;
-    grid-template-columns: repeat(4, max-content);
-    gap: 3rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 2.5rem;
     margin-bottom: 3rem;
     align-items: start;
     position: relative;
     z-index: 1;
-    justify-content: space-between;
 }
 
 /* All footer sections - fit to content */
 .footer-section {
-    width: max-content;
-    min-width: 180px;
-    justify-self: start;
+    width: 100%;
+    min-width: 0;
     text-align: left;
     padding: 1.5rem;
     background: rgba(255, 255, 255, 0.05);
@@ -1604,15 +1597,13 @@ footer::before {
         gap: 1rem;
     }
     
-    .footer-content {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-        text-align: center;
-    }
-    
-    .footer-section h4 {
-        text-align: center;
-    }
+    .footer-content { grid-template-columns: 1fr; gap: 1.75rem; justify-items: center; }
+    .footer-section { text-align: center; padding: 1.25rem 1rem; max-width: 480px; width:100%; margin:0 auto; }
+    .footer-section ul { padding-left: 0; }
+    .footer-section ul li { display: flex; justify-content: center; }
+    .footer-section h4 { text-align: center; }
+    .footer-section p, .footer-section ul li a { font-size: 0.95rem; }
+    .footer-section ul li { margin-bottom: 0.5rem; }
     
     nav ul {
         display: none;

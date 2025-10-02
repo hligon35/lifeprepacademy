@@ -853,14 +853,12 @@ function initEventPhotos() {
     // Define photo collections for each event using optimized medium-sized images
     window.eventPhotos = {
         mmhe: [
-            // Only the 4 existing medium webp images in mmhe
             'photos/mmhe/IMG_3804_medium.webp',
             'photos/mmhe/IMG_3809_medium.webp',
             'photos/mmhe/IMG_3821_medium.webp',
             'photos/mmhe/IMG_3891_medium.webp'
         ],
         discpan: [
-            // Only the 4 existing medium webp images in discpan
             'photos/discpan/14-_DSC1425_medium.webp',
             'photos/discpan/21-_DSC1446_medium.webp',
             'photos/discpan/23-_DSC1459_medium.webp',
