@@ -18,7 +18,7 @@
     --shadow-hover: 0 5px 25px rgb(40, 17, 86, 0.15);
     --transition: all 0.3s ease;
     --border-radius: 8px;
-    --max-width: 1200px;
+    --max-width: 1800px;
 }
 
 html {
@@ -508,12 +508,14 @@ section:nth-child(even) {
 
 .gallery-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-top: 2rem;
-    max-width: 900px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3.5rem;
+    margin-top: 3rem;
+    max-width: 1800px;
     margin-left: auto;
     margin-right: auto;
+    justify-items: center;
+    padding: 0 2rem;
 }
 
 .gallery-item {
@@ -526,9 +528,10 @@ section:nth-child(even) {
     cursor: pointer;
     opacity: 1;
     transform: translateY(0);
-    /* Smaller aspect ratio for 25% smaller images */
+    /* Square aspect ratio with increased margins */
     aspect-ratio: 1/1;
-    height: 200px;
+    height: 480px;
+    width: 100%;
 }
 
 .gallery-item picture {
@@ -745,7 +748,7 @@ img[loading="lazy"].loaded {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 3rem;
-    align-items: start;
+    align-items: center;
 }
 
 .contact-info {
@@ -861,8 +864,8 @@ img[loading="lazy"].loaded {
 }
 
 .sponsor-vendor-btn {
-    padding: 1rem 1.5rem;
-    font-size: 1.1rem;
+    padding: 2.5rem 1.5rem;
+    font-size: 1.5rem;
     font-weight: 600;
     white-space: nowrap;
     /* Ensure proper button behavior inheritance */
@@ -933,7 +936,7 @@ img[loading="lazy"].loaded {
 }
 
 .donate-section {
-    padding: 4rem 1rem 2rem;
+    padding: 0.5rem 1rem 2rem;
     background: #f8fafc;
 }
 .donate-section .container {
@@ -1431,6 +1434,15 @@ footer {
     }
 }
 
+/* Ensure contact content stays side by side on larger screens */
+@media (min-width: 769px) {
+    .contact-content {
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+        align-items: center;
+    }
+}
+
 /* Donate Modal removed; styles cleaned up */
 
 /* Widen About section container slightly for better aesthetics */
@@ -1450,12 +1462,14 @@ footer {
     
     .gallery-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 0.75rem;
-        max-width: 400px;
+        gap: 2.5rem;
+        max-width: 900px;
+        padding: 0 1.5rem;
     }
     
     .gallery-item {
-        height: 150px;
+        height: 330px;
+        aspect-ratio: 1/1;
     }
     
     .gallery-pagination {

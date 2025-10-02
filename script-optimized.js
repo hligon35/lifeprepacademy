@@ -123,8 +123,8 @@ function loadLazyImage(img) {
 function initEventPhotos() {
     // Store only essential data, load images progressively
     window.eventPhotos = {
-        mmhe: generateImageList('mmhe', 29),
-        discpan: generateImageList('discpan', 15)
+        mmhe: generateImageList('mmhe', 4),
+        discpan: generateImageList('discpan', 4)
     };
 }
 
@@ -134,12 +134,12 @@ function generateImageList(eventType, count) {
     
     // Different naming patterns for different events
     if (eventType === 'mmhe') {
-        const imageNumbers = [3803, 3804, 3808, 3809, 3815, 3817, 3821, 3822, 3824, 3827, 3828, 3829, 3833, 3834, 3840, 3848, 3850, 3860, 3861, 3890, 3891, 3898, 3907, 3911, 3918, 3924, 3926, 3955, 3966];
+        const imageNumbers = [3804, 3809, 3821, 3891];
         imageNumbers.forEach(num => {
             images.push(`${basePath}IMG_${num}_medium.webp`);
         });
     } else if (eventType === 'discpan') {
-        const discpanNumbers = [1, 4, 6, 8, 9, 11, 13, 14, 15, 16, 17, 19, 21, 23, 24];
+        const discpanNumbers = [9, 14, 21, 23];
         discpanNumbers.forEach(num => {
             const dscNum = 1394 + num;
             images.push(`${basePath}${num}-_DSC${dscNum}_medium.webp`);
@@ -211,7 +211,7 @@ function createGalleryItem(photoUrl, index, eventType, immediate = false) {
     // Use optimized image creation
     const { picture, img } = createOptimizedImage(
         photoUrl, 
-        `${getEventName(eventType)} - Photo ${index + 1}`,
+        `${getEventName(eventType)} 2024`,
         'medium',
         !immediate
     );
@@ -222,7 +222,7 @@ function createGalleryItem(photoUrl, index, eventType, immediate = false) {
     
     const caption = document.createElement('div');
     caption.className = 'gallery-caption';
-    caption.textContent = `${getEventName(eventType)} - Photo ${index + 1}`;
+    caption.textContent = `${getEventName(eventType)} 2024`;
     
     overlay.appendChild(caption);
     

@@ -727,6 +727,11 @@ function initEventTabs() {
                 // Force load gallery
                 setTimeout(() => {
                     loadEventGallery(eventType);
+                    
+                    // Smooth scroll to center the gallery in viewport
+                    setTimeout(() => {
+                        scrollToGallery(eventType);
+                    }, 200);
                 }, 100);
             }
             
@@ -739,6 +744,36 @@ function initEventTabs() {
     // Default gallery is already loaded in the main initialization
 }
 
+// Smooth scroll to center gallery in viewport
+function scrollToGallery(eventType) {
+    console.log('📍 Scrolling to gallery:', eventType);
+    
+    const galleryElement = document.getElementById(`${eventType}-gallery`);
+    if (!galleryElement) {
+        console.warn('Gallery element not found:', eventType);
+        return;
+    }
+    
+    // Calculate the position to center the gallery in viewport
+    const galleryRect = galleryElement.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const galleryHeight = galleryRect.height;
+    
+    // Calculate scroll position to center the gallery
+    const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const galleryTop = galleryRect.top + currentScrollTop;
+    const centerPosition = galleryTop - (viewportHeight - galleryHeight) / 2;
+    
+    // Ensure we don't scroll above the top of the page
+    const scrollPosition = Math.max(0, centerPosition);
+    
+    // Smooth scroll to the calculated position
+    window.scrollTo({
+        top: scrollPosition,
+        behavior: 'smooth'
+    });
+}
+
 // Event Galleries Functionality
 function initEventPhotos() {
     console.log('🎯 Initializing event photos...');
@@ -746,54 +781,18 @@ function initEventPhotos() {
     // Define photo collections for each event using optimized medium-sized images
     window.eventPhotos = {
         mmhe: [
-            // All medium webp images in mmhe (updated to match existing files)
-            'photos/mmhe/IMG_3803_medium.webp',
+            // Only the 4 remaining medium webp images in mmhe
             'photos/mmhe/IMG_3804_medium.webp',
-            'photos/mmhe/IMG_3808_medium.webp',
             'photos/mmhe/IMG_3809_medium.webp',
-            'photos/mmhe/IMG_3815_medium.webp',
-            'photos/mmhe/IMG_3817_medium.webp',
             'photos/mmhe/IMG_3821_medium.webp',
-            'photos/mmhe/IMG_3822_medium.webp',
-            'photos/mmhe/IMG_3824_medium.webp',
-            'photos/mmhe/IMG_3827_medium.webp',
-            'photos/mmhe/IMG_3828_medium.webp',
-            'photos/mmhe/IMG_3829_medium.webp',
-            'photos/mmhe/IMG_3833_medium.webp',
-            'photos/mmhe/IMG_3834_medium.webp',
-            'photos/mmhe/IMG_3840_medium.webp',
-            'photos/mmhe/IMG_3848_medium.webp',
-            'photos/mmhe/IMG_3850_medium.webp',
-            'photos/mmhe/IMG_3860_medium.webp',
-            'photos/mmhe/IMG_3861_medium.webp',
-            'photos/mmhe/IMG_3890_medium.webp',
-            'photos/mmhe/IMG_3891_medium.webp',
-            'photos/mmhe/IMG_3898_medium.webp',
-            'photos/mmhe/IMG_3907_medium.webp',
-            'photos/mmhe/IMG_3911_medium.webp',
-            'photos/mmhe/IMG_3918_medium.webp',
-            'photos/mmhe/IMG_3924_medium.webp',
-            'photos/mmhe/IMG_3926_medium.webp',
-            'photos/mmhe/IMG_3955_medium.webp',
-            'photos/mmhe/IMG_3966_medium.webp'
+            'photos/mmhe/IMG_3891_medium.webp'
         ],
         discpan: [
-            // All medium webp images in discpan (updated to match existing files)
-            'photos/discpan/1-_DSC1395_medium.webp',
-            'photos/discpan/4-_DSC1400_medium.webp',
-            'photos/discpan/6-_DSC1404_medium.webp',
-            'photos/discpan/8-_DSC1413_medium.webp',
+            // Only the 4 remaining medium webp images in discpan
             'photos/discpan/9-_DSC1415_medium.webp',
-            'photos/discpan/11-_DSC1418_medium.webp',
-            'photos/discpan/13-_DSC1422_medium.webp',
             'photos/discpan/14-_DSC1425_medium.webp',
-            'photos/discpan/15-_DSC1428_medium.webp',
-            'photos/discpan/16-_DSC1430_medium.webp',
-            'photos/discpan/17-_DSC1433_medium.webp',
-            'photos/discpan/19-_DSC1438_medium.webp',
             'photos/discpan/21-_DSC1446_medium.webp',
-            'photos/discpan/23-_DSC1459_medium.webp',
-            'photos/discpan/24-_DSC1463_medium.webp'
+            'photos/discpan/23-_DSC1459_medium.webp'
         ]
     };
     
@@ -845,7 +844,8 @@ function loadEventGallery(eventType) {
 
 // Gallery Pagination System
 function initGalleryPagination(eventType, photos) {
-    const PHOTOS_PER_PAGE = 9; // 3x3 grid
+    // With fewer images now, show all photos in one view without pagination
+    const PHOTOS_PER_PAGE = photos.length; // Show all photos at once
     const totalPages = Math.ceil(photos.length / PHOTOS_PER_PAGE);
     
     // Initialize pagination state
@@ -876,9 +876,9 @@ function setupPaginationControls(eventType) {
     
     if (!paginationContainer) return;
     
-    // Show pagination if more than one page
+    // Hide pagination since we're showing all photos in one view
     if (pagination.totalPages > 1) {
-        paginationContainer.classList.remove('hidden');
+        paginationContainer.classList.add('hidden'); // Always hide pagination now
         
     // Removed keyboard shortcuts info injection
     }
@@ -969,7 +969,7 @@ function loadGalleryPage(eventType, pageNumber) {
             // Main img element (fallback, thumbnail)
             const img = document.createElement('img');
             img.src = thumbJpegUrl;
-            img.alt = `${getEventName(eventType)} - Photo ${actualIndex + 1}`;
+            img.alt = `${getEventName(eventType)} 2024`;
             img.loading = 'lazy';
             img.decoding = 'async';
             img.width = 300;
@@ -987,7 +987,7 @@ function loadGalleryPage(eventType, pageNumber) {
 
             const caption = document.createElement('div');
             caption.className = 'gallery-caption';
-            caption.textContent = `Photo ${actualIndex + 1}`;
+            caption.textContent = `${getEventName(eventType)} 2024`;
 
             overlay.appendChild(caption);
 
@@ -995,7 +995,7 @@ function loadGalleryPage(eventType, pageNumber) {
                 galleryItem.innerHTML = `
                     <div class="gallery-placeholder">
                         <div class="placeholder-content">
-                            <h4>Photo ${actualIndex + 1}</h4>
+                            <h4>${getEventName(eventType)} 2024</h4>
                             <p>Image not available</p>
                         </div>
                     </div>
@@ -1184,7 +1184,7 @@ function initGalleryImageModal() {
     
     function updateModalImage() {
         const newSrc = currentPhotos[currentIndex];
-        const newAlt = `${getEventName(currentEvent)} - Photo ${currentIndex + 1}`;
+        const newAlt = `${getEventName(currentEvent)} 2024`;
         
         modalImg.src = newSrc;
         modalImg.alt = newAlt;
