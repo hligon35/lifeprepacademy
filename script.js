@@ -9,8 +9,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize photos first for immediate loading
     initEventPhotos();
     
-    // Load default gallery immediately
-    loadEventGallery('mmhe');
+    // Load default gallery immediately WITHOUT scrolling
+    loadEventGallery('mmhe', { scroll: false });
     
     // Prefetch other images in background
     setTimeout(prefetchEventImages, 1000);
@@ -742,8 +742,8 @@ function initEventTabs() {
                 
                 // Force load gallery (auto scroll disabled to prevent jump away from hero)
                 setTimeout(() => {
-                    loadEventGallery(eventType);
-                    // Disabled automatic scroll:
+                    loadEventGallery(eventType, { scroll: true });
+                    // Disabled automatic scroll helper kept for reference
                     // setTimeout(() => { scrollToGallery(eventType); }, 200);
                 }, 100);
             }
@@ -815,7 +815,8 @@ function initEventPhotos() {
     });
 }
 
-function loadEventGallery(eventType) {
+function loadEventGallery(eventType, options = {}) {
+    const { scroll = false } = options;
     const galleryContainer = document.querySelector(`#${eventType}-gallery .gallery-grid`);
     const paginationContainer = document.querySelector(`#${eventType}-pagination`);
     if (!galleryContainer) return;
@@ -851,8 +852,9 @@ function loadEventGallery(eventType) {
     // Initialize pagination for this event
     initGalleryPagination(eventType, photos);
     
-    // Mark as loaded
+    // Mark as loaded and store scroll preference
     galleryContainer.dataset.loaded = 'true';
+    galleryContainer.dataset.shouldScroll = scroll ? 'true' : 'false';
 }
 
 // Gallery Pagination System
@@ -1050,13 +1052,16 @@ function loadGalleryPage(eventType, pageNumber) {
         // Re-initialize image modal for new images
         initGalleryImageModal();
         
-        // Scroll gallery into view (smoothly)
+        // Conditional scroll only if user initiated and requested
         const gallerySection = document.querySelector(`#${eventType}-gallery`);
         if (gallerySection) {
-            gallerySection.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'nearest'
-            });
+            const shouldScroll = galleryContainer && galleryContainer.dataset.shouldScroll === 'true';
+            if (shouldScroll) {
+                gallerySection.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'nearest'
+                });
+            }
             gallerySection.setAttribute('aria-busy', 'false');
         }
     }, 150); // Small delay for smooth transition
