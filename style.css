@@ -133,6 +133,27 @@ header {
     will-change: transform;
 }
 
+/* Compact header variant on small screens */
+@media (max-width: 640px) {
+    header { padding: 0.5rem 0 0.4rem; }
+    nav { padding: 0 1rem; }
+    .logo img { height: 60px; padding: 4px 8px; }
+    .site-title { font-size: clamp(0.9rem, 3.2vw, 1.05rem); line-height: 1.1; }
+    nav ul { gap: 1rem; }
+    nav ul li a { padding: 0.4rem 0.55rem; font-size: 0.8rem; }
+    .mobile-menu-toggle { top: 0.25rem; }
+    .brand { gap: 0.45rem; }
+}
+
+@media (max-width: 420px) {
+    /* Further tighten for very small devices */
+    header { padding: 0.4rem 0 0.35rem; }
+    .logo img { height: 50px; }
+    .site-title { font-size: clamp(0.85rem, 3.8vw, 0.95rem); }
+    nav ul { gap: 0.75rem; }
+    nav ul li a { padding: 0.35rem 0.5rem; font-size: 0.75rem; }
+}
+
 nav {
     display: flex;
     justify-content: space-between;
@@ -452,6 +473,57 @@ section:nth-child(even) {
     background-color: var(--background-white);
 }
 
+.events-subtitle {
+    /* Removed negative top margin to avoid visual clipping */
+    margin-top: 0;
+    margin-bottom: 2.25rem;
+    font-size: clamp(1.2rem, 1rem + 1.25vw, 1.75rem);
+    font-weight: 600;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent; /* improves rendering of gradient text */
+    color: transparent;
+    letter-spacing: 0.5px;
+    line-height: 1.28; /* extra line height to prevent descender cropping */
+    padding-bottom: 0.2rem; /* ensures gradient area includes descenders */
+}
+
+.events-preview-title {
+    margin: -1.15rem 0 0.75rem;
+    font-size: clamp(1.05rem, 0.95rem + 0.85vw, 1.35rem);
+    font-weight: 500;
+    color: var(--primary-color);
+    letter-spacing: 0.4px;
+    background: transparent; /* ensure no background fill */
+}
+
+.events-gallery-arrow {
+    display: flex;
+    justify-content: center;
+    margin: -0.75rem 0 2.75rem;
+    height: 64px; /* enlarged for better visual impact */
+    position: relative;
+}
+.events-gallery-arrow .arrow-symbol {
+    font-size: 4rem; /* enlarged arrow */
+    line-height: 1;
+    animation: arrowBounce 1.8s infinite ease-in-out;
+    background: linear-gradient(180deg, var(--secondary-color), var(--primary-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.25));
+    user-select: none;
+}
+@keyframes arrowBounce {
+    0%, 20% { transform: translateY(0); opacity: 1; }
+    40% { transform: translateY(8px); opacity: 0.85; }
+    60% { transform: translateY(-4px); opacity: 1; }
+    80% { transform: translateY(4px); opacity: 0.9; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
 /* Corner CTA buttons inside Events */
 .events-section .container {
     position: relative;
@@ -477,8 +549,8 @@ section:nth-child(even) {
     letter-spacing: 0.5px;
 }
 
-.event-corner-btn.sponsor-btn { left: 0.5rem; }
-.event-corner-btn.vendor-btn { right: 0.5rem; }
+.event-corner-btn.sponsor-btn { left: 5.75rem; }
+.event-corner-btn.vendor-btn { right: 5.75rem; }
 
 @media (min-width: 640px) {
     .event-corner-btn { font-size: 1.5rem; }
@@ -486,29 +558,33 @@ section:nth-child(even) {
 
 @media (max-width: 900px) {
     /* Bring them slightly inward on medium screens so they don't overflow */
-    .event-corner-btn.sponsor-btn { left: 0.75rem; }
-    .event-corner-btn.vendor-btn { right: 0.75rem; }
+    .event-corner-btn.sponsor-btn { left: 3rem; }
+    .event-corner-btn.vendor-btn { right: 3rem; }
     .event-corner-btn { min-width: 230px; min-height: 190px; font-size: 1.3rem; padding: 1.5rem 1.5rem; }
 }
 
 @media (max-width: 620px) {
     /* Center them relative to container with transforms */
-    .event-corner-btn.sponsor-btn { left: 50%; transform: translateX(-120%); }
-    .event-corner-btn.vendor-btn { right: 50%; transform: translateX(120%); }
+    .event-corner-btn.sponsor-btn { left: 50%; transform: translateX(-90%); }
+    .event-corner-btn.vendor-btn { right: 50%; transform: translateX(90%); }
     .event-corner-btn { min-width: 210px; min-height: 170px; font-size: 1.15rem; padding: 1.25rem 1.25rem; }
+    /* Add breathing room below floating corner buttons before tabs */
+    .event-tabs { margin-top: 2.75rem; }
 }
 
 @media (max-width: 480px) {
     .event-corner-btn { position: static; transform: none !important; margin: 0 0 1rem; width: 100%; max-width: 340px; }
     .events-section .container { display: flex; flex-direction: column; align-items: center; }
     .events-section h2 { margin-top: 1rem; }
+    /* When buttons become static, reduce added spacing so layout stays tight */
+    .event-tabs { margin-top: 1.25rem; }
 }
 
 /* Event Tabs */
 .event-tabs {
     display: flex;
     justify-content: center;
-    gap: 1rem;
+    gap: 3rem; /* increased from 1rem (tripled) */
     margin-bottom: 3rem;
     flex-wrap: wrap;
 }
@@ -596,6 +672,14 @@ section:nth-child(even) {
     margin-right: auto;
     justify-items: center;
     padding: 0 2rem;
+}
+
+/* Responsive gallery column adjustments */
+@media (max-width: 900px) {
+    .gallery-grid { grid-template-columns: repeat(3, 1fr); gap: 3rem; }
+}
+@media (max-width: 700px) {
+    .gallery-grid { grid-template-columns: repeat(2, 1fr); gap: 2.75rem; }
 }
 
 .gallery-item {
@@ -1810,6 +1894,33 @@ footer::before {
     .form-group textarea {
         font-size: 16px; /* Prevent zoom on iOS */
     }
+}
+
+/* Ultra-small devices: stack images in a single column */
+@media (max-width: 380px) {
+    .gallery-grid { grid-template-columns: 1fr; gap: 2rem; }
+    .gallery-item { height: 300px; }
+}
+
+/* Enhanced responsive stacking to ensure images wrap/stack when space is constrained */
+@media (max-width: 1100px) {
+    .gallery-grid {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 2.25rem;
+    }
+}
+@media (max-width: 650px) {
+    .gallery-grid {
+        grid-template-columns: 1fr 1fr; /* two columns for mid-small devices */
+        gap: 2rem;
+    }
+}
+@media (max-width: 520px) {
+    .gallery-grid {
+        grid-template-columns: 1fr; /* full stacking single column */
+        gap: 1.75rem;
+    }
+    .gallery-item { height: 340px; }
 }
 
 /* Keyboard shortcuts info */
