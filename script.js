@@ -180,53 +180,19 @@ function initFormValidation() {
     const emailInput = contactForm.querySelector('#email');
     const messageInput = contactForm.querySelector('#message');
 
-    contactForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        let isValid = true;
-        const errors = [];
-
-        // Clear previous error messages
-        clearErrorMessages();
-
-        // Validate name
-        if (!nameInput.value.trim()) {
-            showError(nameInput, 'Name is required');
-            isValid = false;
-        } else if (nameInput.value.trim().length < 2) {
-            showError(nameInput, 'Name must be at least 2 characters');
-            isValid = false;
-        }
-
-        // Validate email
-        if (!emailInput.value.trim()) {
-            showError(emailInput, 'Email is required');
-            isValid = false;
-        } else if (!isValidEmail(emailInput.value)) {
-            showError(emailInput, 'Please enter a valid email address');
-            isValid = false;
-        }
-
-        // Validate message
-        if (!messageInput.value.trim()) {
-            showError(messageInput, 'Message is required');
-            isValid = false;
-        } else if (messageInput.value.trim().length < 10) {
-            showError(messageInput, 'Message must be at least 10 characters');
-            isValid = false;
-        }
-
-        if (isValid) {
-            // Show success message
-            showSuccessMessage('Thank you for your message! We\'ll get back to you soon.');
-            contactForm.reset();
-            
-            // Track form submission
-            trackEvent('form_submit', 'contact_form', 'success');
-        } else {
-            trackEvent('form_submit', 'contact_form', 'validation_error');
-        }
-    });
+    // Skip attaching submit handler if network handler attribute is present
+    if (!contactForm.hasAttribute('data-no-script-handler')) {
+        contactForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            let isValid = true;
+            clearErrorMessages();
+            if (!nameInput.value.trim() || nameInput.value.trim().length < 2) { showError(nameInput, 'Name is required (min 2 chars)'); isValid=false; }
+            if (!emailInput.value.trim() || !isValidEmail(emailInput.value)) { showError(emailInput, 'Valid email required'); isValid=false; }
+            if (!messageInput.value.trim() || messageInput.value.trim().length < 10) { showError(messageInput, 'Message must be at least 10 chars'); isValid=false; }
+            if (isValid) { showSuccessMessage('Thank you for your message! We\'ll get back to you soon.'); trackEvent('form_submit','contact_form','success_no_net'); }
+            else { trackEvent('form_submit','contact_form','validation_error'); }
+        });
+    }
 
     // Real-time validation
     [nameInput, emailInput, messageInput].forEach(input => {

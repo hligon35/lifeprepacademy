@@ -1998,6 +1998,8 @@ footer::before {
 }
 
 /* Donate Modal removed; styles cleaned up */
+/* Honeypot hidden container (moved from inline styles in contact.html) */
+.hp-wrapper { position:absolute; left:-5000px; top:auto; width:1px; height:1px; overflow:hidden; }
 
 /* Widen About section container slightly for better aesthetics */
 .about-section .container {

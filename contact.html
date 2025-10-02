@@ -47,10 +47,10 @@
                                 <a href="https://www.instagram.com/lpa_foundation/" target="_blank" rel="noopener noreferrer">Instagram</a>
                             </div>
                         </div>
-                        <form class="contact-form" id="contactForm" action="https://script.google.com/macros/s/AKfycbyRtnSsL4XDLuS9YeompfOy3eiObujT49nBT3iNEsiLDDxOdmY7XsAqvkciHFy2mlY/exec" method="POST" aria-describedby="contact-form-status" novalidate>
+                        <form class="contact-form" id="contactForm" data-no-script-handler="true" action="https://script.google.com/macros/s/AKfycbyRtnSsL4XDLuS9YeompfOy3eiObujT49nBT3iNEsiLDDxOdmY7XsAqvkciHFy2mlY/exec" method="POST" aria-describedby="contact-form-status" novalidate>
                             <h3>Send us a Message</h3>
                             <div id="contact-form-status" class="visually-hidden" aria-live="polite"></div>
-                            <div class="hp-wrapper" aria-hidden="true" style="position:absolute;left:-5000px;top:auto;width:1px;height:1px;overflow:hidden;">
+                            <div class="hp-wrapper" aria-hidden="true">
                                 <label>Do not fill this field <input type="text" name="hp_field" tabindex="-1" autocomplete="off"></label>
                             </div>
                             <div class="form-group"><label for="name">Full Name *</label><input type="text" id="name" name="name" required></div>
@@ -77,14 +77,16 @@
     </div>
     <script src="script.js" defer></script>
     <script>
-        // Hardened submission with stricter success detection & honeypot + button disable
+        // Hardened submission with stricter success detection & honeypot + button disable + analytics
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('contactForm');
+            if (!form) return;
             const statusDiv = document.getElementById('contact-form-status');
             const submitBtn = document.getElementById('contactSubmitBtn');
             const FETCH_URL = form.getAttribute('action');
             let busy = false;
 
+            function track(action, category, label){ if (typeof trackEvent === 'function') trackEvent(action, category, label); }
             function setStatus(msg, isError = false) {
                 statusDiv.textContent = msg;
                 statusDiv.classList.remove('visually-hidden');
@@ -93,9 +95,17 @@
             function toggle(disabled) {
                 submitBtn.disabled = disabled; submitBtn.style.opacity = disabled ? '0.6' : '1';
             }
+            function simpleValidate() {
+                const requiredIds = ['name','email','subject','message'];
+                for (const id of requiredIds) {
+                    const el = form.querySelector('#'+id);
+                    if (!el || !el.value.trim()) return `Missing required field: ${id}`;
+                }
+                return null;
+            }
             function buildBody() {
                 const fd = new FormData(form);
-                if (fd.get('hp_field')) throw new Error('Spam detected.');
+                if (fd.get('hp_field')) throw new Error('Spam detected');
                 fd.append('userAgent', navigator.userAgent || '');
                 fd.append('page', location.href);
                 fd.append('submittedAt', new Date().toISOString());
@@ -110,16 +120,25 @@
                 let json=null; try { json = JSON.parse(raw); } catch {}
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 if (!json || !json.status || !['ok','success'].includes(String(json.status).toLowerCase())) {
-                    throw new Error(json && json.message ? json.message : 'Unexpected response (no success token)');
+                    throw new Error(json && json.message ? json.message : `Unexpected response: ${raw.slice(0,140)}`);
                 }
                 return json.message || 'Thank you! Your message has been sent.';
             }
             form.addEventListener('submit', async e => {
                 e.preventDefault();
-                if (busy) return; busy = true; toggle(true); setStatus('Sending...');
-                try { const msg = await send(); setStatus(msg,false); form.reset(); }
-                catch(err){ console.error('[ContactForm]', err); setStatus(err.message || 'Submission failed.', true); }
-                finally { busy = false; toggle(false); }
+                if (busy) return; busy = true; toggle(true); setStatus('Sending...'); track('form_submit_attempt','contact_form','start');
+                const validationError = simpleValidate();
+                if (validationError) { setStatus(validationError, true); track('form_submit','contact_form','validation_error'); busy=false; toggle(false); return; }
+                try {
+                    const msg = await send();
+                    setStatus(msg,false);
+                    form.reset();
+                    track('form_submit','contact_form','success');
+                } catch(err){
+                    console.error('[ContactForm]', err);
+                    setStatus(err.message || 'Submission failed.', true);
+                    track('form_submit','contact_form','failure');
+                } finally { busy=false; toggle(false); }
             });
         });
     </script>
