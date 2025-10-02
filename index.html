@@ -34,7 +34,7 @@
     <!-- Preload critical resources for faster loading -->
     <link rel="preload" href="style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <link rel="preload" href="script.js" as="script">
-    <link rel="preload" href="groupPhoto.avif" as="image">
+    <!-- Removed redundant hero image preload; CSS background will load it naturally -->
     
     <!-- Remove non-critical gallery preloads to reduce contention -->
     
@@ -134,7 +134,6 @@
                         <a href="https://give.cornerstone.cc/lifeprepacademyfnd" class="btn btn-hero" target="_blank" rel="noopener noreferrer">Donate</a>
                     </div>
                 </div>
-                <img src="groupPhoto.avif" alt="Lifeprep Academy Foundation community group photo showing diverse participants in educational programs" class="hero-image" width="1920" height="1080" fetchpriority="high" decoding="async">
             </section>
             <section id="founder" class="founder-section" aria-labelledby="founder-heading">
                 <div class="container">

@@ -47,14 +47,17 @@
                                 <a href="https://www.instagram.com/lpa_foundation/" target="_blank" rel="noopener noreferrer">Instagram</a>
                             </div>
                         </div>
-                        <form class="contact-form" id="contactForm" action="https://script.google.com/macros/s/AKfycbyRtnSsL4XDLuS9YeompfOy3eiObujT49nBT3iNEsiLDDxOdmY7XsAqvkciHFy2mlY/exec" method="POST" aria-describedby="contact-form-status">
+                        <form class="contact-form" id="contactForm" action="https://script.google.com/macros/s/AKfycbyRtnSsL4XDLuS9YeompfOy3eiObujT49nBT3iNEsiLDDxOdmY7XsAqvkciHFy2mlY/exec" method="POST" aria-describedby="contact-form-status" novalidate>
                             <h3>Send us a Message</h3>
                             <div id="contact-form-status" class="visually-hidden" aria-live="polite"></div>
+                            <div class="hp-wrapper" aria-hidden="true" style="position:absolute;left:-5000px;top:auto;width:1px;height:1px;overflow:hidden;">
+                                <label>Do not fill this field <input type="text" name="hp_field" tabindex="-1" autocomplete="off"></label>
+                            </div>
                             <div class="form-group"><label for="name">Full Name *</label><input type="text" id="name" name="name" required></div>
                             <div class="form-group"><label for="email">Email Address *</label><input type="email" id="email" name="email" required></div>
                             <div class="form-group"><label for="subject">Subject *</label><select id="subject" name="subject" required><option value="" disabled selected>Select a subject</option><option value="General Inquiry">General Inquiry</option><option value="Mental Health Resources Program">Mental Health Resources Program</option><option value="Athletic Training Program">Athletic Training Program</option><option value="Financial Literacy Workshops">Financial Literacy Workshops</option><option value="Youth & Community Advancement">Youth & Community Advancement</option><option value="Sponsorship Opportunity">Sponsorship Opportunity</option><option value="Vendor Opportunity">Vendor Opportunity</option><option value="Donation / Funding">Donation / Funding</option><option value="Partnership / Collaboration">Partnership / Collaboration</option><option value="Volunteer Interest">Volunteer Interest</option><option value="Media / Press">Media / Press</option><option value="Website Feedback">Website Feedback</option></select></div>
                             <div class="form-group"><label for="message">Message *</label><textarea id="message" name="message" rows="5" required></textarea></div>
-                            <button type="submit" class="btn btn-primary">Send Message</button>
+                            <button type="submit" class="btn btn-primary" id="contactSubmitBtn">Send Message</button>
                         </form>
                     </div>
                 </div>
@@ -74,29 +77,49 @@
     </div>
     <script src="script.js" defer></script>
     <script>
-        // Contact form AJAX submission with JSON handling
+        // Hardened submission with stricter success detection & honeypot + button disable
         document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('contactForm');
             const statusDiv = document.getElementById('contact-form-status');
+            const submitBtn = document.getElementById('contactSubmitBtn');
             const FETCH_URL = form.getAttribute('action');
-            function setStatus(message, isError = false) {
-                statusDiv.textContent = message;
+            let busy = false;
+
+            function setStatus(msg, isError = false) {
+                statusDiv.textContent = msg;
                 statusDiv.classList.remove('visually-hidden');
                 statusDiv.classList.toggle('error', isError);
             }
-            form.addEventListener('submit', async (e) => {
+            function toggle(disabled) {
+                submitBtn.disabled = disabled; submitBtn.style.opacity = disabled ? '0.6' : '1';
+            }
+            function buildBody() {
+                const fd = new FormData(form);
+                if (fd.get('hp_field')) throw new Error('Spam detected.');
+                fd.append('userAgent', navigator.userAgent || '');
+                fd.append('page', location.href);
+                fd.append('submittedAt', new Date().toISOString());
+                const params = new URLSearchParams();
+                for (const [k,v] of fd.entries()) params.append(k,v);
+                return params.toString();
+            }
+            async function send() {
+                const body = buildBody();
+                const res = await fetch(FETCH_URL, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'}, body, redirect:'follow' });
+                const raw = await res.text();
+                let json=null; try { json = JSON.parse(raw); } catch {}
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                if (!json || !json.status || !['ok','success'].includes(String(json.status).toLowerCase())) {
+                    throw new Error(json && json.message ? json.message : 'Unexpected response (no success token)');
+                }
+                return json.message || 'Thank you! Your message has been sent.';
+            }
+            form.addEventListener('submit', async e => {
                 e.preventDefault();
-                setStatus('Sending...', false);
-                const formData = new FormData(form);
-                formData.append('userAgent', navigator.userAgent || '');
-                formData.append('page', window.location.href);
-                try {
-                    const response = await fetch(FETCH_URL, { method: 'POST', body: formData });
-                    let data = {}; try { data = await response.json(); } catch (_) {}
-                    if (!response.ok || data.status === 'error') { throw new Error(data.message || 'Submission failed'); }
-                    setStatus(data.message || 'Thank you! Your message has been sent.');
-                    form.reset();
-                } catch (err) { setStatus(err.message || 'Sorry, there was an error sending your message.', true); }
+                if (busy) return; busy = true; toggle(true); setStatus('Sending...');
+                try { const msg = await send(); setStatus(msg,false); form.reset(); }
+                catch(err){ console.error('[ContactForm]', err); setStatus(err.message || 'Submission failed.', true); }
+                finally { busy = false; toggle(false); }
             });
         });
     </script>
