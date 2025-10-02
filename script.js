@@ -1,51 +1,16 @@
 // Enhanced JavaScript for Lifeprep Academy Foundation Website
-
-// Prevent page from scrolling on load - must be first
-(function() {
-    // Disable scroll restoration immediately
-    if ('scrollRestoration' in history) {
-        history.scrollRestoration = 'manual';
-    }
-    
-    // Force scroll to top immediately and repeatedly
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-    
-    // Clear any hash from URL that might cause scrolling
-    if (window.location.hash) {
-        window.history.replaceState(null, null, window.location.pathname + window.location.search);
-    }
-    
-    // Prevent any scrolling during page load
-    const preventScroll = () => {
-        window.scrollTo(0, 0);
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-    };
-    
-    // Call preventScroll multiple times during load
-    preventScroll();
-    setTimeout(preventScroll, 1);
-    setTimeout(preventScroll, 10);
-    setTimeout(preventScroll, 50);
-    setTimeout(preventScroll, 100);
-    setTimeout(preventScroll, 200);
-    setTimeout(preventScroll, 500);
-})();
+// Prevent browser from restoring a scrolled position on reload
+if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+}
 
 // DOM Content Loaded Event
 document.addEventListener('DOMContentLoaded', function() {
-    // Additional scroll prevention after DOM is loaded
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-    
     // Initialize photos first for immediate loading
     initEventPhotos();
     
-    // Load default gallery immediately
-    loadEventGallery('mmhe');
+    // Load default gallery immediately WITHOUT scrolling
+    loadEventGallery('mmhe', { scroll: false });
     
     // Prefetch other images in background
     setTimeout(prefetchEventImages, 1000);
@@ -58,29 +23,20 @@ document.addEventListener('DOMContentLoaded', function() {
     initScrollAnimations();
     initLazyLoading();
     initAnalytics();
-    
-    // Final comprehensive scroll reset after all initialization
-    setTimeout(() => {
-        window.scrollTo(0, 0);
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-        // Prevent any further automatic scrolling
-        document.documentElement.style.scrollBehavior = 'auto';
-        window.scrollTo(0, 0);
-        document.documentElement.style.scrollBehavior = '';
-    }, 1100);
     initEventTabs();
-    initKeyboardNavigation();
-});
-
-// Additional scroll prevention on window load
-window.addEventListener('load', function() {
-    // Final scroll reset after everything is fully loaded
-    setTimeout(() => {
-        window.scrollTo(0, 0);
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-    }, 100);
+    // Removed initKeyboardNavigation (keyboard shortcuts disabled)
+    // Force initial position to top ONLY if user didn't load with a hash anchor
+    requestAnimationFrame(() => {
+        if (!location.hash && window.scrollY > 0) {
+            window.scrollTo(0, 0);
+        }
+    });
+    // Extra safeguard after assets settle
+    window.addEventListener('load', () => {
+        if (!location.hash && window.scrollY > 10) {
+            window.scrollTo(0, 0);
+        }
+    });
 });
 
 // Smooth scrolling for navigation links
@@ -140,15 +96,7 @@ function initMobileMenu() {
             }
         });
 
-        // Close on Escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && navMenu.classList.contains('active')) {
-                navMenu.classList.remove('active');
-                navMenu.setAttribute('aria-hidden', 'true');
-                mobileMenuToggle.setAttribute('aria-expanded', 'false');
-                mobileMenuToggle.focus();
-            }
-        });
+        // (Keyboard shortcut for closing via Escape removed)
 
         // Close on resize/orientation change to avoid stuck-open state
         window.addEventListener('resize', debounce(() => {
@@ -435,22 +383,7 @@ function initImageModal() {
         }
     });
 
-    // Keyboard navigation
-    document.addEventListener('keydown', function(e) {
-        if (modal.style.display === 'block') {
-            switch(e.key) {
-                case 'Escape':
-                    closeModal();
-                    break;
-                case 'ArrowLeft':
-                    prevBtn.click();
-                    break;
-                case 'ArrowRight':
-                    nextBtn.click();
-                    break;
-            }
-        }
-    });
+    // Removed keyboard navigation (Arrow/Escape) for modal per request
 }
 
 function createModal() {
@@ -807,43 +740,51 @@ function initEventTabs() {
                 targetContent.classList.add('active');
                 targetContent.removeAttribute('hidden');
                 
-                // Force load gallery
+                // Force load gallery (auto scroll disabled to prevent jump away from hero)
                 setTimeout(() => {
-                    loadEventGallery(eventType);
+                    loadEventGallery(eventType, { scroll: true });
+                    // Disabled automatic scroll helper kept for reference
+                    // setTimeout(() => { scrollToGallery(eventType); }, 200);
                 }, 100);
             }
             
             // Track tab click
             trackEvent('event_tab_click', 'events', eventType);
         });
-        // Keyboard navigation: Left/Right/Home/End for tabs
-        tab.addEventListener('keydown', function(e) {
-            const tabs = Array.from(eventTabs);
-            const currentIndex = tabs.indexOf(this);
-            let targetIndex = null;
-            switch (e.key) {
-                case 'ArrowRight':
-                    targetIndex = (currentIndex + 1) % tabs.length;
-                    break;
-                case 'ArrowLeft':
-                    targetIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-                    break;
-                case 'Home':
-                    targetIndex = 0;
-                    break;
-                case 'End':
-                    targetIndex = tabs.length - 1;
-                    break;
-            }
-            if (targetIndex !== null) {
-                e.preventDefault();
-                tabs[targetIndex].focus();
-                tabs[targetIndex].click();
-            }
-        });
+        // Removed keyboard navigation for tabs
     });
     
     // Default gallery is already loaded in the main initialization
+}
+
+// Smooth scroll to center gallery in viewport
+function scrollToGallery(eventType) {
+    console.log('📍 Scrolling to gallery:', eventType);
+    
+    const galleryElement = document.getElementById(`${eventType}-gallery`);
+    if (!galleryElement) {
+        console.warn('Gallery element not found:', eventType);
+        return;
+    }
+    
+    // Calculate the position to center the gallery in viewport
+    const galleryRect = galleryElement.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const galleryHeight = galleryRect.height;
+    
+    // Calculate scroll position to center the gallery
+    const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const galleryTop = galleryRect.top + currentScrollTop;
+    const centerPosition = galleryTop - (viewportHeight - galleryHeight) / 2;
+    
+    // Ensure we don't scroll above the top of the page
+    const scrollPosition = Math.max(0, centerPosition);
+    
+    // Smooth scroll to the calculated position
+    window.scrollTo({
+        top: scrollPosition,
+        behavior: 'smooth'
+    });
 }
 
 // Event Galleries Functionality
@@ -853,16 +794,18 @@ function initEventPhotos() {
     // Define photo collections for each event using optimized medium-sized images
     window.eventPhotos = {
         mmhe: [
+            // Only the 4 remaining medium webp images in mmhe
             'photos/mmhe/IMG_3804_medium.webp',
             'photos/mmhe/IMG_3809_medium.webp',
             'photos/mmhe/IMG_3821_medium.webp',
             'photos/mmhe/IMG_3891_medium.webp'
         ],
         discpan: [
+            // Only the 4 remaining medium webp images in discpan
+            'photos/discpan/9-_DSC1415_medium.webp',
             'photos/discpan/14-_DSC1425_medium.webp',
             'photos/discpan/21-_DSC1446_medium.webp',
-            'photos/discpan/23-_DSC1459_medium.webp',
-            'photos/discpan/9-_DSC1415_medium.webp'
+            'photos/discpan/23-_DSC1459_medium.webp'
         ]
     };
     
@@ -872,82 +815,280 @@ function initEventPhotos() {
     });
 }
 
-function loadEventGallery(eventType) {
+function loadEventGallery(eventType, options = {}) {
+    const { scroll = false } = options;
     const galleryContainer = document.querySelector(`#${eventType}-gallery .gallery-grid`);
+    const paginationContainer = document.querySelector(`#${eventType}-pagination`);
     if (!galleryContainer) return;
-
-    if (galleryContainer.dataset.loaded === 'true') return;
-
-    const photos = (window.eventPhotos && window.eventPhotos[eventType]) ? window.eventPhotos[eventType] : [];
-
-    if (!photos.length) {
+    
+    console.log('🖼️ Loading gallery for:', eventType);
+    
+    // Check if gallery is already loaded
+    if (galleryContainer.dataset.loaded === 'true') {
+        console.log('Gallery already loaded for:', eventType);
+        return;
+    }
+    
+    // Show loading state
+    galleryContainer.innerHTML = '<div class="gallery-loading">Loading photos...</div>';
+    
+    // Get photos for this event
+    const photos = window.eventPhotos ? window.eventPhotos[eventType] : [];
+    
+    console.log('Photos found for', eventType, ':', photos.length);
+    console.log('First 3 photos:', photos.slice(0, 3));
+    
+    if (!photos || photos.length === 0) {
+        // Show empty state
         galleryContainer.innerHTML = `
             <div class="gallery-empty">
                 <h4>Coming Soon</h4>
                 <p>Photos from this event will be available soon.</p>
-            </div>`;
+            </div>
+        `;
         return;
     }
-
-    galleryContainer.innerHTML = '';
-    galleryContainer.setAttribute('role','list');
-
-    photos.forEach((photoUrl, idx) => {
-        const galleryItem = document.createElement('div');
-        galleryItem.className = 'gallery-item';
-        galleryItem.dataset.eventType = eventType;
-        galleryItem.dataset.photoIndex = idx;
-        galleryItem.setAttribute('role','listitem');
-
-        const thumbUrl = photoUrl.replace('_medium.webp', '_thumbnail.webp');
-        const thumbJpegUrl = photoUrl.replace('_medium.webp', '_thumbnail.jpeg');
-        const mediumJpegUrl = photoUrl.replace('_medium.webp', '_medium.jpeg');
-
-        const picture = document.createElement('picture');
-        const webpSource = document.createElement('source');
-        webpSource.srcset = `${thumbUrl} 1x, ${photoUrl} 2x`;
-        webpSource.type = 'image/webp';
-        const jpegSource = document.createElement('source');
-        jpegSource.srcset = `${thumbJpegUrl} 1x, ${mediumJpegUrl} 2x`;
-        jpegSource.type = 'image/jpeg';
-        const img = document.createElement('img');
-        img.src = thumbJpegUrl;
-        img.alt = `${getEventName(eventType)} - Photo ${idx + 1}`;
-        img.loading = 'lazy';
-        img.decoding = 'async';
-        img.width = 300; img.height = 300;
-        img.sizes = '(max-width: 480px) 90vw, (max-width: 900px) 30vw, 300px';
-        picture.appendChild(webpSource); picture.appendChild(jpegSource); picture.appendChild(img);
-
-        const overlay = document.createElement('div');
-        overlay.className = 'gallery-overlay';
-        const caption = document.createElement('div');
-        caption.className = 'gallery-caption';
-        caption.textContent = `Photo ${idx + 1}`;
-        overlay.appendChild(caption);
-
-        img.addEventListener('error', () => {
-            galleryItem.innerHTML = `<div class="gallery-placeholder"><div class="placeholder-content"><h4>Photo ${idx + 1}</h4><p>Image not available</p></div></div>`;
-            galleryItem.classList.add('placeholder');
-        });
-        img.addEventListener('load', () => {
-            img.classList.add('loaded');
-            galleryItem.addEventListener('click', () => openImageModal(photoUrl, img.alt, eventType, idx));
-        });
-
-        galleryItem.appendChild(picture);
-        galleryItem.appendChild(overlay);
-        galleryContainer.appendChild(galleryItem);
-        galleryItem.classList.add('loading');
-        setTimeout(()=>{galleryItem.classList.remove('loading');galleryItem.classList.add('animate-in');}, idx*50);
-    });
-
+    
+    // Initialize pagination for this event
+    initGalleryPagination(eventType, photos);
+    
+    // Mark as loaded and store scroll preference
     galleryContainer.dataset.loaded = 'true';
-    initLazyLoading();
-    initGalleryImageModal();
+    galleryContainer.dataset.shouldScroll = scroll ? 'true' : 'false';
 }
 
-// (Pagination system removed; galleries now load all available photos at once.)
+// Gallery Pagination System
+function initGalleryPagination(eventType, photos) {
+    // With fewer images now, show all photos in one view without pagination
+    const PHOTOS_PER_PAGE = photos.length; // Show all photos at once
+    const totalPages = Math.ceil(photos.length / PHOTOS_PER_PAGE);
+    
+    // Initialize pagination state
+    if (!window.galleryPagination) {
+        window.galleryPagination = {};
+    }
+    
+    window.galleryPagination[eventType] = {
+        currentPage: 1,
+        totalPages: totalPages,
+        photos: photos,
+        photosPerPage: PHOTOS_PER_PAGE
+    };
+    
+    // Setup pagination controls
+    setupPaginationControls(eventType);
+    
+    // Load first page
+    loadGalleryPage(eventType, 1);
+}
+
+function setupPaginationControls(eventType) {
+    const pagination = window.galleryPagination[eventType];
+    const paginationContainer = document.querySelector(`#${eventType}-pagination`);
+    const prevBtn = document.querySelector(`#${eventType}-prev`);
+    const nextBtn = document.querySelector(`#${eventType}-next`);
+    const pageInfo = document.querySelector(`#${eventType}-page-info`);
+    
+    if (!paginationContainer) return;
+    
+    // Hide pagination since we're showing all photos in one view
+    if (pagination.totalPages > 1) {
+        paginationContainer.classList.add('hidden'); // Always hide pagination now
+        
+    // Removed keyboard shortcuts info injection
+    }
+    
+    // Update page info
+    if (pageInfo) {
+        pageInfo.textContent = `Page ${pagination.currentPage} of ${pagination.totalPages}`;
+    }
+    
+    // Setup button event listeners
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            if (pagination.currentPage > 1) {
+                loadGalleryPage(eventType, pagination.currentPage - 1);
+            }
+        });
+    }
+    
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            if (pagination.currentPage < pagination.totalPages) {
+                loadGalleryPage(eventType, pagination.currentPage + 1);
+            }
+        });
+    }
+    
+    // Update button states
+    updatePaginationButtons(eventType);
+}
+
+// Removed addKeyboardShortcutsInfo function (no longer needed)
+
+function loadGalleryPage(eventType, pageNumber) {
+    const pagination = window.galleryPagination[eventType];
+    const galleryContainer = document.querySelector(`#${eventType}-gallery .gallery-grid`);
+    
+    if (!pagination || !galleryContainer) return;
+    
+    // Add transition effect and announce busy state
+    const galleryRegion = document.querySelector(`#${eventType}-gallery`);
+    if (galleryRegion) {
+        galleryRegion.setAttribute('aria-busy', 'true');
+    }
+    // Add transition effect
+    galleryContainer.classList.add('page-transition');
+    
+    setTimeout(() => {
+        // Update current page
+        pagination.currentPage = pageNumber;
+        
+        // Calculate photo range for this page
+        const startIndex = (pageNumber - 1) * pagination.photosPerPage;
+        const endIndex = Math.min(startIndex + pagination.photosPerPage, pagination.photos.length);
+        const pagePhotos = pagination.photos.slice(startIndex, endIndex);
+        
+        // Clear gallery
+        galleryContainer.innerHTML = '';
+        // Mark container as a list for accessibility
+        galleryContainer.setAttribute('role', 'list');
+        
+        // Create gallery items for current page
+        pagePhotos.forEach((photoUrl, index) => {
+            const actualIndex = startIndex + index;
+            const galleryItem = document.createElement('div');
+            galleryItem.className = 'gallery-item';
+            galleryItem.dataset.eventType = eventType;
+            galleryItem.dataset.photoIndex = actualIndex;
+            galleryItem.setAttribute('role', 'listitem');
+
+            // Use thumbnail for display, but open medium in modal
+            const thumbUrl = photoUrl.replace('_medium.webp', '_thumbnail.webp');
+            const thumbJpegUrl = photoUrl.replace('_medium.webp', '_thumbnail.jpeg');
+            const mediumJpegUrl = photoUrl.replace('_medium.webp', '_medium.jpeg');
+
+            // Create picture element with WebP and JPEG fallback for thumbnail
+            const picture = document.createElement('picture');
+
+            // WebP source (thumbnail)
+            const webpSource = document.createElement('source');
+            webpSource.srcset = `${thumbUrl} 1x, ${photoUrl} 2x`;
+            webpSource.type = 'image/webp';
+
+            // JPEG fallback (thumbnail)
+            const jpegSource = document.createElement('source');
+            jpegSource.srcset = `${thumbJpegUrl} 1x, ${mediumJpegUrl} 2x`;
+            jpegSource.type = 'image/jpeg';
+
+            // Main img element (fallback, thumbnail)
+            const img = document.createElement('img');
+            img.src = thumbJpegUrl;
+            img.alt = `${getEventName(eventType)} 2024`;
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            img.width = 300;
+            img.height = 300;
+            img.sizes = '(max-width: 480px) 45vw, (max-width: 900px) 30vw, 300px';
+
+            // Append sources to picture
+            picture.appendChild(webpSource);
+            picture.appendChild(jpegSource);
+            picture.appendChild(img);
+
+            // Create overlay for styling
+            const overlay = document.createElement('div');
+            overlay.className = 'gallery-overlay';
+
+            const caption = document.createElement('div');
+            caption.className = 'gallery-caption';
+            caption.textContent = `${getEventName(eventType)} 2024`;
+
+            overlay.appendChild(caption);
+
+            img.addEventListener('error', function() {
+                galleryItem.innerHTML = `
+                    <div class="gallery-placeholder">
+                        <div class="placeholder-content">
+                            <h4>${getEventName(eventType)} 2024</h4>
+                            <p>Image not available</p>
+                        </div>
+                    </div>
+                `;
+                galleryItem.classList.add('placeholder');
+            });
+
+            img.addEventListener('load', function() {
+                // Mark as loaded so CSS fades it in
+                img.classList.add('loaded');
+                galleryItem.addEventListener('click', function() {
+                    openImageModal(photoUrl, img.alt, eventType, actualIndex);
+                });
+            });
+
+            galleryItem.appendChild(picture);
+            galleryItem.appendChild(overlay);
+            galleryContainer.appendChild(galleryItem);
+
+            // Add entrance animation
+            galleryItem.classList.add('loading');
+            setTimeout(() => {
+                galleryItem.classList.remove('loading');
+                galleryItem.classList.add('animate-in');
+            }, index * 50);
+        });
+        
+    // Re-attach lazy loading to any new images just added
+    initLazyLoading();
+
+    // Remove transition effect and add loaded state
+        galleryContainer.classList.remove('page-transition');
+        galleryContainer.classList.add('page-loaded');
+        
+    // Update pagination controls
+        updatePaginationButtons(eventType);
+        updatePageInfo(eventType);
+        
+        // Re-initialize image modal for new images
+        initGalleryImageModal();
+        
+        // Conditional scroll only if user initiated and requested
+        const gallerySection = document.querySelector(`#${eventType}-gallery`);
+        if (gallerySection) {
+            const shouldScroll = galleryContainer && galleryContainer.dataset.shouldScroll === 'true';
+            if (shouldScroll) {
+                gallerySection.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'nearest'
+                });
+            }
+            gallerySection.setAttribute('aria-busy', 'false');
+        }
+    }, 150); // Small delay for smooth transition
+}
+
+function updatePaginationButtons(eventType) {
+    const pagination = window.galleryPagination[eventType];
+    const prevBtn = document.querySelector(`#${eventType}-prev`);
+    const nextBtn = document.querySelector(`#${eventType}-next`);
+    
+    if (prevBtn) {
+        prevBtn.disabled = pagination.currentPage <= 1;
+    }
+    
+    if (nextBtn) {
+        nextBtn.disabled = pagination.currentPage >= pagination.totalPages;
+    }
+}
+
+function updatePageInfo(eventType) {
+    const pagination = window.galleryPagination[eventType];
+    const pageInfo = document.querySelector(`#${eventType}-page-info`);
+    
+    if (pageInfo) {
+        pageInfo.textContent = `Page ${pagination.currentPage} of ${pagination.totalPages}`;
+    }
+}
 
 function getEventName(eventType) {
     const names = {
@@ -992,21 +1133,7 @@ function initGalleryImageModal() {
         }
     });
     
-    document.addEventListener('keydown', function(e) {
-        if (modal.style.display === 'block') {
-            switch(e.key) {
-                case 'Escape':
-                    closeGalleryModal();
-                    break;
-                case 'ArrowLeft':
-                    showPreviousImage();
-                    break;
-                case 'ArrowRight':
-                    showNextImage();
-                    break;
-            }
-        }
-    });
+    // Removed keyboard event listeners for gallery modal
     
     function openImageModal(src, alt, eventType, index) {
         currentEvent = eventType;
@@ -1075,7 +1202,7 @@ function initGalleryImageModal() {
     
     function updateModalImage() {
         const newSrc = currentPhotos[currentIndex];
-        const newAlt = `${getEventName(currentEvent)} - Photo ${currentIndex + 1}`;
+        const newAlt = `${getEventName(currentEvent)} 2024`;
         
         modalImg.src = newSrc;
         modalImg.alt = newAlt;
@@ -1281,7 +1408,7 @@ function prefetchEventImages() {
     });
     
     // Prefetch other event images
-    ['discpan', 'erf'].forEach(eventType => {
+    ['discpan'].forEach(eventType => {
         const images = window.eventPhotos[eventType];
         if (images) {
             images.forEach(imageUrl => {
@@ -1295,50 +1422,5 @@ function prefetchEventImages() {
 // Initial prefetch
 prefetchEventImages();
 
-// Keyboard navigation for gallery pagination
-function initKeyboardNavigation() {
-    document.addEventListener('keydown', function(e) {
-        // Only handle keyboard navigation when an event gallery is visible
-        const activeEventTab = document.querySelector('.event-tab.active');
-        if (!activeEventTab) return;
-        
-        const eventType = activeEventTab.dataset.event;
-        const pagination = window.galleryPagination && window.galleryPagination[eventType];
-        if (!pagination) return;
-        
-        // Left arrow or 'p' for previous page
-        if ((e.key === 'ArrowLeft' || e.key.toLowerCase() === 'p') && !e.ctrlKey && !e.shiftKey) {
-            e.preventDefault();
-            if (pagination.currentPage > 1) {
-                loadGalleryPage(eventType, pagination.currentPage - 1);
-            }
-        }
-        
-        // Right arrow or 'n' for next page
-        if ((e.key === 'ArrowRight' || e.key.toLowerCase() === 'n') && !e.ctrlKey && !e.shiftKey) {
-            e.preventDefault();
-            if (pagination.currentPage < pagination.totalPages) {
-                loadGalleryPage(eventType, pagination.currentPage + 1);
-            }
-        }
-        
-        // Home key for first page
-        if (e.key === 'Home' && !e.ctrlKey && !e.shiftKey) {
-            e.preventDefault();
-            if (pagination.currentPage > 1) {
-                loadGalleryPage(eventType, 1);
-            }
-        }
-        
-        // End key for last page
-        if (e.key === 'End' && !e.ctrlKey && !e.shiftKey) {
-            e.preventDefault();
-            if (pagination.currentPage < pagination.totalPages) {
-                loadGalleryPage(eventType, pagination.totalPages);
-            }
-        }
-    });
-}
-
-// Initialize keyboard navigation
-initKeyboardNavigation();
+// Removed initKeyboardNavigation and associated global key handlers
+// Removed donate modal functionality in favor of direct external donate link
