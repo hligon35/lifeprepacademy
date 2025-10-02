@@ -985,10 +985,16 @@ footer .social-links .social-icon {
 }
 
 .donate-section {
+<<<<<<< HEAD
     /* Reverted to prior simpler light background (removed dark overlay image) */
     background: linear-gradient(135deg, #f9f5ff, #efe9fa);
     color: var(--primary-color);
     padding: 3.5rem 0;
+=======
+    background: linear-gradient(rgba(40,17,86,0.85), rgba(40,17,86,0.9)), url('eventa.avif') center/cover fixed;
+    color: #fff;
+    padding: 4rem 0;
+>>>>>>> 118c8316c56091feb013cf37638b3f689c1e8246
 }
 .donate-section .container { text-align:center; max-width:960px; }
 .donate-intro { margin: 0 0 1.75rem; font-size:1.05rem; line-height:1.5; }
