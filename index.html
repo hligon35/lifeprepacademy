@@ -306,7 +306,7 @@
                                 <!-- <a href="#" aria-label="LinkedIn" target="_blank" rel="me noopener noreferrer"><img class="social-icon" src="photos/SocialIcons/linkedin.png" alt="LinkedIn" width="20" height="20"> LinkedIn</a> -->
                             </div>
                         </div>
-                        <form class="contact-form" id="contactForm" action="https://script.google.com/macros/s/AKfycbxS9qSqiU7II581NmP5Xa4Jsx123xqWPw2R6Cqdn73Fww7S44MfSiQa1Dyqv7ESKSqI/exec" method="POST" aria-describedby="contact-form-status">
+                        <form class="contact-form" id="contactForm" action="https://script.google.com/macros/s/AKfycbzyhjb5lEKQhrxYbmJCDBRsLh62v5Ii59rbmmEA7VCATSfX44Um5bSa3rZisyYMY3Fw/exec" method="POST" aria-describedby="contact-form-status">
                             <h3>Send us a Message</h3>
                             <div id="contact-form-status" class="visually-hidden" aria-live="polite"></div>
                             <div class="form-group">
@@ -342,30 +342,44 @@
                             <button type="submit" class="btn btn-primary">Send Message</button>
                                                 </form>
                                                 <script>
-                                                // Replace 'YOUR_GOOGLE_APPS_SCRIPT_URL' with your deployed Apps Script Web App URL
-                                                document.addEventListener('DOMContentLoaded', function() {
+                                                // Contact form AJAX submission with JSON handling
+                                                document.addEventListener('DOMContentLoaded', () => {
                                                     const form = document.getElementById('contactForm');
                                                     const statusDiv = document.getElementById('contact-form-status');
-                                                    form.addEventListener('submit', function(e) {
+                                                    const FETCH_URL = form.getAttribute('action');
+
+                                                    function setStatus(message, isError = false) {
+                                                        statusDiv.textContent = message;
+                                                        statusDiv.classList.remove('visually-hidden');
+                                                        statusDiv.classList.toggle('error', isError);
+                                                    }
+
+                                                    form.addEventListener('submit', async (e) => {
                                                         e.preventDefault();
-                                                        statusDiv.textContent = '';
-                                                        statusDiv.classList.remove('error');
+                                                        setStatus('Sending...', false);
+
                                                         const formData = new FormData(form);
-                                                        fetch(form.action, {
-                                                            method: 'POST',
-                                                            mode: 'no-cors',
-                                                            body: formData
-                                                        })
-                                                        .then(() => {
-                                                            statusDiv.textContent = 'Thank you! Your message has been sent.';
-                                                            statusDiv.classList.remove('visually-hidden');
+                                                        formData.append('userAgent', navigator.userAgent || '');
+                                                        formData.append('page', window.location.href);
+
+                                                        try {
+                                                            const response = await fetch(FETCH_URL, {
+                                                                method: 'POST',
+                                                                body: formData
+                                                            });
+
+                                                            // Attempt to parse JSON (Apps Script returns JSON via our script)
+                                                            let data = {};
+                                                            try { data = await response.json(); } catch (_) {}
+
+                                                            if (!response.ok || data.status === 'error') {
+                                                                throw new Error(data.message || 'Submission failed');
+                                                            }
+                                                            setStatus(data.message || 'Thank you! Your message has been sent.');
                                                             form.reset();
-                                                        })
-                                                        .catch(() => {
-                                                            statusDiv.textContent = 'Sorry, there was an error sending your message.';
-                                                            statusDiv.classList.remove('visually-hidden');
-                                                            statusDiv.classList.add('error');
-                                                        });
+                                                        } catch (err) {
+                                                            setStatus(err.message || 'Sorry, there was an error sending your message.', true);
+                                                        }
                                                     });
                                                 });
                                                 </script>
