@@ -2,6 +2,17 @@
 
 // DOM Content Loaded Event
 document.addEventListener('DOMContentLoaded', function() {
+    // Disable scroll restoration and ensure page starts at the top
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
+    
+    if (window.location.hash === '' || window.location.hash === '#') {
+        setTimeout(() => {
+            window.scrollTo(0, 0);
+        }, 10);
+    }
+    
     // Initialize photos first for immediate loading
     initEventPhotos();
     
@@ -793,113 +804,24 @@ function initEventPhotos() {
     // Define photo collections for each event using optimized medium-sized images
     window.eventPhotos = {
         mmhe: [
-            // All medium webp images in mmhe
-            'photos/mmhe/IMG_3799_medium.webp',
-            'photos/mmhe/IMG_3800_medium.webp',
-            'photos/mmhe/IMG_3803_medium.webp',
+            // Only the 4 existing medium webp images in mmhe
             'photos/mmhe/IMG_3804_medium.webp',
-            'photos/mmhe/IMG_3808_medium.webp',
             'photos/mmhe/IMG_3809_medium.webp',
-            'photos/mmhe/IMG_3815_medium.webp',
-            'photos/mmhe/IMG_3817_medium.webp',
             'photos/mmhe/IMG_3821_medium.webp',
-            'photos/mmhe/IMG_3822_medium.webp',
-            'photos/mmhe/IMG_3824_medium.webp',
-            'photos/mmhe/IMG_3827_medium.webp',
-            'photos/mmhe/IMG_3828_medium.webp',
-            'photos/mmhe/IMG_3829_medium.webp',
-            'photos/mmhe/IMG_3830_medium.webp',
-            'photos/mmhe/IMG_3831_medium.webp',
-            'photos/mmhe/IMG_3833_medium.webp',
-            'photos/mmhe/IMG_3834_medium.webp',
-            'photos/mmhe/IMG_3840_medium.webp',
-            'photos/mmhe/IMG_3841_medium.webp',
-            'photos/mmhe/IMG_3848_medium.webp',
-            'photos/mmhe/IMG_3850_medium.webp',
-            'photos/mmhe/IMG_3860_medium.webp',
-            'photos/mmhe/IMG_3861_medium.webp',
-            'photos/mmhe/IMG_3863_medium.webp',
-            'photos/mmhe/IMG_3864_medium.webp',
-            'photos/mmhe/IMG_3882_medium.webp',
-            'photos/mmhe/IMG_3883_medium.webp',
-            'photos/mmhe/IMG_3884_medium.webp',
-            'photos/mmhe/IMG_3885_medium.webp',
-            'photos/mmhe/IMG_3886_medium.webp',
-            'photos/mmhe/IMG_3890_medium.webp',
-            'photos/mmhe/IMG_3891_medium.webp',
-            'photos/mmhe/IMG_3894_medium.webp',
-            'photos/mmhe/IMG_3895_medium.webp',
-            'photos/mmhe/IMG_3898_medium.webp',
-            'photos/mmhe/IMG_3900_medium.webp',
-            'photos/mmhe/IMG_3901_medium.webp',
-            'photos/mmhe/IMG_3907_medium.webp',
-            'photos/mmhe/IMG_3908_medium.webp',
-            'photos/mmhe/IMG_3911_medium.webp',
-            'photos/mmhe/IMG_3918_medium.webp',
-            'photos/mmhe/IMG_3924_medium.webp',
-            'photos/mmhe/IMG_3925_medium.webp',
-            'photos/mmhe/IMG_3926_medium.webp',
-            'photos/mmhe/IMG_3955_medium.webp',
-            'photos/mmhe/IMG_3956_medium.webp',
-            'photos/mmhe/IMG_3957_medium.webp',
-            'photos/mmhe/IMG_3960_medium.webp',
-            'photos/mmhe/IMG_3961_medium.webp',
-            'photos/mmhe/IMG_3962_medium.webp',
-            'photos/mmhe/IMG_3963_medium.webp',
-            'photos/mmhe/IMG_3966_medium.webp',
-            'photos/mmhe/IMG_3967_medium.webp'
+            'photos/mmhe/IMG_3891_medium.webp'
         ],
         discpan: [
-            // All medium webp images in discpan
-            'photos/discpan/1-_DSC1395_medium.webp',
-            'photos/discpan/10-_DSC1416_medium.webp',
-            'photos/discpan/11-_DSC1418_medium.webp',
-            'photos/discpan/12-_DSC1421_medium.webp',
-            'photos/discpan/13-_DSC1422_medium.webp',
+            // Only the 4 existing medium webp images in discpan
             'photos/discpan/14-_DSC1425_medium.webp',
-            'photos/discpan/15-_DSC1428_medium.webp',
-            'photos/discpan/16-_DSC1430_medium.webp',
-            'photos/discpan/17-_DSC1433_medium.webp',
-            'photos/discpan/18-_DSC1435_medium.webp',
-            'photos/discpan/19-_DSC1438_medium.webp',
-            'photos/discpan/2-_DSC1397_medium.webp',
-            'photos/discpan/20-_DSC1444_medium.webp',
             'photos/discpan/21-_DSC1446_medium.webp',
-            'photos/discpan/22-_DSC1457_medium.webp',
             'photos/discpan/23-_DSC1459_medium.webp',
-            'photos/discpan/24-_DSC1463_medium.webp',
-            'photos/discpan/25-_DSC1474_medium.webp',
-            'photos/discpan/26-_DSC1481_medium.webp',
-            'photos/discpan/27-_DSC1493_medium.webp',
-            'photos/discpan/28-_DSC1496_medium.webp',
-            'photos/discpan/3-_DSC1398_medium.webp',
-            'photos/discpan/4-_DSC1400_medium.webp',
-            'photos/discpan/5-_DSC1401_medium.webp',
-            'photos/discpan/6-_DSC1404_medium.webp',
-            'photos/discpan/7-_DSC1405_medium.webp',
-            'photos/discpan/8-_DSC1413_medium.webp',
             'photos/discpan/9-_DSC1415_medium.webp'
-        ],
-        erf: [
-            // All medium webp images in erf
-            'photos/erf/FullSizeRender_medium.webp',
-            'photos/erf/FullSizeRender_medium.webp',
-            'photos/erf/IMG_0883%202_medium.webp',
-            'photos/erf/IMG_0883_medium.webp',
-            'photos/erf/IMG_0884%202_medium.webp',
-            'photos/erf/IMG_0884_medium.webp',
-            'photos/erf/IMG_3636_medium.webp',
-            'photos/erf/IMG_3640_medium.webp',
-            'photos/erf/IMG_3641_medium.webp',
-            'photos/erf/IMG_3646_medium.webp',
-            'photos/erf/IMG_3647_medium.webp'
         ]
     };
     
     console.log('✅ Event photos initialized:', {
         mmhe: window.eventPhotos.mmhe.length,
-        discpan: window.eventPhotos.discpan.length,
-        erf: window.eventPhotos.erf.length
+        discpan: window.eventPhotos.discpan.length
     });
 }
 
@@ -1584,74 +1506,3 @@ function initKeyboardNavigation() {
 
 // Initialize keyboard navigation
 initKeyboardNavigation();
-
-(function initDonateModal(){
-  const donateBtn = document.getElementById('donate-btn');
-  const modal = document.getElementById('donate-modal');
-  if(!donateBtn || !modal) return;
-
-  const open = () => {
-    lastFocused = document.activeElement;
-    modal.setAttribute('aria-hidden','false');
-    document.documentElement.classList.add('modal-open');
-    document.body.classList.add('modal-open');
-    // focus first focusable
-    setTimeout(()=>{
-      const first = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-      (first || modal).focus();
-    },0);
-    document.addEventListener('keydown', onKeydown);
-  };
-  const close = () => {
-    modal.setAttribute('aria-hidden','true');
-    document.documentElement.classList.remove('modal-open');
-    document.body.classList.remove('modal-open');
-    document.removeEventListener('keydown', onKeydown);
-    if(lastFocused && lastFocused.focus) lastFocused.focus();
-  };
-  let lastFocused = null;
-
-  const onKeydown = (e) => {
-    if(e.key === 'Escape') { e.preventDefault(); close(); }
-    if(e.key === 'Tab') {
-      // trap focus
-      const focusables = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-      if(focusables.length === 0) return;
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      if(e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-      else if(!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-    }
-  };
-
-  modal.addEventListener('click', (e)=>{
-    if(e.target.matches('[data-close-modal]')) close();
-  });
-
-  donateBtn.addEventListener('click', ()=> open());
-
-  // Link buttons
-  const stripeBtn = document.getElementById('donate-stripe');
-  const paypalBtn = document.getElementById('donate-paypal');
-  const stripeLink = donateBtn.getAttribute('data-stripe-link');
-  const paypalLink = donateBtn.getAttribute('data-paypal-link');
-
-  if(stripeBtn){
-    stripeBtn.addEventListener('click', ()=>{
-      if(stripeLink && stripeLink !== '#') {
-        window.open(stripeLink, '_blank', 'noopener,noreferrer');
-      } else {
-        alert('Stripe link not configured yet.');
-      }
-    });
-  }
-  if(paypalBtn){
-    paypalBtn.addEventListener('click', ()=>{
-      if(paypalLink && paypalLink !== '#') {
-        window.open(paypalLink, '_blank', 'noopener,noreferrer');
-      } else {
-        alert('PayPal link not configured yet.');
-      }
-    });
-  }
-})();

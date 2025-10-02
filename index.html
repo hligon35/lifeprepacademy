@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lifeprep Academy Foundation | Empowering Lives Through Education</title>
-    <meta name="description" content="LifePrep Academy Foundation advances mental wellness, athletic development, financial literacy, and youth leadership in Baltimore through hands-on programs and community partnerships.">
+    <meta name="description" content="LifePrep Academy Foundation advances mental wellness, athletic development, financial literacy, and youth leadership in Baltimore through hands-on programs and cmunity partnerships.">
     <meta name="keywords" content="lifeprep academy, education foundation, nonprofit, community development, mentorship, scholarships, youth programs">
     <meta name="author" content="Lifeprep Academy Foundation">
     <meta name="robots" content="index, follow">
@@ -204,7 +204,6 @@
                     <div class="event-tabs" role="tablist" aria-label="Event galleries">
                         <button id="mmhe-tab" class="event-tab active" role="tab" aria-selected="true" aria-controls="mmhe-content" data-event="mmhe">Men's Mental Health Expo</button>
                         <button id="discpan-tab" class="event-tab" role="tab" aria-selected="false" aria-controls="discpan-content" data-event="discpan">Discussion Panel</button>
-                        <button id="erf-tab" class="event-tab" role="tab" aria-selected="false" aria-controls="erf-content" data-event="erf">Ed Reed Foundation</button>
                     </div>
                     
                     <!-- Event Content -->
@@ -262,33 +261,6 @@
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Ed Reed Foundation -->
-                        <div class="event-details" id="erf-content" role="tabpanel" aria-labelledby="erf-tab" hidden>
-                            <div class="event-info-header">
-                                <h3>Ed Reed Foundation</h3>
-                                <p class="event-description">
-                                    Partnership events and initiatives with the Ed Reed Foundation, focusing on 
-                                    youth development, education, and community empowerment programs. Together, we expand access to positive experiences and success‑ready skills for Baltimore youth.
-                                </p>
-                            </div>
-                            <div class="event-gallery" id="erf-gallery">
-                                <div class="gallery-grid">
-                                    <!-- Photos will be loaded dynamically -->
-                                </div>
-                                <div class="gallery-pagination hidden" id="erf-pagination">
-                                    <button class="gallery-nav-btn" id="erf-prev" disabled aria-label="Previous page of Ed Reed Foundation photos">
-                                        ← Previous
-                                    </button>
-                                    <div class="gallery-page-info" id="erf-page-info" role="status" aria-live="polite">
-                                        Page 1 of 1
-                                    </div>
-                                    <button class="gallery-nav-btn" id="erf-next" disabled aria-label="Next page of Ed Reed Foundation photos">
-                                        Next →
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                     
                     <!-- Coming Soon Events -->
@@ -321,7 +293,7 @@
                                     <img class="social-icon" src="photos/SocialIcons/XSocialIcon.png" alt="Twitter/X" width="20" height="20"> Twitter
                                 </a>
                                 <a href="#" class="social-link" aria-label="Follow us on Instagram">
-                                    <img class="social-icon" src="photos/SocialIcons/IGicon.jpg" alt="Instagram" width="20" height="20"> Instagram
+                                    <img class="social-icon" src="photos/SocialIcons/IGicon.png" alt="Instagram" width="20" height="20"> Instagram
                                 </a>
                                 <a href="#" class="social-link" aria-label="Follow us on LinkedIn">
                                     <img class="social-icon" src="photos/SocialIcons/linkedin.png" alt="LinkedIn" width="20" height="20"> LinkedIn
@@ -360,9 +332,9 @@
                 <div class="container">
                     <h2>Donate</h2>
                     <p class="donate-intro">Your gift fuels mental wellness, athletic development, financial literacy, and youth leadership across Baltimore. Give securely by card or PayPal.</p>
-                    <button id="donate-btn" class="btn btn-primary" aria-haspopup="dialog" aria-controls="donate-modal" data-stripe-link="#" data-paypal-link="#">
+                    <a href="https://give.cornerstone.cc/lifeprepacademyfnd" target="_blank" rel="noopener" class="btn btn-primary">
                         Donate securely
-                    </button>
+                    </a>
                     <p class="donate-secure">Secured by Stripe and PayPal</p>
                 </div>
             </section>
@@ -382,7 +354,7 @@
                                 <h4>Follow Us</h4>
                                 <a href="#" aria-label="Facebook" target="_blank" rel="me noopener noreferrer"><img class="social-icon" src="photos/SocialIcons/facebook.png" alt="Facebook" width="20" height="20"> Facebook</a>
                                 <!-- <a href="#" aria-label="Twitter/X" target="_blank" rel="me noopener noreferrer"><img class="social-icon" src="photos/SocialIcons/XSocialIcon.png" alt="Twitter/X" width="20" height="20"> Twitter</a> -->
-                                <a href="#" aria-label="Instagram" target="_blank" rel="me noopener noreferrer"><img class="social-icon" src="photos/SocialIcons/IGicon.jpg" alt="Instagram" width="20" height="20"> Instagram</a>
+                                <a href="https://www.instagram.com/lifeprepacademy" aria-label="Instagram" target="_blank" rel="me noopener noreferrer"><img class="social-icon" src="photos/SocialIcons/IGicon.png" alt="Instagram" width="20" height="20"> Instagram</a>
                                 <!-- <a href="#" aria-label="LinkedIn" target="_blank" rel="me noopener noreferrer"><img class="social-icon" src="photos/SocialIcons/linkedin.png" alt="LinkedIn" width="20" height="20"> LinkedIn</a> -->
                             </div>
                         </div>
@@ -451,28 +423,16 @@
 
     <script src="script.js" defer></script>
         
-        <!-- Donate Modal -->
-        <div id="donate-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="donate-title" aria-hidden="true">
-            <div class="modal-overlay" data-close-modal></div>
-            <div class="modal-content" role="document">
-                <button class="modal-close" aria-label="Close donate dialog" data-close-modal>&times;</button>
-                <h2 id="donate-title">Donate</h2>
+        
+
+
+
+
+
                 <p class="modal-lead">Choose a payment method below. You’ll complete your donation on our trusted provider’s checkout.</p>
-                <div class="donate-options">
-                    <div class="option-card">
-                        <h3 class="option-title">Card via <span class="badge badge-stripe">Stripe</span></h3>
-                        <p class="option-desc">Donate with any major debit/credit card. Fast, secure, and encrypted.</p>
-                        <button class="btn btn-stripe" id="donate-stripe">Donate with Card</button>
-                    </div>
-                    <div class="option-card">
-                        <h3 class="option-title">Pay with <span class="badge badge-paypal">PayPal</span></h3>
-                        <p class="option-desc">Use your PayPal balance or linked payment methods. No account needed for most cards.</p>
-                        <button class="btn btn-paypal" id="donate-paypal">Donate with PayPal</button>
-                    </div>
-                </div>
-                <p class="donate-trust">🔒 Your donation is protected with industry‑standard encryption. We never store your payment details.</p>
-            </div>
-        </div>
+
+
+
     </div>
 </body>
 </html>
