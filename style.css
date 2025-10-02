@@ -351,10 +351,29 @@ section:nth-child(even) {
 /* Reduce space between bullets and text in offerings list */
 .offerings-list {
     padding-left: 1rem;
+    list-style: none;
 }
 
 .offerings-list li {
-    padding-left: 0.25rem;
+    padding-left: 2rem;
+    position: relative;
+    margin-bottom: 0.5rem;
+}
+
+/* Yellow star bullets with purple border */
+.offerings-list li::before {
+    content: "★";
+    position: absolute;
+    left: 0;
+    top: 0;
+    color: #FFD700;
+    font-size: 1.2rem;
+    text-shadow: 
+        -1px -1px 0 var(--primary-color),
+        1px -1px 0 var(--primary-color),
+        -1px 1px 0 var(--primary-color),
+        1px 1px 0 var(--primary-color);
+    line-height: 1.2;
 }
 
 .stats {
