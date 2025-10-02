@@ -460,33 +460,46 @@ section:nth-child(even) {
 .event-corner-btn {
     position: absolute;
     top: 0.5rem;
-    padding: 0.75rem 1rem;
-    line-height: 1.1;
-    font-size: 0.85rem;
+    /* Tripled approximate area: increase padding & font size */
+    padding: 1.75rem 2rem;
+    line-height: 1.15;
+    font-size: 1.4rem; /* was 0.85rem */
     text-align: center;
     display: inline-flex;
     flex-direction: column;
     justify-content: center;
-    gap: 0.25rem;
-    min-width: 90px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    gap: 0.4rem;
+    min-width: 260px; /* was 90px */
+    min-height: 210px; /* ensure presence even with line breaks */
+    box-shadow: 0 10px 32px -8px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.2);
+    border-width: 3px;
+    border-radius: 22px;
+    letter-spacing: 0.5px;
 }
 
 .event-corner-btn.sponsor-btn { left: 0.5rem; }
 .event-corner-btn.vendor-btn { right: 0.5rem; }
 
 @media (min-width: 640px) {
-    .event-corner-btn { font-size: 0.9rem; min-width: 110px; }
+    .event-corner-btn { font-size: 1.5rem; }
+}
+
+@media (max-width: 900px) {
+    /* Bring them slightly inward on medium screens so they don't overflow */
+    .event-corner-btn.sponsor-btn { left: 0.75rem; }
+    .event-corner-btn.vendor-btn { right: 0.75rem; }
+    .event-corner-btn { min-width: 230px; min-height: 190px; font-size: 1.3rem; padding: 1.5rem 1.5rem; }
 }
 
 @media (max-width: 620px) {
-    /* Stack buttons at top if too narrow */
-    .event-corner-btn.sponsor-btn { left: 50%; transform: translateX(-105%); }
-    .event-corner-btn.vendor-btn { right: 50%; transform: translateX(105%); }
+    /* Center them relative to container with transforms */
+    .event-corner-btn.sponsor-btn { left: 50%; transform: translateX(-120%); }
+    .event-corner-btn.vendor-btn { right: 50%; transform: translateX(120%); }
+    .event-corner-btn { min-width: 210px; min-height: 170px; font-size: 1.15rem; padding: 1.25rem 1.25rem; }
 }
 
 @media (max-width: 480px) {
-    .event-corner-btn { position: static; transform: none !important; margin: 0 0 0.75rem; }
+    .event-corner-btn { position: static; transform: none !important; margin: 0 0 1rem; width: 100%; max-width: 340px; }
     .events-section .container { display: flex; flex-direction: column; align-items: center; }
     .events-section h2 { margin-top: 1rem; }
 }
