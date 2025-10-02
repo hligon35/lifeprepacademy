@@ -158,9 +158,10 @@ nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    max-width: var(--max-width);
+    /* Standardize to home page width/margins */
+    max-width: 1200px; /* previously var(--max-width) making other pages wider */
     margin: 0 auto;
-    padding: 0 2rem;
+    padding: 0 1rem; /* match home inline critical CSS */
     position: relative; /* anchor mobile dropdown */
 }
 
@@ -1042,11 +1043,23 @@ img[loading="lazy"].loaded {
 }
 
 .contact-content {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 3rem;
-    align-items: center;
+        display: grid;
+        /* Use explicit column widths for a more intentional, narrower layout */
+        grid-template-columns: minmax(0, 420px) minmax(0, 520px);
+        gap: 2.5rem;
+        align-items: start;
+        justify-content: center;
 }
+
+/* Narrow overall width of contact section on large screens */
+.contact-section .container { max-width: 1080px; }
+
+@media (min-width: 1500px) {
+    .contact-section .container { max-width: 1120px; }
+}
+
+/* Slightly tighten cards for aesthetics */
+.contact-info, .contact-form { padding: 2.25rem; }
 
 .contact-info {
     background-color: var(--background-white);
