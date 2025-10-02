@@ -876,291 +876,80 @@ function initEventPhotos() {
 
 function loadEventGallery(eventType) {
     const galleryContainer = document.querySelector(`#${eventType}-gallery .gallery-grid`);
-    const paginationContainer = document.querySelector(`#${eventType}-pagination`);
     if (!galleryContainer) return;
-    
-    console.log('🖼️ Loading gallery for:', eventType);
-    
-    // Check if gallery is already loaded
-    if (galleryContainer.dataset.loaded === 'true') {
-        console.log('Gallery already loaded for:', eventType);
-        return;
-    }
-    
-    // Show loading state
-    galleryContainer.innerHTML = '<div class="gallery-loading">Loading photos...</div>';
-    
-    // Get photos for this event
-    const photos = window.eventPhotos ? window.eventPhotos[eventType] : [];
-    
-    console.log('Photos found for', eventType, ':', photos.length);
-    console.log('First 3 photos:', photos.slice(0, 3));
-    
-    if (!photos || photos.length === 0) {
-        // Show empty state
+
+    if (galleryContainer.dataset.loaded === 'true') return;
+
+    const photos = (window.eventPhotos && window.eventPhotos[eventType]) ? window.eventPhotos[eventType] : [];
+
+    if (!photos.length) {
         galleryContainer.innerHTML = `
             <div class="gallery-empty">
                 <h4>Coming Soon</h4>
                 <p>Photos from this event will be available soon.</p>
-            </div>
-        `;
+            </div>`;
         return;
     }
-    
-    // Initialize pagination for this event
-    initGalleryPagination(eventType, photos);
-    
-    // Mark as loaded
+
+    galleryContainer.innerHTML = '';
+    galleryContainer.setAttribute('role','list');
+
+    photos.forEach((photoUrl, idx) => {
+        const galleryItem = document.createElement('div');
+        galleryItem.className = 'gallery-item';
+        galleryItem.dataset.eventType = eventType;
+        galleryItem.dataset.photoIndex = idx;
+        galleryItem.setAttribute('role','listitem');
+
+        const thumbUrl = photoUrl.replace('_medium.webp', '_thumbnail.webp');
+        const thumbJpegUrl = photoUrl.replace('_medium.webp', '_thumbnail.jpeg');
+        const mediumJpegUrl = photoUrl.replace('_medium.webp', '_medium.jpeg');
+
+        const picture = document.createElement('picture');
+        const webpSource = document.createElement('source');
+        webpSource.srcset = `${thumbUrl} 1x, ${photoUrl} 2x`;
+        webpSource.type = 'image/webp';
+        const jpegSource = document.createElement('source');
+        jpegSource.srcset = `${thumbJpegUrl} 1x, ${mediumJpegUrl} 2x`;
+        jpegSource.type = 'image/jpeg';
+        const img = document.createElement('img');
+        img.src = thumbJpegUrl;
+        img.alt = `${getEventName(eventType)} - Photo ${idx + 1}`;
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.width = 300; img.height = 300;
+        img.sizes = '(max-width: 480px) 90vw, (max-width: 900px) 30vw, 300px';
+        picture.appendChild(webpSource); picture.appendChild(jpegSource); picture.appendChild(img);
+
+        const overlay = document.createElement('div');
+        overlay.className = 'gallery-overlay';
+        const caption = document.createElement('div');
+        caption.className = 'gallery-caption';
+        caption.textContent = `Photo ${idx + 1}`;
+        overlay.appendChild(caption);
+
+        img.addEventListener('error', () => {
+            galleryItem.innerHTML = `<div class="gallery-placeholder"><div class="placeholder-content"><h4>Photo ${idx + 1}</h4><p>Image not available</p></div></div>`;
+            galleryItem.classList.add('placeholder');
+        });
+        img.addEventListener('load', () => {
+            img.classList.add('loaded');
+            galleryItem.addEventListener('click', () => openImageModal(photoUrl, img.alt, eventType, idx));
+        });
+
+        galleryItem.appendChild(picture);
+        galleryItem.appendChild(overlay);
+        galleryContainer.appendChild(galleryItem);
+        galleryItem.classList.add('loading');
+        setTimeout(()=>{galleryItem.classList.remove('loading');galleryItem.classList.add('animate-in');}, idx*50);
+    });
+
     galleryContainer.dataset.loaded = 'true';
-}
-
-// Gallery Pagination System
-function initGalleryPagination(eventType, photos) {
-    const PHOTOS_PER_PAGE = 9; // 3x3 grid
-    const totalPages = Math.ceil(photos.length / PHOTOS_PER_PAGE);
-    
-    // Initialize pagination state
-    if (!window.galleryPagination) {
-        window.galleryPagination = {};
-    }
-    
-    window.galleryPagination[eventType] = {
-        currentPage: 1,
-        totalPages: totalPages,
-        photos: photos,
-        photosPerPage: PHOTOS_PER_PAGE
-    };
-    
-    // Setup pagination controls
-    setupPaginationControls(eventType);
-    
-    // Load first page
-    loadGalleryPage(eventType, 1);
-}
-
-function setupPaginationControls(eventType) {
-    const pagination = window.galleryPagination[eventType];
-    const paginationContainer = document.querySelector(`#${eventType}-pagination`);
-    const prevBtn = document.querySelector(`#${eventType}-prev`);
-    const nextBtn = document.querySelector(`#${eventType}-next`);
-    const pageInfo = document.querySelector(`#${eventType}-page-info`);
-    
-    if (!paginationContainer) return;
-    
-    // Show pagination if more than one page
-    if (pagination.totalPages > 1) {
-        paginationContainer.classList.remove('hidden');
-        
-        // Add keyboard shortcuts info
-        addKeyboardShortcutsInfo(eventType);
-    }
-    
-    // Update page info
-    if (pageInfo) {
-        pageInfo.textContent = `Page ${pagination.currentPage} of ${pagination.totalPages}`;
-    }
-    
-    // Setup button event listeners
-    if (prevBtn) {
-        prevBtn.addEventListener('click', () => {
-            if (pagination.currentPage > 1) {
-                loadGalleryPage(eventType, pagination.currentPage - 1);
-            }
-        });
-    }
-    
-    if (nextBtn) {
-        nextBtn.addEventListener('click', () => {
-            if (pagination.currentPage < pagination.totalPages) {
-                loadGalleryPage(eventType, pagination.currentPage + 1);
-            }
-        });
-    }
-    
-    // Update button states
-    updatePaginationButtons(eventType);
-}
-
-function addKeyboardShortcutsInfo(eventType) {
-    const galleryContainer = document.querySelector(`#${eventType}-gallery`);
-    if (!galleryContainer) return;
-    
-    // Check if shortcuts info already exists
-    if (galleryContainer.querySelector('.gallery-shortcuts')) return;
-    
-    const shortcutsDiv = document.createElement('div');
-    shortcutsDiv.className = 'gallery-shortcuts';
-    shortcutsDiv.innerHTML = `
-        <strong>Keyboard shortcuts:</strong> 
-        <kbd>←</kbd> Previous page · 
-        <kbd>→</kbd> Next page · 
-        <kbd>Home</kbd> First page · 
-        <kbd>End</kbd> Last page
-    `;
-    
-    galleryContainer.appendChild(shortcutsDiv);
-}
-
-function loadGalleryPage(eventType, pageNumber) {
-    const pagination = window.galleryPagination[eventType];
-    const galleryContainer = document.querySelector(`#${eventType}-gallery .gallery-grid`);
-    
-    if (!pagination || !galleryContainer) return;
-    
-    // Add transition effect and announce busy state
-    const galleryRegion = document.querySelector(`#${eventType}-gallery`);
-    if (galleryRegion) {
-        galleryRegion.setAttribute('aria-busy', 'true');
-    }
-    // Add transition effect
-    galleryContainer.classList.add('page-transition');
-    
-    setTimeout(() => {
-        // Update current page
-        pagination.currentPage = pageNumber;
-        
-        // Calculate photo range for this page
-        const startIndex = (pageNumber - 1) * pagination.photosPerPage;
-        const endIndex = Math.min(startIndex + pagination.photosPerPage, pagination.photos.length);
-        const pagePhotos = pagination.photos.slice(startIndex, endIndex);
-        
-        // Clear gallery
-        galleryContainer.innerHTML = '';
-        // Mark container as a list for accessibility
-        galleryContainer.setAttribute('role', 'list');
-        
-        // Create gallery items for current page
-        pagePhotos.forEach((photoUrl, index) => {
-            const actualIndex = startIndex + index;
-            const galleryItem = document.createElement('div');
-            galleryItem.className = 'gallery-item';
-            galleryItem.dataset.eventType = eventType;
-            galleryItem.dataset.photoIndex = actualIndex;
-            galleryItem.setAttribute('role', 'listitem');
-
-            // Use thumbnail for display, but open medium in modal
-            const thumbUrl = photoUrl.replace('_medium.webp', '_thumbnail.webp');
-            const thumbJpegUrl = photoUrl.replace('_medium.webp', '_thumbnail.jpeg');
-            const mediumJpegUrl = photoUrl.replace('_medium.webp', '_medium.jpeg');
-
-            // Create picture element with WebP and JPEG fallback for thumbnail
-            const picture = document.createElement('picture');
-
-            // WebP source (thumbnail)
-            const webpSource = document.createElement('source');
-            webpSource.srcset = `${thumbUrl} 1x, ${photoUrl} 2x`;
-            webpSource.type = 'image/webp';
-
-            // JPEG fallback (thumbnail)
-            const jpegSource = document.createElement('source');
-            jpegSource.srcset = `${thumbJpegUrl} 1x, ${mediumJpegUrl} 2x`;
-            jpegSource.type = 'image/jpeg';
-
-            // Main img element (fallback, thumbnail)
-            const img = document.createElement('img');
-            img.src = thumbJpegUrl;
-            img.alt = `${getEventName(eventType)} - Photo ${actualIndex + 1}`;
-            img.loading = 'lazy';
-            img.decoding = 'async';
-            img.width = 300;
-            img.height = 300;
-            img.sizes = '(max-width: 480px) 45vw, (max-width: 900px) 30vw, 300px';
-
-            // Append sources to picture
-            picture.appendChild(webpSource);
-            picture.appendChild(jpegSource);
-            picture.appendChild(img);
-
-            // Create overlay for styling
-            const overlay = document.createElement('div');
-            overlay.className = 'gallery-overlay';
-
-            const caption = document.createElement('div');
-            caption.className = 'gallery-caption';
-            caption.textContent = `Photo ${actualIndex + 1}`;
-
-            overlay.appendChild(caption);
-
-            img.addEventListener('error', function() {
-                galleryItem.innerHTML = `
-                    <div class="gallery-placeholder">
-                        <div class="placeholder-content">
-                            <h4>Photo ${actualIndex + 1}</h4>
-                            <p>Image not available</p>
-                        </div>
-                    </div>
-                `;
-                galleryItem.classList.add('placeholder');
-            });
-
-            img.addEventListener('load', function() {
-                // Mark as loaded so CSS fades it in
-                img.classList.add('loaded');
-                galleryItem.addEventListener('click', function() {
-                    openImageModal(photoUrl, img.alt, eventType, actualIndex);
-                });
-            });
-
-            galleryItem.appendChild(picture);
-            galleryItem.appendChild(overlay);
-            galleryContainer.appendChild(galleryItem);
-
-            // Add entrance animation
-            galleryItem.classList.add('loading');
-            setTimeout(() => {
-                galleryItem.classList.remove('loading');
-                galleryItem.classList.add('animate-in');
-            }, index * 50);
-        });
-        
-    // Re-attach lazy loading to any new images just added
     initLazyLoading();
-
-    // Remove transition effect and add loaded state
-        galleryContainer.classList.remove('page-transition');
-        galleryContainer.classList.add('page-loaded');
-        
-    // Update pagination controls
-        updatePaginationButtons(eventType);
-        updatePageInfo(eventType);
-        
-        // Re-initialize image modal for new images
-        initGalleryImageModal();
-        
-        // Scroll gallery into view (smoothly)
-        const gallerySection = document.querySelector(`#${eventType}-gallery`);
-        if (gallerySection) {
-            gallerySection.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'nearest'
-            });
-            gallerySection.setAttribute('aria-busy', 'false');
-        }
-    }, 150); // Small delay for smooth transition
+    initGalleryImageModal();
 }
 
-function updatePaginationButtons(eventType) {
-    const pagination = window.galleryPagination[eventType];
-    const prevBtn = document.querySelector(`#${eventType}-prev`);
-    const nextBtn = document.querySelector(`#${eventType}-next`);
-    
-    if (prevBtn) {
-        prevBtn.disabled = pagination.currentPage <= 1;
-    }
-    
-    if (nextBtn) {
-        nextBtn.disabled = pagination.currentPage >= pagination.totalPages;
-    }
-}
-
-function updatePageInfo(eventType) {
-    const pagination = window.galleryPagination[eventType];
-    const pageInfo = document.querySelector(`#${eventType}-page-info`);
-    
-    if (pageInfo) {
-        pageInfo.textContent = `Page ${pagination.currentPage} of ${pagination.totalPages}`;
-    }
-}
+// (Pagination system removed; galleries now load all available photos at once.)
 
 function getEventName(eventType) {
     const names = {

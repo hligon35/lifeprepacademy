@@ -219,45 +219,26 @@
                             </div>
                             <div class="event-gallery" id="mmhe-gallery">
                                 <div class="gallery-grid">
-                                    <!-- Photos will be loaded dynamically -->
-                                </div>
-                                <div class="gallery-pagination hidden" id="mmhe-pagination">
-                                    <button class="gallery-nav-btn" id="mmhe-prev" disabled aria-label="Previous page of Men's Mental Health Expo photos">
-                                        ← Previous
-                                    </button>
-                                    <div class="gallery-page-info" id="mmhe-page-info" role="status" aria-live="polite">
-                                        Page 1 of 1
-                                    </div>
-                                    <button class="gallery-nav-btn" id="mmhe-next" disabled aria-label="Next page of Men's Mental Health Expo photos">
-                                        Next →
-                                    </button>
-                                </div>
-                            </div>
+                        <div class="partner-cta-grid" aria-label="Engagement opportunities">
+                            <a href="#sponsor" class="partner-cta" aria-label="Become a Sponsor">
+                                <span class="partner-cta-lines">
+                                    <span>Become</span>
+                                    <span>A</span>
+                                    <span>Sponsor</span>
+                                </span>
+                            </a>
+                            <a href="#vendor" class="partner-cta" aria-label="Become a Vendor">
+                                <span class="partner-cta-lines">
+                                    <span>Become</span>
+                                    <span>A</span>
+                                    <span>Vendor</span>
+                                </span>
+                            </a>
                         </div>
-                        
-                        <!-- Discussion Panel -->
-                        <div class="event-details" id="discpan-content" role="tabpanel" aria-labelledby="discpan-tab" hidden>
-                            <div class="event-info-header">
+                    </div>
+                </div>
                                 <h3>Discussion Panel</h3>
-                                <p class="event-description">
-                                    Interactive panel discussions bringing together community leaders, educators, 
-                                    and participants to share insights and drive meaningful conversations about education and development. These conversations surface practical solutions, elevate youth voice, and strengthen support networks citywide.
-                                </p>
-                            </div>
-                            <div class="event-gallery" id="discpan-gallery">
-                                <div class="gallery-grid">
-                                    <!-- Photos will be loaded dynamically -->
-                                </div>
-                                <div class="gallery-pagination hidden" id="discpan-pagination">
-                                    <button class="gallery-nav-btn" id="discpan-prev" disabled aria-label="Previous page of Discussion Panel photos">
-                                        ← Previous
-                                    </button>
-                                    <div class="gallery-page-info" id="discpan-page-info" role="status" aria-live="polite">
-                                        Page 1 of 1
-                                    </div>
-                                    <button class="gallery-nav-btn" id="discpan-next" disabled aria-label="Next page of Discussion Panel photos">
-                                        Next →
-                                    </button>
+                                <!-- Pagination controls removed: all images now load in a single continuous gallery -->
                                 </div>
                             </div>
                         </div>
@@ -328,13 +309,22 @@
                 </div>
             </section> -->
 
+            <!-- Sponsor & Vendor CTA (restored original relative position: above Donate section) -->
+            <section id="partner" class="sponsor-vendor-section" aria-labelledby="partner-heading">
+                <div class="container">
+                    <h2 id="partner-heading" class="visually-hidden">Partner Opportunities</h2>
+                    <div class="sponsor-vendor-cta" role="group" aria-label="Support options">
+                        <a href="#sponsor" class="btn btn-secondary" aria-label="Learn about sponsorship opportunities">Sponsor</a>
+                        <a href="#vendor" class="btn btn-secondary" aria-label="Learn about vendor opportunities">Vendor</a>
+                    </div>
+                </div>
+            </section>
+
             <section id="donate" class="donate-section">
                 <div class="container">
                     <h2>Donate</h2>
                     <p class="donate-intro">Your gift fuels mental wellness, athletic development, financial literacy, and youth leadership across Baltimore. Give securely by card or PayPal.</p>
-                    <a href="https://give.cornerstone.cc/lifeprepacademyfnd" target="_blank" rel="noopener" class="btn btn-primary">
-                        Donate securely
-                    </a>
+                    <a href="https://give.cornerstone.cc/lifeprepacademyfnd" target="_blank" rel="noopener" class="btn btn-primary" aria-label="Donate securely via external giving portal">Donate securely</a>
                     <p class="donate-secure">Secured by Stripe and PayPal</p>
                 </div>
             </section>
