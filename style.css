@@ -838,25 +838,27 @@ img[loading="lazy"].loaded {
 /* Footer social links - enhanced aesthetics */
 footer .social-links a {
     background-color: transparent !important;
-    padding: 0.75rem 1rem;
+    background: none !important;
+    padding: 0.5rem;
     border-radius: 8px;
     transition: var(--transition);
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     margin: 0.25rem 0.5rem 0.25rem 0;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: none !important;
     font-weight: 500;
     text-decoration: none;
 }
 
 footer .social-links a:hover {
-    background-color: rgba(255, 255, 255, 0.1) !important;
+    background-color: transparent !important;
+    background: none !important;
     color: var(--secondary-color);
     text-decoration: none;
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    border-color: var(--secondary-color);
+    box-shadow: none !important;
+    border: none !important;
 }
 
 /* Additional specificity for footer social icons */
@@ -875,6 +877,15 @@ footer .social-links {
     flex-wrap: wrap;
     gap: 0.5rem;
     margin-top: 0.5rem;
+}
+
+/* Remove any background from social icon images */
+footer .social-links .social-icon {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
 }
 
 .social-links-inline {

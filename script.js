@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initLazyLoading();
     initAnalytics();
     initEventTabs();
-    // Removed initKeyboardNavigation (keyboard shortcuts disabled)
+    initKeyboardNavigation();
 });
 
 // Smooth scrolling for navigation links
@@ -80,7 +80,15 @@ function initMobileMenu() {
             }
         });
 
-        // (Keyboard shortcut for closing via Escape removed)
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && navMenu.classList.contains('active')) {
+                navMenu.classList.remove('active');
+                navMenu.setAttribute('aria-hidden', 'true');
+                mobileMenuToggle.setAttribute('aria-expanded', 'false');
+                mobileMenuToggle.focus();
+            }
+        });
 
         // Close on resize/orientation change to avoid stuck-open state
         window.addEventListener('resize', debounce(() => {
@@ -367,7 +375,22 @@ function initImageModal() {
         }
     });
 
-    // Removed keyboard navigation (Arrow/Escape) for modal per request
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (modal.style.display === 'block') {
+            switch(e.key) {
+                case 'Escape':
+                    closeModal();
+                    break;
+                case 'ArrowLeft':
+                    prevBtn.click();
+                    break;
+                case 'ArrowRight':
+                    nextBtn.click();
+                    break;
+            }
+        }
+    });
 }
 
 function createModal() {
@@ -727,51 +750,40 @@ function initEventTabs() {
                 // Force load gallery
                 setTimeout(() => {
                     loadEventGallery(eventType);
-                    
-                    // Smooth scroll to center the gallery in viewport
-                    setTimeout(() => {
-                        scrollToGallery(eventType);
-                    }, 200);
                 }, 100);
             }
             
             // Track tab click
             trackEvent('event_tab_click', 'events', eventType);
         });
-        // Removed keyboard navigation for tabs
+        // Keyboard navigation: Left/Right/Home/End for tabs
+        tab.addEventListener('keydown', function(e) {
+            const tabs = Array.from(eventTabs);
+            const currentIndex = tabs.indexOf(this);
+            let targetIndex = null;
+            switch (e.key) {
+                case 'ArrowRight':
+                    targetIndex = (currentIndex + 1) % tabs.length;
+                    break;
+                case 'ArrowLeft':
+                    targetIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+                    break;
+                case 'Home':
+                    targetIndex = 0;
+                    break;
+                case 'End':
+                    targetIndex = tabs.length - 1;
+                    break;
+            }
+            if (targetIndex !== null) {
+                e.preventDefault();
+                tabs[targetIndex].focus();
+                tabs[targetIndex].click();
+            }
+        });
     });
     
     // Default gallery is already loaded in the main initialization
-}
-
-// Smooth scroll to center gallery in viewport
-function scrollToGallery(eventType) {
-    console.log('📍 Scrolling to gallery:', eventType);
-    
-    const galleryElement = document.getElementById(`${eventType}-gallery`);
-    if (!galleryElement) {
-        console.warn('Gallery element not found:', eventType);
-        return;
-    }
-    
-    // Calculate the position to center the gallery in viewport
-    const galleryRect = galleryElement.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    const galleryHeight = galleryRect.height;
-    
-    // Calculate scroll position to center the gallery
-    const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const galleryTop = galleryRect.top + currentScrollTop;
-    const centerPosition = galleryTop - (viewportHeight - galleryHeight) / 2;
-    
-    // Ensure we don't scroll above the top of the page
-    const scrollPosition = Math.max(0, centerPosition);
-    
-    // Smooth scroll to the calculated position
-    window.scrollTo({
-        top: scrollPosition,
-        behavior: 'smooth'
-    });
 }
 
 // Event Galleries Functionality
@@ -781,24 +793,113 @@ function initEventPhotos() {
     // Define photo collections for each event using optimized medium-sized images
     window.eventPhotos = {
         mmhe: [
-            // Only the 4 remaining medium webp images in mmhe
+            // All medium webp images in mmhe
+            'photos/mmhe/IMG_3799_medium.webp',
+            'photos/mmhe/IMG_3800_medium.webp',
+            'photos/mmhe/IMG_3803_medium.webp',
             'photos/mmhe/IMG_3804_medium.webp',
+            'photos/mmhe/IMG_3808_medium.webp',
             'photos/mmhe/IMG_3809_medium.webp',
+            'photos/mmhe/IMG_3815_medium.webp',
+            'photos/mmhe/IMG_3817_medium.webp',
             'photos/mmhe/IMG_3821_medium.webp',
-            'photos/mmhe/IMG_3891_medium.webp'
+            'photos/mmhe/IMG_3822_medium.webp',
+            'photos/mmhe/IMG_3824_medium.webp',
+            'photos/mmhe/IMG_3827_medium.webp',
+            'photos/mmhe/IMG_3828_medium.webp',
+            'photos/mmhe/IMG_3829_medium.webp',
+            'photos/mmhe/IMG_3830_medium.webp',
+            'photos/mmhe/IMG_3831_medium.webp',
+            'photos/mmhe/IMG_3833_medium.webp',
+            'photos/mmhe/IMG_3834_medium.webp',
+            'photos/mmhe/IMG_3840_medium.webp',
+            'photos/mmhe/IMG_3841_medium.webp',
+            'photos/mmhe/IMG_3848_medium.webp',
+            'photos/mmhe/IMG_3850_medium.webp',
+            'photos/mmhe/IMG_3860_medium.webp',
+            'photos/mmhe/IMG_3861_medium.webp',
+            'photos/mmhe/IMG_3863_medium.webp',
+            'photos/mmhe/IMG_3864_medium.webp',
+            'photos/mmhe/IMG_3882_medium.webp',
+            'photos/mmhe/IMG_3883_medium.webp',
+            'photos/mmhe/IMG_3884_medium.webp',
+            'photos/mmhe/IMG_3885_medium.webp',
+            'photos/mmhe/IMG_3886_medium.webp',
+            'photos/mmhe/IMG_3890_medium.webp',
+            'photos/mmhe/IMG_3891_medium.webp',
+            'photos/mmhe/IMG_3894_medium.webp',
+            'photos/mmhe/IMG_3895_medium.webp',
+            'photos/mmhe/IMG_3898_medium.webp',
+            'photos/mmhe/IMG_3900_medium.webp',
+            'photos/mmhe/IMG_3901_medium.webp',
+            'photos/mmhe/IMG_3907_medium.webp',
+            'photos/mmhe/IMG_3908_medium.webp',
+            'photos/mmhe/IMG_3911_medium.webp',
+            'photos/mmhe/IMG_3918_medium.webp',
+            'photos/mmhe/IMG_3924_medium.webp',
+            'photos/mmhe/IMG_3925_medium.webp',
+            'photos/mmhe/IMG_3926_medium.webp',
+            'photos/mmhe/IMG_3955_medium.webp',
+            'photos/mmhe/IMG_3956_medium.webp',
+            'photos/mmhe/IMG_3957_medium.webp',
+            'photos/mmhe/IMG_3960_medium.webp',
+            'photos/mmhe/IMG_3961_medium.webp',
+            'photos/mmhe/IMG_3962_medium.webp',
+            'photos/mmhe/IMG_3963_medium.webp',
+            'photos/mmhe/IMG_3966_medium.webp',
+            'photos/mmhe/IMG_3967_medium.webp'
         ],
         discpan: [
-            // Only the 4 remaining medium webp images in discpan
-            'photos/discpan/9-_DSC1415_medium.webp',
+            // All medium webp images in discpan
+            'photos/discpan/1-_DSC1395_medium.webp',
+            'photos/discpan/10-_DSC1416_medium.webp',
+            'photos/discpan/11-_DSC1418_medium.webp',
+            'photos/discpan/12-_DSC1421_medium.webp',
+            'photos/discpan/13-_DSC1422_medium.webp',
             'photos/discpan/14-_DSC1425_medium.webp',
+            'photos/discpan/15-_DSC1428_medium.webp',
+            'photos/discpan/16-_DSC1430_medium.webp',
+            'photos/discpan/17-_DSC1433_medium.webp',
+            'photos/discpan/18-_DSC1435_medium.webp',
+            'photos/discpan/19-_DSC1438_medium.webp',
+            'photos/discpan/2-_DSC1397_medium.webp',
+            'photos/discpan/20-_DSC1444_medium.webp',
             'photos/discpan/21-_DSC1446_medium.webp',
-            'photos/discpan/23-_DSC1459_medium.webp'
+            'photos/discpan/22-_DSC1457_medium.webp',
+            'photos/discpan/23-_DSC1459_medium.webp',
+            'photos/discpan/24-_DSC1463_medium.webp',
+            'photos/discpan/25-_DSC1474_medium.webp',
+            'photos/discpan/26-_DSC1481_medium.webp',
+            'photos/discpan/27-_DSC1493_medium.webp',
+            'photos/discpan/28-_DSC1496_medium.webp',
+            'photos/discpan/3-_DSC1398_medium.webp',
+            'photos/discpan/4-_DSC1400_medium.webp',
+            'photos/discpan/5-_DSC1401_medium.webp',
+            'photos/discpan/6-_DSC1404_medium.webp',
+            'photos/discpan/7-_DSC1405_medium.webp',
+            'photos/discpan/8-_DSC1413_medium.webp',
+            'photos/discpan/9-_DSC1415_medium.webp'
+        ],
+        erf: [
+            // All medium webp images in erf
+            'photos/erf/FullSizeRender_medium.webp',
+            'photos/erf/FullSizeRender_medium.webp',
+            'photos/erf/IMG_0883%202_medium.webp',
+            'photos/erf/IMG_0883_medium.webp',
+            'photos/erf/IMG_0884%202_medium.webp',
+            'photos/erf/IMG_0884_medium.webp',
+            'photos/erf/IMG_3636_medium.webp',
+            'photos/erf/IMG_3640_medium.webp',
+            'photos/erf/IMG_3641_medium.webp',
+            'photos/erf/IMG_3646_medium.webp',
+            'photos/erf/IMG_3647_medium.webp'
         ]
     };
     
     console.log('✅ Event photos initialized:', {
         mmhe: window.eventPhotos.mmhe.length,
-        discpan: window.eventPhotos.discpan.length
+        discpan: window.eventPhotos.discpan.length,
+        erf: window.eventPhotos.erf.length
     });
 }
 
@@ -844,8 +945,7 @@ function loadEventGallery(eventType) {
 
 // Gallery Pagination System
 function initGalleryPagination(eventType, photos) {
-    // With fewer images now, show all photos in one view without pagination
-    const PHOTOS_PER_PAGE = photos.length; // Show all photos at once
+    const PHOTOS_PER_PAGE = 9; // 3x3 grid
     const totalPages = Math.ceil(photos.length / PHOTOS_PER_PAGE);
     
     // Initialize pagination state
@@ -876,11 +976,12 @@ function setupPaginationControls(eventType) {
     
     if (!paginationContainer) return;
     
-    // Hide pagination since we're showing all photos in one view
+    // Show pagination if more than one page
     if (pagination.totalPages > 1) {
-        paginationContainer.classList.add('hidden'); // Always hide pagination now
+        paginationContainer.classList.remove('hidden');
         
-    // Removed keyboard shortcuts info injection
+        // Add keyboard shortcuts info
+        addKeyboardShortcutsInfo(eventType);
     }
     
     // Update page info
@@ -909,7 +1010,25 @@ function setupPaginationControls(eventType) {
     updatePaginationButtons(eventType);
 }
 
-// Removed addKeyboardShortcutsInfo function (no longer needed)
+function addKeyboardShortcutsInfo(eventType) {
+    const galleryContainer = document.querySelector(`#${eventType}-gallery`);
+    if (!galleryContainer) return;
+    
+    // Check if shortcuts info already exists
+    if (galleryContainer.querySelector('.gallery-shortcuts')) return;
+    
+    const shortcutsDiv = document.createElement('div');
+    shortcutsDiv.className = 'gallery-shortcuts';
+    shortcutsDiv.innerHTML = `
+        <strong>Keyboard shortcuts:</strong> 
+        <kbd>←</kbd> Previous page · 
+        <kbd>→</kbd> Next page · 
+        <kbd>Home</kbd> First page · 
+        <kbd>End</kbd> Last page
+    `;
+    
+    galleryContainer.appendChild(shortcutsDiv);
+}
 
 function loadGalleryPage(eventType, pageNumber) {
     const pagination = window.galleryPagination[eventType];
@@ -969,7 +1088,7 @@ function loadGalleryPage(eventType, pageNumber) {
             // Main img element (fallback, thumbnail)
             const img = document.createElement('img');
             img.src = thumbJpegUrl;
-            img.alt = `${getEventName(eventType)} 2024`;
+            img.alt = `${getEventName(eventType)} - Photo ${actualIndex + 1}`;
             img.loading = 'lazy';
             img.decoding = 'async';
             img.width = 300;
@@ -987,7 +1106,7 @@ function loadGalleryPage(eventType, pageNumber) {
 
             const caption = document.createElement('div');
             caption.className = 'gallery-caption';
-            caption.textContent = `${getEventName(eventType)} 2024`;
+            caption.textContent = `Photo ${actualIndex + 1}`;
 
             overlay.appendChild(caption);
 
@@ -995,7 +1114,7 @@ function loadGalleryPage(eventType, pageNumber) {
                 galleryItem.innerHTML = `
                     <div class="gallery-placeholder">
                         <div class="placeholder-content">
-                            <h4>${getEventName(eventType)} 2024</h4>
+                            <h4>Photo ${actualIndex + 1}</h4>
                             <p>Image not available</p>
                         </div>
                     </div>
@@ -1115,7 +1234,21 @@ function initGalleryImageModal() {
         }
     });
     
-    // Removed keyboard event listeners for gallery modal
+    document.addEventListener('keydown', function(e) {
+        if (modal.style.display === 'block') {
+            switch(e.key) {
+                case 'Escape':
+                    closeGalleryModal();
+                    break;
+                case 'ArrowLeft':
+                    showPreviousImage();
+                    break;
+                case 'ArrowRight':
+                    showNextImage();
+                    break;
+            }
+        }
+    });
     
     function openImageModal(src, alt, eventType, index) {
         currentEvent = eventType;
@@ -1184,7 +1317,7 @@ function initGalleryImageModal() {
     
     function updateModalImage() {
         const newSrc = currentPhotos[currentIndex];
-        const newAlt = `${getEventName(currentEvent)} 2024`;
+        const newAlt = `${getEventName(currentEvent)} - Photo ${currentIndex + 1}`;
         
         modalImg.src = newSrc;
         modalImg.alt = newAlt;
@@ -1390,7 +1523,7 @@ function prefetchEventImages() {
     });
     
     // Prefetch other event images
-    ['discpan'].forEach(eventType => {
+    ['discpan', 'erf'].forEach(eventType => {
         const images = window.eventPhotos[eventType];
         if (images) {
             images.forEach(imageUrl => {
@@ -1404,5 +1537,121 @@ function prefetchEventImages() {
 // Initial prefetch
 prefetchEventImages();
 
-// Removed initKeyboardNavigation and associated global key handlers
-// Removed donate modal functionality in favor of direct external donate link
+// Keyboard navigation for gallery pagination
+function initKeyboardNavigation() {
+    document.addEventListener('keydown', function(e) {
+        // Only handle keyboard navigation when an event gallery is visible
+        const activeEventTab = document.querySelector('.event-tab.active');
+        if (!activeEventTab) return;
+        
+        const eventType = activeEventTab.dataset.event;
+        const pagination = window.galleryPagination && window.galleryPagination[eventType];
+        if (!pagination) return;
+        
+        // Left arrow or 'p' for previous page
+        if ((e.key === 'ArrowLeft' || e.key.toLowerCase() === 'p') && !e.ctrlKey && !e.shiftKey) {
+            e.preventDefault();
+            if (pagination.currentPage > 1) {
+                loadGalleryPage(eventType, pagination.currentPage - 1);
+            }
+        }
+        
+        // Right arrow or 'n' for next page
+        if ((e.key === 'ArrowRight' || e.key.toLowerCase() === 'n') && !e.ctrlKey && !e.shiftKey) {
+            e.preventDefault();
+            if (pagination.currentPage < pagination.totalPages) {
+                loadGalleryPage(eventType, pagination.currentPage + 1);
+            }
+        }
+        
+        // Home key for first page
+        if (e.key === 'Home' && !e.ctrlKey && !e.shiftKey) {
+            e.preventDefault();
+            if (pagination.currentPage > 1) {
+                loadGalleryPage(eventType, 1);
+            }
+        }
+        
+        // End key for last page
+        if (e.key === 'End' && !e.ctrlKey && !e.shiftKey) {
+            e.preventDefault();
+            if (pagination.currentPage < pagination.totalPages) {
+                loadGalleryPage(eventType, pagination.totalPages);
+            }
+        }
+    });
+}
+
+// Initialize keyboard navigation
+initKeyboardNavigation();
+
+(function initDonateModal(){
+  const donateBtn = document.getElementById('donate-btn');
+  const modal = document.getElementById('donate-modal');
+  if(!donateBtn || !modal) return;
+
+  const open = () => {
+    lastFocused = document.activeElement;
+    modal.setAttribute('aria-hidden','false');
+    document.documentElement.classList.add('modal-open');
+    document.body.classList.add('modal-open');
+    // focus first focusable
+    setTimeout(()=>{
+      const first = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      (first || modal).focus();
+    },0);
+    document.addEventListener('keydown', onKeydown);
+  };
+  const close = () => {
+    modal.setAttribute('aria-hidden','true');
+    document.documentElement.classList.remove('modal-open');
+    document.body.classList.remove('modal-open');
+    document.removeEventListener('keydown', onKeydown);
+    if(lastFocused && lastFocused.focus) lastFocused.focus();
+  };
+  let lastFocused = null;
+
+  const onKeydown = (e) => {
+    if(e.key === 'Escape') { e.preventDefault(); close(); }
+    if(e.key === 'Tab') {
+      // trap focus
+      const focusables = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if(focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if(e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  };
+
+  modal.addEventListener('click', (e)=>{
+    if(e.target.matches('[data-close-modal]')) close();
+  });
+
+  donateBtn.addEventListener('click', ()=> open());
+
+  // Link buttons
+  const stripeBtn = document.getElementById('donate-stripe');
+  const paypalBtn = document.getElementById('donate-paypal');
+  const stripeLink = donateBtn.getAttribute('data-stripe-link');
+  const paypalLink = donateBtn.getAttribute('data-paypal-link');
+
+  if(stripeBtn){
+    stripeBtn.addEventListener('click', ()=>{
+      if(stripeLink && stripeLink !== '#') {
+        window.open(stripeLink, '_blank', 'noopener,noreferrer');
+      } else {
+        alert('Stripe link not configured yet.');
+      }
+    });
+  }
+  if(paypalBtn){
+    paypalBtn.addEventListener('click', ()=>{
+      if(paypalLink && paypalLink !== '#') {
+        window.open(paypalLink, '_blank', 'noopener,noreferrer');
+      } else {
+        alert('PayPal link not configured yet.');
+      }
+    });
+  }
+})();
