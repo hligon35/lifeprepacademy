@@ -351,7 +351,7 @@ nav ul li a:hover {
 .countdown-row .countdown-wrapper { z-index:5; }
 /* Remove extra top margin from wrapper when inside the horizontal row for vertical centering */
 .countdown-row .countdown-wrapper { margin-top:0; }
-.countdown-banner { position:relative; display:flex; align-items:center; justify-content:center; background:transparent; padding:0; min-width:auto; border:none; box-shadow:none; pointer-events:none; perspective:1000px; transform-style:preserve-3d; /* animation removed per request */ }
+.countdown-banner { position:relative; display:flex; align-items:center; justify-content:center; background:transparent; padding:0; min-width:auto; border:none; box-shadow:none; pointer-events:none; perspective:1000px; transform-style:preserve-3d; /* animation removed per request */ --star-size:clamp(180px,32vw,300px); width:var(--star-size); height:var(--star-size); }
 /* 3D Star: face + extrude */
 .countdown-banner::before, .countdown-banner::after { content:''; position:absolute; top:50%; left:50%; --star-size:clamp(180px,32vw,300px); width:var(--star-size); height:var(--star-size); clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%); pointer-events:none; }
 /* Extrusion (shadowed depth) */
@@ -378,14 +378,17 @@ nav ul li a:hover {
 .banner-text::after { content:''; position:absolute; inset:0; background:radial-gradient(circle at 30% 20%,rgba(255,255,255,0.35),transparent 70%); mix-blend-mode:overlay; pointer-events:none; }
 /* (bannerFloat animation removed from usage) */
 @media (max-width:680px){
+    .countdown-row { flex-direction:column; align-items:center; gap:1.35rem; }
     .countdown { flex-wrap:wrap; justify-content:center; padding:0.85rem 1rem; gap:0.65rem; }
     .cd-unit { min-width:70px; padding:0.4rem 0.5rem; }
     .cd-label { font-size:0.65rem; letter-spacing:1.4px; }
     .cd-separator { display:none; }
-    .countdown-row { gap:1.75rem; }
-    .countdown-banner { min-width:auto; padding:0; }
-    .countdown-banner::before, .countdown-banner::after { --star-size:clamp(150px,55vw,240px); }
-    .banner-text { font-size:clamp(1.4rem,1rem + 1.9vw,2.2rem); letter-spacing:1.5px; transform:rotateY(-10deg) rotateX(6deg); -webkit-text-stroke:1.5px #b88400; color:#281156; }
+    .countdown-row { gap:1.35rem; }
+    /* Slightly larger star for better text fit on small screens */
+    .countdown-banner { min-width:auto; padding:0; --star-size:clamp(160px,62vw,260px); width:var(--star-size); height:var(--star-size); }
+    .countdown-banner::before, .countdown-banner::after { --star-size:clamp(160px,62vw,260px); }
+    /* Fit the 3D text within the star and remove rotations */
+    .banner-text { font-size:clamp(1.2rem,0.95rem + 1.4vw,1.65rem); letter-spacing:1px; line-height:1.05; transform:translateZ(2px); -webkit-text-stroke:1px #b88400; color:#281156; max-width:calc(var(--star-size) - 24px); padding:0 4px; }
 }
 @media (prefers-reduced-motion: no-preference){
     .cd-value { animation:pulseGlow 3.5s ease-in-out infinite; }
