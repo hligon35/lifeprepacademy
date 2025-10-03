@@ -20,12 +20,12 @@
 
 // ================== CONFIGURATION ==================
 // Provide a Sheet ID to enable logging (the long ID in the Sheet URL). Leave blank to disable.
-var SHEET_ID = 'PUT_GOOGLE_SHEET_ID_HERE'; // e.g. '1AbCdEfGhIjKlMnOpQr...'
+var SHEET_ID = '1ZcqK-O5GMsCPcV_NQzXLudP1swoZLb6BLzQNCXJ6qxI'; // e.g. '1AbCdEfGhIjKlMnOpQr...'
 var SHEET_NAME = 'Submissions';
 
 // Alias (public) address and primary inbox. If PRIMARY_INBOX left blank, will fallback to effective user.
 var ALIAS_ADDRESS = 'info@lifeprepacademyfoundation.com';
-var PRIMARY_INBOX = ''; // Set to real login (e.g. 'yourname@domain.com'). Blank -> auto detect.
+var PRIMARY_INBOX = 'bhall@lifeprepacademyfoundation.com'; // Set to real login (e.g. 'yourname@domain.com'). Blank -> auto detect.
 
 // Send acknowledgement email back to submitter?
 var SEND_ACK = true; // set false to disable auto-response
