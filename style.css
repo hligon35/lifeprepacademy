@@ -1242,6 +1242,13 @@ footer .social-links {
     margin-top: 0.5rem;
 }
 
+/* Center footer socials on mobile */
+@media (max-width: 640px) {
+    footer .footer-section h4 { text-align: center; }
+    footer .social-links { justify-content: center; align-items: center; }
+    footer .social-links a { margin: 0.25rem; }
+}
+
 .social-links-inline {
     display: flex;
     gap: 1rem;
@@ -1471,6 +1478,16 @@ footer .social-links {
     .donate-section { padding: 6rem 0 5rem; }
     .donate-section .btn.btn-primary { font-size: 1.1rem; }
 }
+
+/* Events Flyers Section */
+.event-flyers { padding: 2.5rem 0 3rem; background: var(--background-white); }
+.event-flyers .container { max-width: 1100px; margin: 0 auto; }
+.flyers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; align-items: start; }
+.flyer-item { display: block; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 28px -10px rgba(0,0,0,0.35), 0 4px 12px -6px rgba(0,0,0,0.25); transition: transform .2s ease, box-shadow .2s ease; background: #fff; }
+.flyer-item:hover { transform: translateY(-4px); box-shadow: 0 14px 40px -10px rgba(0,0,0,0.45), 0 6px 16px -6px rgba(0,0,0,0.35); }
+.flyer-item img { width: 100%; height: auto; display: block; }
+@media (max-width: 980px) { .flyers-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 640px) { .flyers-grid { grid-template-columns: 1fr; } .event-flyers { padding: 2rem 0 2.5rem; } }
 
 
 .impact-content {
