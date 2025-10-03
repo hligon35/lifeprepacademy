@@ -40,6 +40,8 @@ document.addEventListener('DOMContentLoaded', function() {
             window.scrollTo(0, 0);
         }
     });
+
+    initCountdownTimer();
 });
 
 // Highlight current page in multi-page nav
@@ -1383,6 +1385,46 @@ function createGalleryModal() {
     return modal;
 }
 
+// ================= Countdown Timer =================
+function initCountdownTimer() {
+    const wrapper = document.getElementById('countdown-wrapper');
+    if (!wrapper) return; // not on this page
+    const target = new Date('2025-11-21T12:00:00-06:00'); // Nov 21 2025 12:00 PM Houston (CST, UTC-6)
+    const dEl = document.getElementById('cd-days');
+    const hEl = document.getElementById('cd-hours');
+    const mEl = document.getElementById('cd-minutes');
+    const sEl = document.getElementById('cd-seconds');
+    const finishEl = document.getElementById('countdown-finish');
+    let lastRenderedBucket = '';
+
+    function pad(n) { return String(n).padStart(2,'0'); }
+    function update() {
+        const now = new Date();
+        const diff = target.getTime() - now.getTime();
+        if (diff <= 0) {
+            if (finishEl) finishEl.hidden = false;
+            if (wrapper) wrapper.classList.add('countdown-complete');
+            dEl.textContent = '00'; hEl.textContent = '00'; mEl.textContent = '00'; sEl.textContent = '00';
+            clearInterval(interval); return;
+        }
+        const days = Math.floor(diff / (1000*60*60*24));
+        const hours = Math.floor((diff / (1000*60*60)) % 24);
+        const minutes = Math.floor((diff / (1000*60)) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+        // Only update DOM when bucket changes to reduce layout cost
+        const bucket = days+'|'+hours+'|'+minutes;
+        if (bucket !== lastRenderedBucket) {
+            dEl.textContent = pad(days);
+            hEl.textContent = pad(hours);
+            mEl.textContent = pad(minutes);
+            lastRenderedBucket = bucket;
+        }
+        sEl.textContent = pad(seconds);
+    }
+    update(); // initial paint
+    const interval = setInterval(update, 1000);
+}
+
 // Prefetch remaining images for better performance
 function prefetchEventImages() {
     if (!window.eventPhotos) return;
@@ -1411,3 +1453,34 @@ prefetchEventImages();
 
 // Removed initKeyboardNavigation and associated global key handlers
 // Removed donate modal functionality in favor of direct external donate link
+
+// ===== Resilience: Ensure countdown banner & date exist =====
+document.addEventListener('DOMContentLoaded', () => {
+    const row = document.querySelector('.countdown-row');
+    if (row) {
+        if (!row.querySelector('.countdown-banner')) {
+            const banner = document.createElement('div');
+            banner.className = 'countdown-banner';
+            banner.setAttribute('aria-hidden','true');
+            banner.innerHTML = '<span class="banner-text">Countdown<br>To<br>Expo 2.0...</span>';
+            row.insertBefore(banner, row.firstChild);
+        }
+        const wrapper = row.querySelector('#countdown-wrapper');
+        if (wrapper) {
+            if (!wrapper.querySelector('.countdown-date')) {
+                const p = document.createElement('p');
+                p.className = 'countdown-date';
+                p.setAttribute('aria-hidden','true');
+                p.textContent = 'November 21–22, 2025';
+                wrapper.appendChild(p);
+            }
+            if (!wrapper.querySelector('.countdown-details')) {
+                const div = document.createElement('div');
+                div.className = 'countdown-details';
+                div.setAttribute('aria-label','Learn more about the event');
+                div.innerHTML = '<span class="arrow arrow-left" aria-hidden="true">➤</span><a href="events.html" class="countdown-details-link" title="View event details">Click Here For Details</a><span class="arrow arrow-right" aria-hidden="true">➤</span>';
+                wrapper.appendChild(div);
+            }
+        }
+    }
+});
