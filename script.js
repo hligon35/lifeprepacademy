@@ -1389,7 +1389,14 @@ function createGalleryModal() {
 function initCountdownTimer() {
     const wrapper = document.getElementById('countdown-wrapper');
     if (!wrapper) return; // not on this page
-    const target = new Date('2025-11-21T12:00:00-06:00'); // Nov 21 2025 12:00 PM Houston (CST, UTC-6)
+    // Allow overriding the countdown target via data-target on #countdown-wrapper
+    // Example: <div id="countdown-wrapper" data-target="2025-11-21T10:30:00-06:00">
+    let targetStr = wrapper.getAttribute('data-target') || '2025-11-21T18:30:00-06:00';
+    let target = new Date(targetStr);
+    if (isNaN(target)) {
+        console.warn('Invalid countdown data-target value:', targetStr, 'Falling back to default.');
+        target = new Date('2025-11-21T18:30:00-06:00');
+    }
     const dEl = document.getElementById('cd-days');
     const hEl = document.getElementById('cd-hours');
     const mEl = document.getElementById('cd-minutes');

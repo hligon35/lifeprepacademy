@@ -5,10 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Events | Lifeprep Academy Foundation</title>
     <meta name="description" content="LifePrep Academy Foundation events: Men's Mental Health Expo, panel discussions, cultural engagement, wellness workshops, and leadership programming." />
+    <!-- SEO: Encourage indexing/following -->
+    <meta name="robots" content="index, follow" />
     <link rel="icon" type="image/png" href="logo.png" />
     <link rel="canonical" href="https://www.lifeprepacademyfoundation.com/events.html" />
-    <link rel="preload" href="style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="style.css"></noscript>
+    <!-- SEO: Open Graph for sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Events | Lifeprep Academy Foundation" />
+    <meta property="og:description" content="Explore upcoming events including the Men's Mental Health Expo and community programs." />
+    <meta property="og:image" content="https://www.lifeprepacademyfoundation.com/groupPhoto.avif" />
+    <meta property="og:url" content="https://www.lifeprepacademyfoundation.com/events.html" />
+    <meta property="og:site_name" content="Lifeprep Academy Foundation" />
+    <meta property="og:locale" content="en_US" />
+    <!-- Social: Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Events | Lifeprep Academy Foundation" />
+    <meta name="twitter:description" content="Explore upcoming events including the Men's Mental Health Expo and community programs." />
+    <meta name="twitter:image" content="https://www.lifeprepacademyfoundation.com/groupPhoto.avif" />
+    <!-- UI: Browser theme color -->
+    <meta name="theme-color" content="#281156" />
+    <link rel="preload" href="style.min.css?v=0d04aa625d" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="style.min.css?v=0d04aa625d"></noscript>
+    <!-- Performance: Preconnect to third-party endpoints used on this page -->
+    <link rel="preconnect" href="https://forms.gle" crossorigin>
+    <link rel="preconnect" href="https://www.facebook.com" crossorigin>
+    <link rel="preconnect" href="https://www.instagram.com" crossorigin>
 </head>
 <body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -58,14 +79,23 @@
             <section class="event-flyers" aria-label="Event Flyers">
                 <div class="container">
                     <div class="flyers-grid">
-                        <a href="photos/flyer3.png" target="_blank" rel="noopener noreferrer" class="flyer-item">
-                            <img src="photos/flyer3.png" alt="Event Flyer 3" loading="lazy" width="900" height="1200">
+                        <a href="photos/flyer1.png" target="_blank" rel="noopener noreferrer" class="flyer-item">
+                            <picture>
+                                <source type="image/webp" srcset="photos/flyer1.webp" />
+                                <img src="photos/flyer1.png" alt="Event Flyer 1" loading="lazy" decoding="async" width="900" height="1200">
+                            </picture>
                         </a>
                         <a href="photos/flyer2.png" target="_blank" rel="noopener noreferrer" class="flyer-item">
-                            <img src="photos/flyer2.png" alt="Event Flyer 2" loading="lazy" width="900" height="1200">
+                            <picture>
+                                <source type="image/webp" srcset="photos/flyer2.webp" />
+                                <img src="photos/flyer2.png" alt="Event Flyer 2" loading="lazy" decoding="async" width="900" height="1200">
+                            </picture>
                         </a>
-                        <a href="photos/flyer1.png" target="_blank" rel="noopener noreferrer" class="flyer-item">
-                            <img src="photos/flyer1.png" alt="Event Flyer 1" loading="lazy" width="900" height="1200">
+                        <a href="photos/flyer3.png" target="_blank" rel="noopener noreferrer" class="flyer-item">
+                            <picture>
+                                <source type="image/webp" srcset="photos/flyer3.webp" />
+                                <img src="photos/flyer3.png" alt="Event Flyer 3" loading="lazy" decoding="async" width="900" height="1200">
+                            </picture>
                         </a>
                     </div>
                 </div>
@@ -83,6 +113,6 @@
             </div>
         </footer>
     </div>
-    <script src="script.js" defer></script>
+    <script src="script.min.js?v=30226e22a9" defer></script>
 </body>
 </html>

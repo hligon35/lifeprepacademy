@@ -5,10 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Contact | Lifeprep Academy Foundation</title>
     <meta name="description" content="Get in touch with Lifeprep Academy Foundation about programs, partnerships, sponsorships, or volunteering." />
+    <!-- SEO: Encourage indexing/following -->
+    <meta name="robots" content="index, follow" />
+    <!-- Security/Privacy: Reduce referrer data leakage on outbound links -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <!-- Social: Open Graph & Twitter Card for better sharing previews -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Contact | Lifeprep Academy Foundation" />
+    <meta property="og:description" content="Have a question or want to partner? Contact the Lifeprep Academy Foundation team." />
+    <meta property="og:image" content="https://www.lifeprepacademyfoundation.com/groupPhoto.avif" />
+    <meta property="og:url" content="https://www.lifeprepacademyfoundation.com/contact.html" />
+    <meta property="og:site_name" content="Lifeprep Academy Foundation" />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Contact | Lifeprep Academy Foundation" />
+    <meta name="twitter:description" content="Have a question or want to partner? Contact the Lifeprep Academy Foundation team." />
+    <meta name="twitter:image" content="https://www.lifeprepacademyfoundation.com/groupPhoto.avif" />
     <link rel="icon" type="image/png" href="logo.png" />
     <link rel="canonical" href="https://www.lifeprepacademyfoundation.com/contact.html" />
-    <link rel="preload" href="style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="style.css"></noscript>
+    <link rel="preload" href="style.min.css?v=0d04aa625d" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="style.min.css?v=0d04aa625d"></noscript>
 </head>
 <body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -53,10 +69,11 @@
                             <div class="hp-wrapper" aria-hidden="true">
                                 <label>Do not fill this field <input type="text" name="hp_field" tabindex="-1" autocomplete="off"></label>
                             </div>
-                            <div class="form-group"><label for="name">Full Name *</label><input type="text" id="name" name="name" required></div>
-                            <div class="form-group"><label for="email">Email Address *</label><input type="email" id="email" name="email" required></div>
-                            <div class="form-group"><label for="subject">Subject *</label><select id="subject" name="subject" required><option value="" disabled selected>Select a subject</option><option value="General Inquiry">General Inquiry</option><option value="Mental Health Resources Program">Mental Health Resources Program</option><option value="Athletic Training Program">Athletic Training Program</option><option value="Financial Literacy Workshops">Financial Literacy Workshops</option><option value="Youth & Community Advancement">Youth & Community Advancement</option><option value="Sponsorship Opportunity">Sponsorship Opportunity</option><option value="Vendor Opportunity">Vendor Opportunity</option><option value="Donation / Funding">Donation / Funding</option><option value="Partnership / Collaboration">Partnership / Collaboration</option><option value="Volunteer Interest">Volunteer Interest</option><option value="Media / Press">Media / Press</option><option value="Website Feedback">Website Feedback</option></select></div>
-                            <div class="form-group"><label for="message">Message *</label><textarea id="message" name="message" rows="5" required></textarea></div>
+                            <!-- Accessibility/UX: Autocomplete and input hints -->
+                            <div class="form-group"><label for="name">Full Name *</label><input type="text" id="name" name="name" required autocomplete="name" aria-required="true"></div>
+                            <div class="form-group"><label for="email">Email Address *</label><input type="email" id="email" name="email" required autocomplete="email" inputmode="email" aria-required="true"></div>
+                            <div class="form-group"><label for="subject">Subject *</label><select id="subject" name="subject" required aria-required="true"><option value="" disabled selected>Select a subject</option><option value="General Inquiry">General Inquiry</option><option value="Mental Health Resources Program">Mental Health Resources Program</option><option value="Athletic Training Program">Athletic Training Program</option><option value="Financial Literacy Workshops">Financial Literacy Workshops</option><option value="Youth & Community Advancement">Youth & Community Advancement</option><option value="Sponsorship Opportunity">Sponsorship Opportunity</option><option value="Vendor Opportunity">Vendor Opportunity</option><option value="Donation / Funding">Donation / Funding</option><option value="Partnership / Collaboration">Partnership / Collaboration</option><option value="Volunteer Interest">Volunteer Interest</option><option value="Media / Press">Media / Press</option><option value="Website Feedback">Website Feedback</option></select></div>
+                            <div class="form-group"><label for="message">Message *</label><textarea id="message" name="message" rows="5" required autocomplete="on" aria-required="true"></textarea></div>
                             <button type="submit" class="btn btn-primary" id="contactSubmitBtn">Send Message</button>
                         </form>
                     </div>
@@ -75,7 +92,7 @@
             </div>
         </footer>
     </div>
-    <script src="script.js" defer></script>
+    <script src="script.min.js?v=30226e22a9" defer></script>
     <script>
         // Hardened submission with stricter success detection & honeypot + button disable + analytics
         document.addEventListener('DOMContentLoaded', () => {

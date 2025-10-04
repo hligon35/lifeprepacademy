@@ -32,6 +32,9 @@ async function optimizeImages() {
             await processImage(sourceDir, file);
         }
     }
+
+    // Additionally, process top-level flyer images in photos/ (flyer*.png|jpg)
+    await processRootFlyers(photosDir);
 }
 
 async function processImage(sourceDir, filename) {
@@ -70,6 +73,31 @@ async function processImage(sourceDir, filename) {
         
     } catch (error) {
         console.error(`Error processing ${filename}:`, error.message);
+    }
+}
+
+// Convert flyer*.png|jpg in photos root to WebP alongside original (no resize)
+async function processRootFlyers(photosDir) {
+    try {
+        const entries = fs.readdirSync(photosDir).filter(f => /^(flyer\d*|flyer)\.(png|jpe?g)$/i.test(f));
+        if (entries.length === 0) {
+            console.log('No root flyer images detected for WebP conversion.');
+            return;
+        }
+        console.log(`Converting ${entries.length} flyer image(s) to WebP...`);
+        for (const file of entries) {
+            const sourcePath = path.join(photosDir, file);
+            const name = path.parse(file).name;
+            const outPath = path.join(photosDir, `${name}.webp`);
+            try {
+                await sharp(sourcePath).rotate().webp({ quality: 82 }).toFile(outPath);
+                console.log(`✓ Created ${path.basename(outPath)}`);
+            } catch (e) {
+                console.error(`Failed to convert ${file} -> WebP:`, e.message);
+            }
+        }
+    } catch (e) {
+        console.error('Error scanning root flyers:', e.message);
     }
 }
 

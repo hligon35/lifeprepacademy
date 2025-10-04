@@ -374,7 +374,6 @@ nav ul li a:hover {
     0 10px 6px rgba(0,0,0,0.45),
     0 14px 18px rgba(0,0,0,0.55),
     0 0 18px rgba(255,215,0,0.4); }
-.banner-text::after { content:''; position:absolute; inset:0; background:none; }
 .banner-text::after { content:''; position:absolute; inset:0; background:radial-gradient(circle at 30% 20%,rgba(255,255,255,0.35),transparent 70%); mix-blend-mode:overlay; pointer-events:none; }
 /* (bannerFloat animation removed from usage) */
 @media (max-width:680px){
@@ -740,6 +739,24 @@ section:nth-child(even) {
     100% { transform: translateY(0); opacity: 1; }
 }
 
+/* Cross-browser fallback: if background-clip:text isn't supported, show solid color */
+@supports not (-webkit-background-clip: text) {
+    .events-subtitle {
+        background: none;
+    -webkit-background-clip: initial;
+    background-clip: initial;
+        -webkit-text-fill-color: initial;
+        color: var(--primary-color);
+    }
+    .events-gallery-arrow .arrow-symbol {
+        background: none;
+    -webkit-background-clip: initial;
+    background-clip: initial;
+        -webkit-text-fill-color: initial;
+        color: var(--secondary-color);
+    }
+}
+
 /* Corner CTA buttons inside Events */
 .events-section .container {
     position: relative;
@@ -749,16 +766,16 @@ section:nth-child(even) {
     position: absolute;
     top: 0.5rem;
     /* Tripled approximate area: increase padding & font size */
-    padding: 1.75rem 2rem;
+    padding: 1.35rem 1.53rem; /* additional ~10% reduction */
     line-height: 1.15;
-    font-size: 1.4rem; /* was 0.85rem */
+    font-size: 1.08rem; /* additional ~10% reduction */
     text-align: center;
     display: inline-flex;
     flex-direction: column;
     justify-content: center;
     gap: 0.4rem;
-    min-width: 260px; /* was 90px */
-    min-height: 210px; /* ensure presence even with line breaks */
+    min-width: 200px; /* additional ~10% reduction */
+    min-height: 162px; /* additional ~10% reduction */
     box-shadow: 0 10px 32px -8px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.2);
     border-width: 3px;
     border-radius: 22px;
@@ -769,23 +786,31 @@ section:nth-child(even) {
 .event-corner-btn.vendor-btn { right: 5.75rem; }
 
 @media (min-width: 640px) {
-    .event-corner-btn { font-size: 1.5rem; }
+    .event-corner-btn { font-size: 1.17rem; } /* additional ~10% reduction */
 }
 
 @media (max-width: 900px) {
     /* Bring them slightly inward on medium screens so they don't overflow */
     .event-corner-btn.sponsor-btn { left: 3rem; }
     .event-corner-btn.vendor-btn { right: 3rem; }
-    .event-corner-btn { min-width: 230px; min-height: 190px; font-size: 1.3rem; padding: 1.5rem 1.5rem; }
+    .event-corner-btn { min-width: 176px; min-height: 146px; font-size: 0.99rem; padding: 1.125rem 1.125rem; } /* additional ~10% smaller */
 }
 
 @media (max-width: 620px) {
     /* Center them relative to container with transforms */
     .event-corner-btn.sponsor-btn { left: 50%; transform: translateX(-90%); }
     .event-corner-btn.vendor-btn { right: 50%; transform: translateX(90%); }
-    .event-corner-btn { min-width: 210px; min-height: 170px; font-size: 1.15rem; padding: 1.25rem 1.25rem; }
+    .event-corner-btn { min-width: 160px; min-height: 130px; font-size: 0.88rem; padding: 0.95rem 0.95rem; } /* additional ~10% smaller */
     /* Add breathing room below floating corner buttons before tabs */
     .event-tabs { margin-top: 2.75rem; }
+}
+
+/* Hover state: gold background with purple text */
+.event-corner-btn:hover,
+.event-corner-btn:focus-visible {
+    background: var(--secondary-color) !important; /* gold */
+    color: var(--primary-color) !important;        /* purple text */
+    border-color: var(--primary-color) !important;
 }
 
 @media (max-width: 480px) {

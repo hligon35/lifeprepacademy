@@ -8,6 +8,7 @@
     <meta name="keywords" content="lifeprep academy, education foundation, nonprofit, community development, mentorship, scholarships, youth programs">
     <meta name="author" content="Lifeprep Academy Foundation">
     <meta name="robots" content="index, follow">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     
     <!-- Open Graph / Social Media Meta Tags -->
     <meta property="og:type" content="website">
@@ -30,15 +31,19 @@
     <link rel="apple-touch-icon" href="logo.png">
     <link rel="canonical" href="https://www.lifeprepacademyfoundation.com/">
     <link rel="manifest" href="manifest.json">
+    <!-- Performance: Preconnect to third-party domains used across the site -->
+    <link rel="preconnect" href="https://www.facebook.com" crossorigin>
+    <link rel="preconnect" href="https://www.instagram.com" crossorigin>
+    <link rel="preconnect" href="https://forms.gle" crossorigin>
     
     <!-- Preload critical resources for faster loading -->
-    <link rel="preload" href="style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" href="script.js" as="script">
+    <link rel="preload" href="style.min.css?v=0d04aa625d" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="script.min.js?v=30226e22a9" as="script">
     <!-- Removed redundant hero image preload; CSS background will load it naturally -->
     
     <!-- Remove non-critical gallery preloads to reduce contention -->
     
-        <noscript><link rel="stylesheet" href="style.css"></noscript>
+    <noscript><link rel="stylesheet" href="style.min.css?v=0d04aa625d"></noscript>
         <!-- Small critical CSS to improve first paint (header/hero/skip link/buttons) -->
         <style>
             :root{--primary-color:#281156;--secondary-color:#f9b515}
@@ -126,6 +131,10 @@
         <main id="main-content">
             <section id="home" class="hero-section">
                 <div class="hero-content">
+                    <!-- Accessibility/SEO: noscript fallback for hero background -->
+                    <noscript>
+                        <img src="groupPhoto.avif" alt="Community group photo at Lifeprep Academy event" width="1200" height="675" style="display:none;" />
+                    </noscript>
                     <h1>Empowering Lives Through Awareness</h1>
                     <p class="hero-subtitle">Lifeprep Academy Foundation transforms communities by providing quality education, mentorship, and development programs that prepare individuals for success in life. We work alongside families, schools, and community partners to connect learning with real opportunities and long‑term well‑being.</p>
                     <div class="cta-buttons">
@@ -138,7 +147,7 @@
                         <div class="countdown-banner" aria-hidden="true">
                             <span class="banner-text">Countdown<br>To<br>Expo 2.0...</span>
                         </div>
-                        <div id="countdown-wrapper" class="countdown-wrapper" aria-label="Countdown to November 21, 2025" role="timer">
+                        <div id="countdown-wrapper" class="countdown-wrapper" aria-label="Countdown to November 21, 2025" role="timer" data-target="2025-11-21T18:30:00-06:00">
                             <div id="countdown" class="countdown" aria-live="polite">
                                 <div class="cd-unit" data-unit="days">
                                     <span class="cd-value" id="cd-days">00</span>
@@ -259,7 +268,7 @@
             </div>
         </footer>
 
-    <script src="script.js" defer></script>
+    <script src="script.min.js?v=30226e22a9" defer></script>
         
     </div>
 </body>

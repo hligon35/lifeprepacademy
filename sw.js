@@ -1,17 +1,26 @@
 // Service Worker for Lifeprep Academy Foundation
 // Provides basic caching for improved performance
 
-const CACHE_NAME = 'lifeprep-academy-v1';
+const CACHE_NAME = 'lifeprep-academy-v3';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
-    '/style.css',
-    '/script.js',
+    '/style.min.css',
+    '/script.min.js',
     '/logo.png',
     '/groupPhoto.avif',
     '/eventa.avif',
     '/manifest.json',
-    '/offline.html'
+    '/offline.html',
+    // Flyers (PNG + WebP)
+    '/photos/flyer.png',
+    '/photos/flyer.webp',
+    '/photos/flyer1.png',
+    '/photos/flyer1.webp',
+    '/photos/flyer2.png',
+    '/photos/flyer2.webp',
+    '/photos/flyer3.png',
+    '/photos/flyer3.webp'
 ];
 
 // Install event - cache static assets
@@ -59,8 +68,12 @@ self.addEventListener('fetch', event => {
         return;
     }
 
+    const url = new URL(event.request.url);
+    // Ignore query strings for cache matching so cache-busted URLs (e.g., ?v=hash) still hit
+    const pathnameOnly = url.pathname;
+    const cacheKey = new Request(pathnameOnly, { method: 'GET' });
     event.respondWith(
-        caches.match(event.request)
+        caches.match(cacheKey)
             .then(cachedResponse => {
                 // Return cached version if available
                 if (cachedResponse) {
@@ -75,7 +88,7 @@ self.addEventListener('fetch', event => {
                             const responseClone = networkResponse.clone();
                             caches.open(CACHE_NAME)
                                 .then(cache => {
-                                    cache.put(event.request, responseClone);
+                                    cache.put(cacheKey, responseClone);
                                 });
                         }
                         return networkResponse;
