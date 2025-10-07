@@ -21,8 +21,15 @@
 const SHEET_ID = '1ZcqK-O5GMsCPcV_NQzXLudP1swoZLb6BLzQNCXJ6qxI';      // <-- Replace with your Sheet ID
 const SHEET_NAME = 'Submissions';      // Tab name
 const NOTIFY_TO = 'info@lifeprepacademyfoundation.com';
-const RATE_LIMIT_SECONDS = 60;         // Simple per-IP delay
+const RATE_LIMIT_SECONDS = 60;         // Simple per-IP delay (in-memory)
 const MAX_MESSAGE_LENGTH = 5000;       // Safety cap
+// Anti-spam server-side thresholds (tune as needed)
+const MIN_DWELL_MS = 3000;             // Require >= 3s dwell time
+const MIN_TYPED_CHARS = 8;             // Require >= 8 typed characters
+const EMAIL_WINDOW_MS = 2 * 60 * 1000; // Per-email cooldown window (2 min)
+const CLIENT_WINDOW_MS = 2 * 60 * 1000;// Per-client cooldown window (2 min)
+// Optional quick blocklist (exact emails or @domain suffixes)
+const EMAIL_BLOCKLIST = [ /* 'bad@example.com', '@spamdomain.com' */ ];
 
 /**
  * Main POST handler.
@@ -35,9 +42,10 @@ function doPost(e) {
       return jsonResponse({ status: 'error', message: 'No form data received.' }, 400);
     }
 
-    // Honeypot field (add a hidden input named hp_field in future if needed)
+    // Honeypot field
     if (e.parameter.hp_field) {
-      return jsonResponse({ status: 'error', message: 'Spam detected.' }, 403);
+      // Optionally return success to avoid clueing bots
+      return jsonResponse({ status: 'success', message: 'Processed.' });
     }
 
     const name = sanitize(e.parameter.name);
@@ -46,6 +54,11 @@ function doPost(e) {
     const message = sanitize(e.parameter.message, true);
     const pageUrl = sanitize(e.parameter.page || '');
     const userAgent = (e.parameter.userAgent || '').substring(0, 500);
+    const submittedAt = sanitize(e.parameter.submittedAt || '');
+    const dwellMs = Number(e.parameter.dwellMs || 0);
+    const typedChars = Number(e.parameter.typedChars || 0);
+    const clientId = String(e.parameter.clientId || 'na');
+    const tsToken = e.parameter['cf_turnstile_response'];
     const ip = getClientIp(e);
 
     if (!name || !email || !subject || !message) {
@@ -59,8 +72,40 @@ function doPost(e) {
       return jsonResponse({ status: 'error', message: 'Invalid email.' }, 422);
     }
 
+    // Blocklisted emails/domains
+    if (isEmailBlocked_(email)) {
+      return jsonResponse({ status: 'error', message: 'Submission blocked.' }, 403);
+    }
+
+    // Heuristics: dwell time and typed characters
+    if (dwellMs && dwellMs < MIN_DWELL_MS) {
+      return jsonResponse({ status: 'error', message: 'Please wait a few seconds before submitting.' }, 429);
+    }
+    if (typedChars && typedChars < MIN_TYPED_CHARS) {
+      return jsonResponse({ status: 'error', message: 'Please provide more detail in your message.' }, 429);
+    }
+
     if (isRateLimited(ip)) {
       return jsonResponse({ status: 'error', message: 'Please wait before submitting again.' }, 429);
+    }
+
+    // Persistent rate limits (per email and per clientId)
+    if (tooSoonByEmail_(email, EMAIL_WINDOW_MS)) {
+      return jsonResponse({ status: 'error', message: 'Please wait before sending another message.' }, 429);
+    }
+    if (tooSoonByClient_(clientId, CLIENT_WINDOW_MS)) {
+      return jsonResponse({ status: 'error', message: 'Please wait before sending another message.' }, 429);
+    }
+
+    // Duplicate message guard per email (normalized)
+    if (isDuplicateMessage_(email, message)) {
+      return jsonResponse({ status: 'error', message: 'Duplicate message detected. Please modify and resend.' }, 429);
+    }
+
+    // Optional Turnstile verification if secret is configured
+    var tsVerify = verifyTurnstile_(tsToken);
+    if (tsVerify && tsVerify.required && !tsVerify.ok) {
+      return jsonResponse({ status: 'error', message: 'Verification failed.' }, 403);
     }
 
     const sheet = getSheet_();
@@ -76,6 +121,9 @@ function doPost(e) {
     ]);
 
     sendNotificationEmail_(name, email, subject, message, pageUrl, ip, userAgent);
+
+    // Record submission for cooldown and duplicate detection
+    recordSubmission_(email, clientId, message);
 
     return jsonResponse({ status: 'success', message: 'Submission received. Thank you!' });
   } catch (err) {
@@ -166,4 +214,69 @@ function isRateLimited(key) {
   if (last && (now - last) / 1000 < RATE_LIMIT_SECONDS) return true;
   _rateMap[key] = now;
   return false;
+}
+
+// --------------- Anti-spam helpers ---------------
+function props_() { return PropertiesService.getScriptProperties(); }
+
+function tooSoonByEmail_(email, windowMs) {
+  if (!email) return false;
+  var key = 'lastEmailTS:' + email;
+  var now = Date.now();
+  var last = Number(props_().getProperty(key) || '0');
+  if (last && now - last < windowMs) return true;
+  return false;
+}
+
+function tooSoonByClient_(clientId, windowMs) {
+  if (!clientId || clientId === 'na') return false;
+  var key = 'lastClientTS:' + clientId;
+  var now = Date.now();
+  var last = Number(props_().getProperty(key) || '0');
+  if (last && now - last < windowMs) return true;
+  return false;
+}
+
+function recordSubmission_(email, clientId, message) {
+  try {
+    var now = Date.now();
+    if (email) props_().setProperty('lastEmailTS:' + email, String(now));
+    if (clientId && clientId !== 'na') props_().setProperty('lastClientTS:' + clientId, String(now));
+    if (email && message) {
+      var norm = normalizeMsg_(message);
+      props_().setProperty('lastMsg:' + email, norm);
+    }
+  } catch (e) {}
+}
+
+function isDuplicateMessage_(email, message) {
+  if (!email || !message) return false;
+  var last = props_().getProperty('lastMsg:' + email) || '';
+  var cur = normalizeMsg_(message);
+  return last && cur && last === cur;
+}
+
+function normalizeMsg_(s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+
+function isEmailBlocked_(email) {
+  var e = String(email || '').toLowerCase();
+  return EMAIL_BLOCKLIST.some(function(rule){
+    var r = String(rule || '').toLowerCase();
+    return r.startsWith('@') ? e.endsWith(r) : e === r;
+  });
+}
+
+function verifyTurnstile_(token) {
+  try {
+    var secret = props_().getProperty('TURNSTILE_SECRET');
+    if (!secret) return { ok: true, required: false };
+    if (!token) return { ok: false, required: true };
+    var res = UrlFetchApp.fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'post', muteHttpExceptions: true, payload: { secret: secret, response: token }
+    });
+    var data = JSON.parse(res.getContentText() || '{}');
+    return { ok: !!data.success, required: true, data: data };
+  } catch (err) {
+    return { ok: false, required: true, error: String(err) };
+  }
 }

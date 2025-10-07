@@ -20,8 +20,8 @@
 
 // ================== CONFIGURATION ==================
 // Provide a Sheet ID to enable logging (the long ID in the Sheet URL). Leave blank to disable.
-var SHEET_ID = '1ZcqK-O5GMsCPcV_NQzXLudP1swoZLb6BLzQNCXJ6qxI'; // e.g. '1AbCdEfGhIjKlMnOpQr...'
-var SHEET_NAME = 'Submissions';
+var SHEET_ID = '1sdiiAAEhOBJIMYj2ZjMrIVABDRHSdV4yzI9t4F-t8VU'; // e.g. '1AbCdEfGhIjKlMnOpQr...'
+var SHEET_NAME = 'ContactForm';
 
 // Alias (public) address and primary inbox. If PRIMARY_INBOX left blank, will fallback to effective user.
 var ALIAS_ADDRESS = 'info@lifeprepacademyfoundation.com';
@@ -35,6 +35,16 @@ var ACK_TEXT = function(name){return 'Hi '+(name||'there')+'\n\nThank you for co
 
 // Basic rate limit (per IP) configuration (very lightweight / optional)
 var RATE_LIMIT_PER_MIN = 15; // max submissions per IP per rolling minute window
+// Anti-spam thresholds and options
+var MIN_DWELL_MS = 3000;       // require >= 3s dwell time
+var MIN_TYPED_CHARS = 8;       // require >= 8 typed characters
+var EMAIL_WINDOW_MS = 2 * 60 * 1000;  // per-email cooldown (2 min)
+var CLIENT_WINDOW_MS = 2 * 60 * 1000; // per-client cooldown (2 min)
+var EMAIL_BLOCKLIST = [ /* 'bad@example.com','@spamdomain.com' */ ];
+// Optional Cloudflare Turnstile verification
+var REQUIRE_CAPTCHA = false; // set true to require CAPTCHA
+// Store your secret in Apps Script: Script Properties -> key: TURNSTILE_SECRET, value: <secret>
+var TURNSTILE_SECRET_PROP = 'TURNSTILE_SECRET';
 // ===================================================
 
 function doPost(e) {
@@ -61,12 +71,48 @@ function doPost(e) {
     var userAgent = sanitize_(params.userAgent);
     var pageUrl = sanitize_(params.page);
     var submittedAt = sanitize_(params.submittedAt);
+  var dwellMs = Number(params.dwellMs || 0);
+  var typedChars = Number(params.typedChars || 0);
+  var clientId = String(params.clientId || 'na');
+  var tsToken = params['cf_turnstile_response'];
 
     if (!name || !email || !message) {
       return jsonResponse_({ status: 'error', message: 'Required fields missing.' }, 422);
     }
     if (!isValidEmail_(email)) {
       return jsonResponse_({ status: 'error', message: 'Invalid email address.' }, 422);
+    }
+
+    // Basic heuristics
+    if (emailBlocked_(email)) {
+      return jsonResponse_({ status: 'error', message: 'Submission blocked.' }, 403);
+    }
+    if (dwellMs && dwellMs < MIN_DWELL_MS) {
+      return jsonResponse_({ status: 'error', message: 'Please wait a few seconds before submitting.' }, 429);
+    }
+    if (typedChars && typedChars < MIN_TYPED_CHARS) {
+      return jsonResponse_({ status: 'error', message: 'Please provide more detail in your message.' }, 429);
+    }
+
+    // Check persistent cooldowns and duplicates before any side-effects
+    if (tooSoonByEmail_(email, EMAIL_WINDOW_MS) || tooSoonByClient_(clientId, CLIENT_WINDOW_MS)) {
+      return jsonResponse_({ status: 'error', message: 'Please wait a moment before submitting again.' }, 429);
+    }
+    if (isDuplicateMessage_(email, message)) {
+      // Silently accept but do not re-send email/log to avoid floods
+      recordSubmission_(email, clientId, message);
+      return jsonResponse_({ status: 'success', message: 'Submission received.' });
+    }
+
+    // Optional CAPTCHA verification
+    if (REQUIRE_CAPTCHA) {
+      if (!tsToken) {
+        return jsonResponse_({ status: 'error', message: 'CAPTCHA required.' }, 400);
+      }
+      var ok = verifyTurnstile_(tsToken, ip);
+      if (!ok) {
+        return jsonResponse_({ status: 'error', message: 'CAPTCHA verification failed.' }, 403);
+      }
     }
 
     var primary = PRIMARY_INBOX && PRIMARY_INBOX.trim() ? PRIMARY_INBOX.trim() : getPrimary_();
@@ -87,7 +133,7 @@ function doPost(e) {
       subject: emailSubject,
       body: plainBody,
       htmlBody: htmlBody,
-      name: 'Website Contact Form'
+      name: 'LPAF Contact Form'
     });
 
     // Optional acknowledgement
@@ -124,6 +170,9 @@ function doPost(e) {
         return jsonResponse_({ status: 'partial', message: 'Email sent but sheet logging failed: ' + sheetErr.message });
       }
     }
+
+    // Persistent cooldowns + duplicate guard
+    recordSubmission_(email, clientId, message);
 
     return jsonResponse_({ status: 'success', message: 'Submission received.', sheetRow: sheetRow });
   } catch (err) {
@@ -229,6 +278,54 @@ function rateLimitOkay_(ip) {
   __RATE_BUCKET[ip] = bucket;
   return true;
 }
+
+// Additional anti-spam via ScriptProperties persistence
+function props_(){ return PropertiesService.getScriptProperties(); }
+function emailBlocked_(email){
+  var e = String(email||'').toLowerCase();
+  return EMAIL_BLOCKLIST.some(function(rule){ var r=String(rule||'').toLowerCase(); return r.startsWith('@')? e.endsWith(r): e===r; });
+}
+function tooSoonByEmail_(email, windowMs){
+  if (!email) return false;
+  var key='lastEmailTS:'+email, now=Date.now(), last=Number(props_().getProperty(key)||'0');
+  if (last && now-last<windowMs) return true; return false;
+}
+function tooSoonByClient_(clientId, windowMs){
+  if (!clientId || clientId==='na') return false;
+  var key='lastClientTS:'+clientId, now=Date.now(), last=Number(props_().getProperty(key)||'0');
+  if (last && now-last<windowMs) return true; return false;
+}
+function recordSubmission_(email, clientId, message){
+  try{
+    var now=Date.now();
+    if (email) props_().setProperty('lastEmailTS:'+email, String(now));
+    if (clientId && clientId!=='na') props_().setProperty('lastClientTS:'+clientId, String(now));
+    if (email && message) props_().setProperty('lastMsg:'+email, normalizeMsg_(message));
+  }catch(e){}
+}
+function isDuplicateMessage_(email, message){
+  if (!email||!message) return false; var last=props_().getProperty('lastMsg:'+email)||''; return last && normalizeMsg_(message)===last;
+}
+function normalizeMsg_(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,' '); }
+
+// Optional: Cloudflare Turnstile server-side verification
+function verifyTurnstile_(token, ip) {
+  try {
+    var secret = PropertiesService.getScriptProperties().getProperty(TURNSTILE_SECRET_PROP);
+    if (!secret) return false;
+    var options = {
+      method: 'post',
+      payload: { secret: secret, response: token, remoteip: ip },
+      muteHttpExceptions: true,
+    };
+    var resp = UrlFetchApp.fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', options);
+    var json = JSON.parse(resp.getContentText() || '{}');
+    return json && json.success === true;
+  } catch (e) {
+    return false;
+  }
+}
+
 
 function getPrimary_() {
   try {
