@@ -64,14 +64,14 @@
                                 <a href="https://www.instagram.com/lpa_foundation/" target="_blank" rel="noopener noreferrer">Instagram</a>
                             </div>
                         </div>
-                        <form class="contact-form" id="contactForm" data-no-script-handler="true" action="https://script.google.com/macros/s/AKfycbwDs8s-fbjWekk-ag3hMbmbi35XLiD7YA5zlnjYoafpi2rt-j6yms1csiF7oktmnNVq/exec" method="POST" aria-describedby="contact-form-status" novalidate>
+                        <form class="contact-form" id="contactForm" data-no-script-handler="true" action="https://script.google.com/macros/s/AKfycbxcwOD7nh1TwWBNC_WT0ZYBhz4EDaM0-MA1MKB8y0n33KcjsvZF8T538u21EiiQksLS/exec" method="POST" aria-describedby="contact-form-status" novalidate>
                             <h3>Send us a Message</h3>
                             <div id="contact-form-status" class="visually-hidden" aria-live="polite"></div>
                             <div class="hp-wrapper" aria-hidden="true">
                                 <label>Do not fill this field <input type="text" name="hp_field" tabindex="-1" autocomplete="off"></label>
                             </div>
-                            <!-- Optional CAPTCHA (Cloudflare Turnstile). Replace sitekey and set REQUIRE_CAPTCHA=true in the script to enable. -->
-                            <div id="captchaContainer" class="cf-turnstile" data-sitekey="0x0000000000000000000000000000000AA" data-size="compact" data-theme="light" style="margin: 0 0 1rem; display:none;"></div>
+                            <!-- CAPTCHA (Cloudflare Turnstile) -->
+                            <div id="captchaContainer" class="cf-turnstile" data-sitekey="0x4AAAAAAB5rtUiQ1MiqGIxp" data-size="compact" data-theme="light" style="margin: 0 0 1rem; display:none;"></div>
                             <!-- Accessibility/UX: Autocomplete and input hints -->
                             <div class="form-group"><label for="name">Full Name *</label><input type="text" id="name" name="name" required autocomplete="name" aria-required="true"></div>
                             <div class="form-group"><label for="email">Email Address *</label><input type="email" id="email" name="email" required autocomplete="email" inputmode="email" aria-required="true"></div>
@@ -124,7 +124,7 @@
             const MIN_INTERVAL_MS = 2 * 60 * 1000;     // At least 2 minutes between submissions (per browser)
             const PER_EMAIL_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12h cooldown per email (client-side)
             const MAX_TYPED_THRESHOLD = 12;            // Require user to actually type >= 12 chars across fields
-            const REQUIRE_CAPTCHA = false;             // Set to true after configuring Turnstile sitekey + server verify
+            const REQUIRE_CAPTCHA = true;              // Enabled: require Turnstile on client to match server
             const EMAIL_BLOCKLIST = [                  // Optional quick blocklist
                 // 'bad@example.com', '@spamdomain.com'
             ];

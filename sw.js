@@ -1,7 +1,7 @@
 // Service Worker for Lifeprep Academy Foundation
 // Provides basic caching for improved performance
 
-const CACHE_NAME = 'lifeprep-academy-v4';
+const CACHE_NAME = 'lifeprep-academy-v5';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -74,37 +74,37 @@ self.addEventListener('fetch', event => {
     // Ignore query strings for cache matching so cache-busted URLs (e.g., ?v=hash) still hit
     const pathnameOnly = url.pathname;
     const cacheKey = new Request(pathnameOnly, { method: 'GET' });
+    // Network-first for HTML documents to avoid serving stale pages (important for widgets like Turnstile)
+    if (event.request.destination === 'document') {
+        event.respondWith(
+            fetch(event.request)
+                .then(networkResponse => {
+                    const clone = networkResponse.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(cacheKey, clone));
+                    return networkResponse;
+                })
+                .catch(() => {
+                    // Fallback to cached document or offline page
+                    return caches.match(cacheKey).then(r => r || caches.match('/offline.html'));
+                })
+        );
+        return;
+    }
+
+    // For non-HTML, use cache-first with network fallback
     event.respondWith(
         caches.match(cacheKey)
             .then(cachedResponse => {
-                // Return cached version if available
-                if (cachedResponse) {
-                    return cachedResponse;
-                }
-
-                // Otherwise fetch from network
+                if (cachedResponse) return cachedResponse;
                 return fetch(event.request)
                     .then(networkResponse => {
-                        // Cache successful responses
                         if (networkResponse.status === 200) {
                             const responseClone = networkResponse.clone();
-                            caches.open(CACHE_NAME)
-                                .then(cache => {
-                                    cache.put(cacheKey, responseClone);
-                                });
+                            caches.open(CACHE_NAME).then(cache => cache.put(cacheKey, responseClone));
                         }
                         return networkResponse;
                     })
-                    .catch(error => {
-                        console.error('Fetch failed:', error);
-                        
-                        // Return a basic offline page if available
-                        if (event.request.destination === 'document') {
-                            return caches.match('/offline.html');
-                        }
-                        
-                        throw error;
-                    });
+                    .catch(() => undefined);
             })
     );
 });

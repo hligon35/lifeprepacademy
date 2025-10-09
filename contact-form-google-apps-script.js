@@ -28,7 +28,7 @@ var ALIAS_ADDRESS = 'info@lifeprepacademyfoundation.com';
 var PRIMARY_INBOX = 'bhall@lifeprepacademyfoundation.com'; // Set to real login (e.g. 'yourname@domain.com'). Blank -> auto detect.
 
 // Send acknowledgement email back to submitter?
-var SEND_ACK = true; // set false to disable auto-response
+var SEND_ACK = false; // disabled to stop auto-replies to submitters
 var ACK_SUBJECT = 'We received your message';
 var ACK_HTML = function(name){return '<p>Hi '+escapeHtml_(name||'there')+',</p><p>Thank you for contacting Lifeprep Academy Foundation. We\'ve received your message and will respond soon.</p><p><em>This is an automated confirmation.</em></p>';};
 var ACK_TEXT = function(name){return 'Hi '+(name||'there')+'\n\nThank you for contacting Lifeprep Academy Foundation. We\'ve received your message and will respond soon.\n\n(This is an automated confirmation.)';};
@@ -36,15 +36,39 @@ var ACK_TEXT = function(name){return 'Hi '+(name||'there')+'\n\nThank you for co
 // Basic rate limit (per IP) configuration (very lightweight / optional)
 var RATE_LIMIT_PER_MIN = 15; // max submissions per IP per rolling minute window
 // Anti-spam thresholds and options
-var MIN_DWELL_MS = 3000;       // require >= 3s dwell time
-var MIN_TYPED_CHARS = 8;       // require >= 8 typed characters
-var EMAIL_WINDOW_MS = 2 * 60 * 1000;  // per-email cooldown (2 min)
-var CLIENT_WINDOW_MS = 2 * 60 * 1000; // per-client cooldown (2 min)
-var EMAIL_BLOCKLIST = [ /* 'bad@example.com','@spamdomain.com' */ ];
+var MIN_DWELL_MS = 8000;       // require >= 8s dwell time (server-enforced)
+var MIN_TYPED_CHARS = 24;      // require >= 24 typed characters (server-enforced)
+var EMAIL_WINDOW_MS = 12 * 60 * 60 * 1000;  // per-email cooldown (12 hours)
+var CLIENT_WINDOW_MS = 10 * 60 * 1000;      // per-client cooldown (10 minutes)
+var EMAIL_BLOCKLIST = [
+  // Carrier SMS/MMS gateways (rarely valid for contact forms; heavily abused by bots)
+  '@vtext.com',            // Verizon SMS
+  '@vzwpix.com',           // Verizon MMS
+  '@txt.att.net',          // AT&T SMS
+  '@mms.att.net',          // AT&T MMS
+  '@tmomail.net',          // T‑Mobile
+  '@message.ting.com',     // Ting
+  '@messaging.sprintpcs.com', '@pm.sprint.com', '@messaging.sprint.com', // Sprint legacy
+  '@myboostmobile.com',    // Boost Mobile
+  '@mymetropcs.com',       // MetroPCS
+  '@mms.cricketwireless.net', // Cricket
+  '@email.uscc.net',       // US Cellular
+  // Disposable/temporary email providers (sample/common ones)
+  '@mailinator.com', '@guerrillamail.com', '@sharklasers.com', '@yopmail.com', '@10minutemail.com', '@tempmail.'
+];
+// Additional content heuristics
+var MAX_URLS_IN_MESSAGE = 1; // block if message contains more than this many URLs
+var BLOCK_PHRASES = [
+  'guest post', 'crypto', 'buy followers', 'seo package', 'backlink',
+  'urgent action required', 'invoice attached', 'payment due', 'domain listing',
+  'sponsored post', 'adult content'
+];
 // Optional Cloudflare Turnstile verification
-var REQUIRE_CAPTCHA = false; // set true to require CAPTCHA
+var REQUIRE_CAPTCHA = true; // enabled: require CAPTCHA verification on server
 // Store your secret in Apps Script: Script Properties -> key: TURNSTILE_SECRET, value: <secret>
 var TURNSTILE_SECRET_PROP = 'TURNSTILE_SECRET';
+// Debug logging for CAPTCHA verification (set true temporarily if you need to inspect Cloudflare responses in Logs)
+var DEBUG_CAPTCHA = false;
 // ===================================================
 
 function doPost(e) {
@@ -93,6 +117,13 @@ function doPost(e) {
     if (typedChars && typedChars < MIN_TYPED_CHARS) {
       return jsonResponse_({ status: 'error', message: 'Please provide more detail in your message.' }, 429);
     }
+    // Content checks
+    if (urlCount_(message) > MAX_URLS_IN_MESSAGE) {
+      return jsonResponse_({ status: 'error', message: 'Submission blocked.' }, 403);
+    }
+    if (containsBlockedPhrases_(message)) {
+      return jsonResponse_({ status: 'error', message: 'Submission blocked.' }, 403);
+    }
 
     // Check persistent cooldowns and duplicates before any side-effects
     if (tooSoonByEmail_(email, EMAIL_WINDOW_MS) || tooSoonByClient_(clientId, CLIENT_WINDOW_MS)) {
@@ -126,20 +157,23 @@ function doPost(e) {
     var htmlBody = buildHtmlBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip);
 
     // Send email to primary to ensure INBOX delivery; BCC alias for record (avoid Gmail self-send suppression)
-    MailApp.sendEmail({
+    // Try to send "From" the ALIAS_ADDRESS if it is configured as a Gmail alias on the sending account.
+    var bccAddr = primary !== ALIAS_ADDRESS ? ALIAS_ADDRESS : undefined;
+    sendMail_({
       to: primary,
-      bcc: primary !== ALIAS_ADDRESS ? ALIAS_ADDRESS : undefined,
+      bcc: bccAddr,
       replyTo: email,
       subject: emailSubject,
       body: plainBody,
       htmlBody: htmlBody,
-      name: 'LPAF Contact Form'
+      name: 'LPAF Contact Form',
+      from: ALIAS_ADDRESS // Uses Gmail alias if available; otherwise falls back to default sender
     });
 
     // Optional acknowledgement
     if (SEND_ACK && isValidEmail_(email)) {
       try {
-        MailApp.sendEmail({
+        sendMail_({
           to: email,
           subject: ACK_SUBJECT,
           body: ACK_TEXT(name),
@@ -308,22 +342,54 @@ function isDuplicateMessage_(email, message){
 }
 function normalizeMsg_(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,' '); }
 
+function urlCount_(text){
+  try{
+    var m = String(text||'').match(/https?:\/\/\S+/gi);
+    return m ? m.length : 0;
+  }catch(e){ return 0; }
+}
+function containsBlockedPhrases_(text){
+  try{
+    var s = String(text||'').toLowerCase();
+    return BLOCK_PHRASES.some(function(p){ return p && s.indexOf(String(p).toLowerCase()) !== -1; });
+  }catch(e){ return false; }
+}
+
 // Optional: Cloudflare Turnstile server-side verification
 function verifyTurnstile_(token, ip) {
   try {
     var secret = PropertiesService.getScriptProperties().getProperty(TURNSTILE_SECRET_PROP);
-    if (!secret) return false;
+    if (!secret) {
+      if (DEBUG_CAPTCHA) Logger.log('[Turnstile] Missing TURNSTILE_SECRET Script Property');
+      return false;
+    }
+    var payload = { secret: secret, response: token };
+    if (isValidIp_(ip)) payload.remoteip = ip;
     var options = {
       method: 'post',
-      payload: { secret: secret, response: token, remoteip: ip },
+      payload: payload,
+      contentType: 'application/x-www-form-urlencoded',
       muteHttpExceptions: true,
     };
     var resp = UrlFetchApp.fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', options);
-    var json = JSON.parse(resp.getContentText() || '{}');
-    return json && json.success === true;
+    var text = resp.getContentText() || '{}';
+    var json = JSON.parse(text);
+    var ok = json && json.success === true;
+    if (!ok && DEBUG_CAPTCHA) Logger.log('[Turnstile] Verification failed: ' + text);
+    return ok;
   } catch (e) {
+    if (DEBUG_CAPTCHA) Logger.log('[Turnstile] Verification error: ' + (e && e.message));
     return false;
   }
+}
+
+function isValidIp_(ip) {
+  if (!ip || typeof ip !== 'string') return false;
+  ip = ip.trim();
+  // Basic IPv4 or IPv6 check (permissive)
+  var ipv4 = /^(?:\d{1,3}\.){3}\d{1,3}$/;
+  var ipv6 = /^[a-fA-F0-9:]+$/;
+  return ipv4.test(ip) || ipv6.test(ip);
 }
 
 
@@ -350,6 +416,170 @@ function textResponse_(msg, code) {
     try { out.setResponseCode(code); } catch (e) {}
   }
   return out;
+}
+
+/**
+ * sendMail_ tries to send using GmailApp with a configured alias so that
+ * recipients see "From: alias". If the alias is unavailable or sending via
+ * GmailApp fails (e.g., due to restricted scopes), it falls back to MailApp.
+ *
+ * opts: { to, subject, body, htmlBody?, name?, replyTo?, bcc?, from? }
+ */
+function sendMail_(opts) {
+  var to = opts.to;
+  var subject = opts.subject;
+  var body = opts.body || '';
+  var htmlBody = opts.htmlBody;
+  var name = opts.name || 'Notification';
+  var replyTo = opts.replyTo;
+  var bcc = opts.bcc;
+  var from = opts.from; // desired alias address
+
+  // If possible, use GmailApp with alias.
+  // Note: GmailApp respects aliases configured in Gmail settings (Send mail as).
+  try {
+    if (from && isAliasConfigured_(from)) {
+      var adv = { name: name };
+      if (htmlBody) adv.htmlBody = htmlBody;
+      if (replyTo) adv.replyTo = replyTo;
+      if (bcc) adv.bcc = bcc;
+      // Ask Gmail to use this alias as the From address (must be configured/verified in Gmail settings)
+      adv.from = from;
+      // GmailApp does not accept a separate plain text body when htmlBody is present; body is always required
+      GmailApp.sendEmail(to, subject, body || ' ', adv);
+      return;
+    }
+  } catch (e) {
+    // Fall through to MailApp
+  }
+
+  // Fallback to MailApp (cannot spoof From; will use script's account)
+  try {
+    MailApp.sendEmail({
+      to: to,
+      subject: subject,
+      body: body || ' ',
+      htmlBody: htmlBody,
+      name: name,
+      replyTo: replyTo,
+      bcc: bcc
+    });
+  } catch (e2) {
+    throw e2;
+  }
+}
+
+// Check if a given email is configured as a Gmail alias on this account
+function isAliasConfigured_(alias) {
+  try {
+    var aliases = GmailApp.getAliases();
+    alias = String(alias || '').toLowerCase();
+    return aliases.some(function(a){ return String(a || '').toLowerCase() === alias; });
+  } catch (e) {
+    return false;
+  }
+}
+
+// --- Admin utilities (run these from the Apps Script editor as needed) ---
+/**
+ * Purge old cooldown/duplicate tracking entries from Script Properties.
+ * Keeps the last N days; removes keys starting with lastEmailTS:, lastClientTS:, lastMsg:.
+ * Adjust daysToKeep as desired.
+ */
+function admin_purgeOldCooldowns_(daysToKeep) {
+  daysToKeep = Math.max(1, Number(daysToKeep || 7)); // default 7 days
+  var cutoff = Date.now() - daysToKeep * 24 * 60 * 60 * 1000;
+  var sp = props_();
+  var all = sp.getProperties() || {};
+  var prefixes = ['lastEmailTS:', 'lastClientTS:', 'lastMsg:'];
+  var removed = 0;
+  Object.keys(all).forEach(function(k){
+    if (prefixes.some(function(p){ return k.indexOf(p) === 0; })) {
+      var v = all[k];
+      if (k.indexOf('lastMsg:') === 0) {
+        // Message hashes: remove if corresponding timestamp is old or missing
+        var email = k.slice('lastMsg:'.length);
+        var ts = Number(all['lastEmailTS:' + email] || '0');
+        if (!ts || ts < cutoff) { sp.deleteProperty(k); removed++; }
+      } else {
+        // Timestamp keys: remove if old
+        var tsn = Number(v || '0');
+        if (!tsn || tsn < cutoff) { sp.deleteProperty(k); removed++; }
+      }
+    }
+  });
+  Logger.log('Removed ' + removed + ' old cooldown/duplicate properties older than ' + daysToKeep + ' days.');
+}
+
+/**
+ * Remove all stored cooldown entries for emails ending with known SMS/MMS gateways.
+ * Use cautiously.
+ */
+function admin_clearSmsGatewayCooldowns_() {
+  var smsDomains = ['@vtext.com','@vzwpix.com','@txt.att.net','@mms.att.net','@tmomail.net','@message.ting.com','@messaging.sprintpcs.com','@pm.sprint.com','@messaging.sprint.com','@myboostmobile.com','@mymetropcs.com','@mms.cricketwireless.net','@email.uscc.net'];
+  var sp = props_();
+  var all = sp.getProperties() || {};
+  var removed = 0;
+  Object.keys(all).forEach(function(k){
+    if (k.indexOf('lastEmailTS:') === 0 || k.indexOf('lastMsg:') === 0) {
+      var email = k.replace(/^lastEmailTS:|^lastMsg:/, '');
+      var lower = String(email || '').toLowerCase();
+      if (smsDomains.some(function(d){ return lower.endsWith(d); })) {
+        sp.deleteProperty(k);
+        removed++;
+      }
+    }
+  });
+  Logger.log('Removed ' + removed + ' SMS-gateway related properties.');
+}
+
+/**
+ * Remove ALL cooldown/duplicate tracking properties regardless of age/domain.
+ * This frees space so you can add new Script Properties (e.g., TURNSTILE_SECRET).
+ */
+function admin_clearAllCooldowns_() {
+  var sp = props_();
+  var all = sp.getProperties() || {};
+  var prefixes = ['lastEmailTS:', 'lastClientTS:', 'lastMsg:'];
+  var removed = 0;
+  Object.keys(all).forEach(function(k){
+    if (prefixes.some(function(p){ return k.indexOf(p) === 0; })) {
+      sp.deleteProperty(k);
+      removed++;
+    }
+  });
+  Logger.log('Removed ' + removed + ' cooldown/duplicate properties (ALL).');
+}
+
+/**
+ * Set a specific Script Property programmatically. Use as a last resort if the UI is blocked.
+ * Example: admin_setScriptProperty('TURNSTILE_SECRET', 'your-secret-here')
+ */
+function admin_setScriptProperty(key, value) {
+  if (!key) throw new Error('Key is required');
+  props_().setProperty(String(key), String(value || ''));
+  Logger.log('Set Script Property: ' + key + ' (length=' + String(value || '').length + ')');
+}
+
+// Wrappers (no underscores) so they appear in the Run menu
+function adminPurgeCooldowns() { admin_purgeOldCooldowns_(7); } // change 7 to desired retention days
+function adminClearSmsGatewayCooldowns() { admin_clearSmsGatewayCooldowns_(); }
+function adminClearAllCooldowns() { admin_clearAllCooldowns_(); }
+
+/**
+ * Create a daily time-driven trigger to purge old cooldown properties automatically.
+ * Run once to install the trigger. Adjust the retention days inside adminPurgeCooldowns if needed.
+ */
+function adminCreateDailyPurgeTrigger() {
+  // Remove existing triggers for cleanliness
+  var triggers = ScriptApp.getProjectTriggers() || [];
+  triggers.forEach(function(t){
+    if (t.getHandlerFunction && t.getHandlerFunction() === 'adminPurgeCooldowns') {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+  ScriptApp.newTrigger('adminPurgeCooldowns').timeBased().everyDays(1).atHour(3).create();
+  Logger.log('Created daily purge trigger for adminPurgeCooldowns at ~3am project timezone.');
 }
 
 // Test harness you can run inside the Apps Script editor without an HTTP request
