@@ -12,3 +12,10 @@ Disallow: /Screenshot*
 Disallow: /*.log$
 Disallow: /tmp/
 Disallow: /cache/
+Disallow: /basic-test.html
+Disallow: /debug.html
+Disallow: /test.html
+Disallow: /test-photos.html
+Disallow: /phototest.html
+Disallow: /simple.html
+Disallow: /status.html

@@ -6,7 +6,7 @@
   "scripts": {
     "optimize": "node optimize-images.js",
     "serve": "http-server -p 3000",
-    "build": "node build-assets.js && node cache-bust.js"
+  "build": "node build-assets.js && node cache-bust.js && node minify-html.js"
   },
   "devDependencies": {
     "sharp": "^0.32.6",
