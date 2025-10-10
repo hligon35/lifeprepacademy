@@ -1,7 +1,7 @@
 // Service Worker for Lifeprep Academy Foundation
 // Provides basic caching for improved performance
 
-const CACHE_NAME = 'lifeprep-academy-v5';
+const CACHE_NAME = 'lifeprep-academy-v6';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -17,8 +17,6 @@ const STATIC_ASSETS = [
     '/manifest.json',
     '/offline.html',
     // Flyers (PNG + WebP)
-    '/photos/flyer1.png',
-    '/photos/flyer1.webp',
     '/photos/flyer2.png',
     '/photos/flyer2.webp',
     '/photos/flyer3.png',
