@@ -1,0 +1,2 @@
+- [x] add floating ticket CTA elements to events page
+- [x] style ticket CTA for fixed positioning and responsiveness

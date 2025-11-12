@@ -86,6 +86,18 @@
             .flyer-spotlight.no-card .countdown-details-link{color:#ffd54d}
             /* Remove default top margin on countdown when used in featured section */
             .featured-flyers .countdown-wrapper{margin:0 auto}
+            /* Floating ticket CTA */
+            .floating-ticket{position:fixed;top:158px;left:clamp(12px,3vw,48px);z-index:140;display:flex;align-items:center;justify-content:center;padding:14px;background:linear-gradient(135deg,#ffd54d,#ffb300);color:#281156;border-radius:50%;text-decoration:none;font-weight:800;text-transform:uppercase;letter-spacing:.08em;box-shadow:0 12px 30px rgba(0,0,0,.3);transform:translateZ(0);width:128px;height:128px;animation:ticketPulse 2.8s ease-in-out infinite}
+            .floating-ticket span{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:.78rem;line-height:1.15;letter-spacing:.12em}
+            .floating-ticket:hover,.floating-ticket:focus-visible{box-shadow:0 16px 36px rgba(0,0,0,.35);transform:translateY(-2px)}
+            .floating-ticket:focus-visible{outline:3px solid #fff;outline-offset:4px}
+            .floating-ticket--left{grid-column:1}
+            @keyframes ticketPulse{0%,100%{transform:translateZ(0) scale(1)}50%{transform:translateZ(0) scale(1.05)}}
+            @media(max-width:900px){.floating-ticket,.floating-ticket-spacer{display:none}.title-header{grid-template-columns:1fr}}
+            @media(prefers-reduced-motion:reduce){.floating-ticket{animation:none}}
+            .title-header{display:grid;grid-template-columns:128px 1fr 128px;align-items:center;justify-items:center;gap:clamp(12px,3vw,36px);position:relative}
+            .title-header h2{grid-column:2;margin:0;text-align:center}
+            .floating-ticket-spacer{width:128px;height:1px;grid-column:3}
         </style>
     <!-- <link rel="stylesheet" href="performance-optimizations.css"> -->
     
@@ -152,11 +164,20 @@
                 <button class="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-controls="primary-nav" aria-expanded="false">☰</button>
             </nav>
         </header>
-
         <main id="main-content">
-            <!-- Featured section with countdown and flyer1 -->
+            <!-- Featured section with countdown and event flyer -->
             <section class="featured-flyers" aria-label="Men's Health Awareness Weekend 2025">
-                <div class="featured-title-row"><div class="container"><h2>Men's Health Awareness Weekend 2025</h2></div></div>
+                <div class="featured-title-row">
+                    <div class="container">
+                        <div class="title-header">
+                            <a class="floating-ticket floating-ticket--left" href="https://www.eventbrite.com/e/1852784571529?aff=oddtdtcreator" target="_blank" rel="noopener noreferrer" aria-label="Get your tickets today on Eventbrite">
+                                <span aria-hidden="true">GET YOUR<br>TICKETS<br>TODAY!</span>
+                            </a>
+                            <h2>Men's Health Awareness Weekend 2025</h2>
+                            <span class="floating-ticket-spacer" aria-hidden="true"></span>
+                        </div>
+                    </div>
+                </div>
                 <div class="container">
                     <div class="featured-grid">
                         <!-- Left: Countdown -->
@@ -193,11 +214,8 @@
                             </div>
                         </div>
                         <!-- Right: Flyer 1 -->
-                        <a href="photos/flyer1.png" class="flyer-spotlight" target="_blank" rel="noopener noreferrer" aria-label="Open Featured Event Flyer full size">
-                            <picture>
-                                <source type="image/webp" srcset="photos/flyer1.webp" />
-                                <img src="photos/flyer1.png" alt="Featured flyer for Men's Mental Health Weekend 2025" width="900" height="1200" loading="eager" decoding="async">
-                            </picture>
+                        <a href="photos/1.png" class="flyer-spotlight" target="_blank" rel="noopener noreferrer" aria-label="Open Featured Event Flyer full size">
+                            <img src="photos/1.png" alt="Featured flyer for Men's Mental Health Weekend 2025" width="900" height="1200" loading="eager" decoding="async">
                         </a>
                     </div>
                 </div>
