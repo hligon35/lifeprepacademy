@@ -32,8 +32,9 @@
     <link rel="preconnect" href="https://www.instagram.com" crossorigin>
     <link rel="preconnect" href="https://give.cornerstone.cc" crossorigin>
     <style>
+    :root{--nav-height:140px}
         /* Featured Flyers (attention-grabbing hero) */
-        .featured-flyers{background:linear-gradient(90deg,#281156 0%,#5a3dc3 100%);color:#fff;padding:0 0 1.5rem}
+    .featured-flyers{background:linear-gradient(90deg,#281156 0%,#5a3dc3 100%);color:#fff;padding:0 0 1.5rem}
         .featured-flyers .container{max-width:var(--container-width,1100px);margin:0 auto;padding:0 1rem}
         .featured-title-row{background:#fff;padding:.75rem 1rem;margin:0 0 1rem;border-bottom:4px solid #ffd54d}
         .featured-flyers h2{color:#4b2e83; /* purple */ text-align:center;margin:0;font-weight:900;letter-spacing:.6px;
@@ -48,17 +49,22 @@
         .flyer-spotlight img{display:block;width:100%;height:auto}
         .flyer-spotlight:focus-within{box-shadow:0 0 0 4px rgba(255,215,0,.7),0 12px 30px rgba(0,0,0,.25)}
         /* Floating ticket CTA */
-    .floating-ticket{position:fixed;top:158px;left:clamp(12px,3vw,48px);z-index:140;display:flex;align-items:center;justify-content:center;padding:14px;background:linear-gradient(135deg,#ffd54d,#ffb300);color:#281156;border-radius:50%;text-decoration:none;font-weight:800;text-transform:uppercase;letter-spacing:.08em;box-shadow:0 12px 30px rgba(0,0,0,.3);transform:translateZ(0);width:128px;height:128px;animation:ticketPulse 2.8s ease-in-out infinite}
+    .floating-ticket{position:fixed;top:calc(var(--nav-height,140px)+80px);left:24px;z-index:140;display:flex;align-items:center;justify-content:center;padding:14px;background:linear-gradient(135deg,#ffd54d,#ffb300);color:#281156;border-radius:50%;text-decoration:none;font-weight:800;text-transform:uppercase;letter-spacing:.08em;box-shadow:0 12px 30px rgba(0,0,0,.3);transform:translateZ(0);width:128px;height:128px;animation:ticketPulse 2.8s ease-in-out infinite;opacity:0;transition:opacity .3s ease}
     .floating-ticket span{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:.78rem;line-height:1.15;letter-spacing:.12em}
     .floating-ticket:hover,.floating-ticket:focus-visible{box-shadow:0 16px 36px rgba(0,0,0,.35);transform:translateY(-2px)}
     .floating-ticket:focus-visible{outline:3px solid #fff;outline-offset:4px}
-    .floating-ticket--left{grid-column:1}
-    @keyframes ticketPulse{0%,100%{transform:translateZ(0) scale(1)}50%{transform:translateZ(0) scale(1.05)}}
-    @media(max-width:900px){.floating-ticket,.floating-ticket-spacer{display:none}.title-header{grid-template-columns:1fr}}
+        .floating-ticket--left{grid-column:1}
+        @keyframes ticketPulse{0%,100%{transform:translateZ(0) scale(1)}50%{transform:translateZ(0) scale(1.05)}}
+        @media(max-width:900px){
+            .floating-ticket{top:120px;left:auto;right:clamp(12px,5vw,28px);width:96px;height:96px;padding:12px}
+            .floating-ticket span{font-size:.7rem}
+            .floating-ticket-spacer{display:none}
+            .title-header{grid-template-columns:1fr;gap:16px}
+        }
     @media(prefers-reduced-motion:reduce){.floating-ticket{animation:none}}
-    .title-header{display:grid;grid-template-columns:128px 1fr 128px;align-items:center;justify-items:center;gap:clamp(12px,3vw,36px);position:relative}
-    .title-header h2{grid-column:2;margin:0;text-align:center}
-    .floating-ticket-spacer{width:128px;height:1px;grid-column:3}
+    .title-header{display:grid;grid-template-columns:128px minmax(0,1fr) 128px;align-items:center;gap:clamp(12px,3vw,36px);position:relative}
+    .title-header h2{grid-column:2;margin:0;text-align:center;justify-self:center}
+    .floating-ticket-spacer{display:block;width:128px;height:1px;grid-column:3}
     </style>
 </head>
 <body>
@@ -82,7 +88,7 @@
         </header>
         <main id="main-content">
             <!-- Featured flyers at top -->
-            <section class="featured-flyers" aria-label="Featured Event Flyers">
+            <section class="featured-flyers featured-flyers--events" aria-label="Featured Event Flyers">
                 <div class="featured-title-row">
                     <div class="container">
                         <div class="title-header">
@@ -156,5 +162,58 @@
         </footer>
     </div>
     <script src="script.min.js?v=30226e22a9" defer></script>
+    <script>
+    (function(){
+        const tickets=document.querySelectorAll('.floating-ticket');
+        if(!tickets.length)return;
+        const header=document.querySelector('header');
+        const mq=window.matchMedia('(max-width: 900px)');
+        const getNavHeight=()=>header?header.offsetHeight:120;
+        const clampLeft=value=>Math.max(16,value);
+        let rafId=null;
+        const update=()=>{
+            rafId=null;
+            const nav=getNavHeight();
+            tickets.forEach(ticket=>{
+                const titleHeader=ticket.closest('.title-header');
+                const heading=titleHeader?titleHeader.querySelector('h2'):null;
+                const container=heading?heading.closest('.container'):null;
+                if(mq.matches){
+                    ticket.style.top=`${nav+20}px`;
+                    ticket.style.left='';
+                    ticket.style.right='16px';
+                    ticket.style.opacity='1';
+                    return;
+                }
+                if(!heading||!container){
+                    ticket.style.top=`${nav+80}px`;
+                    ticket.style.left='24px';
+                    ticket.style.right='';
+                    ticket.style.opacity='1';
+                    return;
+                }
+                const ticketRect=ticket.getBoundingClientRect();
+                const headingRect=heading.getBoundingClientRect();
+                const containerRect=container.getBoundingClientRect();
+                const targetTop=headingRect.top+(headingRect.height-ticketRect.height)/2;
+                const minTop=nav+20;
+                ticket.style.top=`${Math.max(minTop,targetTop)}px`;
+                const desiredLeft=containerRect.left-ticketRect.width-18;
+                ticket.style.left=`${clampLeft(desiredLeft)}px`;
+                ticket.style.right='';
+                ticket.style.opacity='1';
+            });
+        };
+        const scheduleUpdate=()=>{
+            if(rafId!==null)return;
+            rafId=requestAnimationFrame(update);
+        };
+        scheduleUpdate();
+        window.addEventListener('load',scheduleUpdate);
+        window.addEventListener('resize',scheduleUpdate);
+        window.addEventListener('scroll',scheduleUpdate,{passive:true});
+        mq.addEventListener('change',scheduleUpdate);
+    })();
+    </script>
 </body>
 </html>
