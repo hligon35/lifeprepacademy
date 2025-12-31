@@ -62,47 +62,6 @@
             .hero-content{max-width:1200px;margin:0 auto;padding:0 1rem}
             .btn.btn-hero{background:#f9b515;color:#281156;border:2px solid #281156;display:inline-block;padding:.75rem 1.5rem;border-radius:8px;text-decoration:none;font-weight:600}
             a:focus-visible,button:focus-visible{outline:2px solid #f9b515;outline-offset:2px}
-            /* Featured Hero (Home) */
-            .featured-flyers{background:linear-gradient(90deg,#281156 0%,#5a3dc3 100%);color:#fff;padding:0 0 1.5rem}
-            .featured-flyers .container{max-width:var(--container-width,1100px);margin:0 auto;padding:0 1rem}
-            .featured-title-row{background:#fff;padding:.75rem 1rem;margin:0 0 1rem;border-bottom:4px solid #ffd54d}
-            .featured-flyers h2{color:#4b2e83;text-align:center;margin:0;font-weight:900;letter-spacing:.6px;
-                text-shadow:-1px -1px 0 #d4af37,1px -1px 0 #d4af37,-1px 1px 0 #d4af37,1px 1px 0 #d4af37;
-                font-size:clamp(2rem, 2rem + 2vw, 3.5rem)
-            }
-            .featured-grid{display:grid;grid-template-columns:1fr;gap:12px}
-            @media(min-width:768px){.featured-grid{grid-template-columns:1fr 1fr;gap:16px}}
-            .flyer-spotlight{position:relative;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 12px 30px rgba(0,0,0,.25);transform:translateZ(0);transition:transform .2s ease}
-            .flyer-spotlight:hover{transform:translateY(-2px)}
-            .flyer-spotlight img{display:block;width:100%;height:auto}
-            .flyer-spotlight:focus-within{box-shadow:0 0 0 4px rgba(255,215,0,.7),0 12px 30px rgba(0,0,0,.25)}
-            /* Allow non-image content inside a spotlight */
-            .flyer-spotlight .card-body{padding:14px}
-            .flyer-spotlight .countdown-wrapper{color:#281156}
-            /* No-card variant: remove white background for countdown column */
-            .flyer-spotlight.no-card{background:transparent;box-shadow:none;overflow:visible;display:flex;align-items:center;justify-content:center;padding:8px 0}
-            .flyer-spotlight.no-card:hover{transform:none}
-            .flyer-spotlight.no-card .countdown-wrapper{color:#fff}
-            .flyer-spotlight.no-card .countdown-details-link{color:#ffd54d}
-            /* Remove default top margin on countdown when used in featured section */
-            .featured-flyers .countdown-wrapper{margin:0 auto}
-            /* Floating ticket CTA */
-            .floating-ticket{position:fixed;top:calc(var(--nav-height,140px)+80px);left:24px;z-index:140;display:flex;align-items:center;justify-content:center;padding:14px;background:linear-gradient(135deg,#ffd54d,#ffb300);color:#281156;border-radius:50%;text-decoration:none;font-weight:800;text-transform:uppercase;letter-spacing:.08em;box-shadow:0 12px 30px rgba(0,0,0,.3);transform:translateZ(0);width:128px;height:128px;animation:ticketPulse 2.8s ease-in-out infinite;opacity:0;transition:opacity .3s ease}
-            .floating-ticket span{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:.78rem;line-height:1.15;letter-spacing:.12em}
-            .floating-ticket:hover,.floating-ticket:focus-visible{box-shadow:0 16px 36px rgba(0,0,0,.35);transform:translateY(-2px)}
-            .floating-ticket:focus-visible{outline:3px solid #fff;outline-offset:4px}
-            .floating-ticket--left{grid-column:1}
-            @keyframes ticketPulse{0%,100%{transform:translateZ(0) scale(1)}50%{transform:translateZ(0) scale(1.05)}}
-            @media(max-width:900px){
-                .floating-ticket{top:120px;left:auto;right:clamp(12px,5vw,28px);width:96px;height:96px;padding:12px}
-                .floating-ticket span{font-size:.7rem}
-                .floating-ticket-spacer{display:none}
-                .title-header{grid-template-columns:1fr;gap:16px}
-            }
-            @media(prefers-reduced-motion:reduce){.floating-ticket{animation:none}}
-            .title-header{display:grid;grid-template-columns:128px minmax(0,1fr) 128px;align-items:center;justify-items:center;gap:clamp(12px,3vw,36px);position:relative}
-            .title-header h2{grid-column:2;margin:0;text-align:center}
-            .floating-ticket-spacer{display:block;width:128px;height:1px;grid-column:3}
         </style>
     <!-- <link rel="stylesheet" href="performance-optimizations.css"> -->
     
@@ -170,61 +129,6 @@
             </nav>
         </header>
         <main id="main-content">
-            <!-- Featured section with countdown and event flyer -->
-            <section class="featured-flyers featured-flyers--home" aria-label="Men's Health Awareness Weekend 2025">
-                <div class="featured-title-row">
-                    <div class="container">
-                        <div class="title-header">
-                            <a class="floating-ticket floating-ticket--left" href="https://www.eventbrite.com/e/1852784571529?aff=oddtdtcreator" target="_blank" rel="noopener noreferrer" aria-label="Get your tickets today on Eventbrite">
-                                <span aria-hidden="true">GET YOUR<br>TICKETS<br>TODAY!</span>
-                            </a>
-                            <h2>Men's Health Awareness Weekend 2025</h2>
-                            <span class="floating-ticket-spacer" aria-hidden="true"></span>
-                        </div>
-                    </div>
-                </div>
-                <div class="container">
-                    <div class="featured-grid">
-                        <!-- Left: Countdown -->
-                        <div class="flyer-spotlight no-card" aria-label="Countdown to event">
-                                <div id="countdown-wrapper" class="countdown-wrapper" aria-label="Countdown to November 21, 2025" role="timer" data-target="2025-11-21T18:30:00-06:00">
-                                    <div id="countdown" class="countdown" aria-live="polite">
-                                        <div class="cd-unit" data-unit="days">
-                                            <span class="cd-value" id="cd-days">00</span>
-                                            <span class="cd-label">Days</span>
-                                        </div>
-                                        <div class="cd-separator">:</div>
-                                        <div class="cd-unit" data-unit="hours">
-                                            <span class="cd-value" id="cd-hours">00</span>
-                                            <span class="cd-label">Hours</span>
-                                        </div>
-                                        <div class="cd-separator">:</div>
-                                        <div class="cd-unit" data-unit="minutes">
-                                            <span class="cd-value" id="cd-minutes">00</span>
-                                            <span class="cd-label">Minutes</span>
-                                        </div>
-                                        <div class="cd-separator">:</div>
-                                        <div class="cd-unit" data-unit="seconds">
-                                            <span class="cd-value" id="cd-seconds">00</span>
-                                            <span class="cd-label">Seconds</span>
-                                        </div>
-                                    </div>
-                                    <div id="countdown-finish" class="countdown-finish" hidden>Event Started</div>
-                                    <p class="countdown-date" aria-hidden="true">November 21–22, 2025</p>
-                                    <div class="countdown-details" aria-label="Learn more about the event">
-                                        <span class="arrow arrow-left" aria-hidden="true">➤</span>
-                                        <a href="events.html" class="countdown-details-link" title="View event details">Click Here For Details</a>
-                                        <span class="arrow arrow-right" aria-hidden="true">➤</span>
-                                    </div>
-                            </div>
-                        </div>
-                        <!-- Right: Flyer 1 -->
-                        <a href="photos/1.png" class="flyer-spotlight" target="_blank" rel="noopener noreferrer" aria-label="Open Featured Event Flyer full size">
-                            <img src="photos/1.png" alt="Featured flyer for Men's Mental Health Weekend 2025" width="900" height="1200" loading="eager" decoding="async">
-                        </a>
-                    </div>
-                </div>
-            </section>
             <section id="home" class="hero-section">
                 <div class="hero-content">
                     <!-- Accessibility/SEO: noscript fallback for hero background -->
@@ -340,59 +244,6 @@
         </footer>
 
     <script src="script.min.js?v=30226e22a9" defer></script>
-    <script>
-    (function(){
-        const tickets=document.querySelectorAll('.floating-ticket');
-        if(!tickets.length)return;
-        const header=document.querySelector('header');
-        const mq=window.matchMedia('(max-width: 900px)');
-        const getNavHeight=()=>header?header.offsetHeight:120;
-        const clampLeft=value=>Math.max(16,value);
-        let rafId=null;
-        const update=()=>{
-            rafId=null;
-            const nav=getNavHeight();
-            tickets.forEach(ticket=>{
-                const titleHeader=ticket.closest('.title-header');
-                const heading=titleHeader?titleHeader.querySelector('h2'):null;
-                const container=heading?heading.closest('.container'):null;
-                if(mq.matches){
-                    ticket.style.top=`${nav+20}px`;
-                    ticket.style.left='';
-                    ticket.style.right='16px';
-                    ticket.style.opacity='1';
-                    return;
-                }
-                if(!heading||!container){
-                    ticket.style.top=`${nav+80}px`;
-                    ticket.style.left='24px';
-                    ticket.style.right='';
-                    ticket.style.opacity='1';
-                    return;
-                }
-                const ticketRect=ticket.getBoundingClientRect();
-                const headingRect=heading.getBoundingClientRect();
-                const containerRect=container.getBoundingClientRect();
-                const targetTop=headingRect.top+(headingRect.height-ticketRect.height)/2;
-                const minTop=nav+20;
-                ticket.style.top=`${Math.max(minTop,targetTop)}px`;
-                const desiredLeft=containerRect.left-ticketRect.width-18;
-                ticket.style.left=`${clampLeft(desiredLeft)}px`;
-                ticket.style.right='';
-                ticket.style.opacity='1';
-            });
-        };
-        const scheduleUpdate=()=>{
-            if(rafId!==null)return;
-            rafId=requestAnimationFrame(update);
-        };
-        scheduleUpdate();
-        window.addEventListener('load',scheduleUpdate);
-        window.addEventListener('resize',scheduleUpdate);
-        window.addEventListener('scroll',scheduleUpdate,{passive:true});
-        mq.addEventListener('change',scheduleUpdate);
-    })();
-    </script>
         
     </div>
 </body>
