@@ -1,7 +1,7 @@
 // Service Worker for Lifeprep Academy Foundation
 // Provides basic caching for improved performance
 
-const CACHE_NAME = 'lifeprep-academy-v7';
+const CACHE_NAME = 'lifeprep-academy-v8';
 const STATIC_ASSETS = [
     '/',
     '/index.html',

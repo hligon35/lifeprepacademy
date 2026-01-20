@@ -1644,6 +1644,8 @@ footer::before {
     line-height: 1.7;
     font-size: 0.95rem;
     margin-bottom: 1rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .footer-section ul {
@@ -1675,6 +1677,8 @@ footer::before {
     transition: var(--transition);
     font-weight: 500;
     position: relative;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .footer-section ul li a::after {
@@ -1711,6 +1715,8 @@ footer::before {
     font-size: 0.9rem;
     margin: 0;
     font-weight: 400;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .footer-bottom a {
@@ -1884,32 +1890,23 @@ footer::before {
 }
 
 /* Responsive Design */
-/* Medium screens - maintain layout but adjust for narrower screens */
-/* Restore original multi-column layout on larger screens */
-@media (min-width: 900px) {
+/* Use an auto-fit grid on larger screens so the footer wraps naturally */
+@media (min-width: 769px) {
     .footer-content {
         display: grid;
-        grid-template-columns: repeat(4, max-content);
-        gap: 3rem;
-        justify-content: space-between;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 2.25rem;
         align-items: start;
         text-align: left;
     }
     .footer-section {
-        width: max-content;
-        min-width: 180px;
+        width: auto;
+        min-width: 0;
         max-width: none;
         text-align: left;
     }
     .footer-section h4 { text-align: left; }
-}
-@media (max-width: 1024px) {
-    .footer-content {
-        flex-direction: column;
-        align-items: center;
-        gap: 2rem;
-    }
-    .footer-section { max-width: 480px; }
+    footer .social-links { justify-content: flex-start; }
 }
 
 @media (max-width: 768px) {
