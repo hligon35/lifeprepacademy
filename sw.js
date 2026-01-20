@@ -1,7 +1,7 @@
 // Service Worker for Lifeprep Academy Foundation
 // Provides basic caching for improved performance
 
-const CACHE_NAME = 'lifeprep-academy-v6';
+const CACHE_NAME = 'lifeprep-academy-v7';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -16,6 +16,9 @@ const STATIC_ASSETS = [
     '/eventa.avif',
     '/manifest.json',
     '/offline.html',
+    // Founder photo (keep both during rollout to avoid case-sensitivity breakage)
+    '/photos/founder.png',
+    '/photos/founder.PNG',
     // Flyers (PNG + WebP)
     '/photos/flyer2.png',
     '/photos/flyer2.webp',
@@ -29,7 +32,14 @@ self.addEventListener('install', event => {
         caches.open(CACHE_NAME)
             .then(cache => {
                 console.log('Caching static assets');
-                return cache.addAll(STATIC_ASSETS);
+                // Cache assets individually so one missing file doesn't break SW install.
+                return Promise.allSettled(
+                    STATIC_ASSETS.map(asset =>
+                        cache.add(asset).catch(error => {
+                            console.warn('Failed to cache asset:', asset, error);
+                        })
+                    )
+                );
             })
             .catch(error => {
                 console.error('Failed to cache static assets:', error);
