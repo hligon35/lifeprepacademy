@@ -1,7 +1,20 @@
 // Service Worker for Lifeprep Academy Foundation
 // Provides basic caching for improved performance
 
-const CACHE_NAME = 'lifeprep-academy-v8';
+const CACHE_NAME = 'lifeprep-academy-v14';
+const MAX_RUNTIME_ENTRIES = 120;
+const MAX_ASSET_ENTRIES = 40;
+
+async function trimCache(cacheName, maxEntries) {
+    const cache = await caches.open(cacheName);
+    const keys = await cache.keys();
+    if (keys.length <= maxEntries) return;
+    // Delete oldest entries first (Cache keys are ordered by insertion)
+    const deleteCount = keys.length - maxEntries;
+    for (let i = 0; i < deleteCount; i++) {
+        await cache.delete(keys[i]);
+    }
+}
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -15,6 +28,8 @@ const STATIC_ASSETS = [
     '/groupPhoto.avif',
     '/eventa.avif',
     '/manifest.json',
+    '/icons/icon-192.png',
+    '/icons/icon-512.png',
     '/offline.html',
     // Founder photo (keep both during rollout to avoid case-sensitivity breakage)
     '/photos/founder.png',
@@ -79,36 +94,93 @@ self.addEventListener('fetch', event => {
     }
 
     const url = new URL(event.request.url);
-    // Ignore query strings for cache matching so cache-busted URLs (e.g., ?v=hash) still hit
-    const pathnameOnly = url.pathname;
-    const cacheKey = new Request(pathnameOnly, { method: 'GET' });
+    // Prefer exact cache keys (including query string) so cache-busting works.
+    // For offline fallback, we may fall back to an ignoreSearch match.
+    const exactKey = event.request;
     // Network-first for HTML documents to avoid serving stale pages (important for widgets like Turnstile)
     if (event.request.destination === 'document') {
         event.respondWith(
             fetch(event.request)
                 .then(networkResponse => {
                     const clone = networkResponse.clone();
-                    caches.open(CACHE_NAME).then(cache => cache.put(cacheKey, clone));
+                    // Normalize documents by pathname so querystrings don't duplicate entries.
+                    const docKey = new Request(url.pathname, { method: 'GET' });
+                    caches.open(CACHE_NAME).then(cache => cache.put(docKey, clone));
                     return networkResponse;
                 })
                 .catch(() => {
                     // Fallback to cached document or offline page
-                    return caches.match(cacheKey).then(r => r || caches.match('/offline.html'));
+                    const docKey = new Request(url.pathname, { method: 'GET' });
+                    return caches.match(docKey).then(r => r || caches.match('/offline.html'));
                 })
         );
         return;
     }
 
-    // For non-HTML, use cache-first with network fallback
+    // Images: stale-while-revalidate (fast repeat views, better offline)
+    if (event.request.destination === 'image') {
+        event.respondWith((async () => {
+            const cache = await caches.open(CACHE_NAME);
+            const cached =
+                (await cache.match(exactKey)) ||
+                (await cache.match(exactKey, { ignoreSearch: true }));
+
+            const networkFetch = fetch(event.request)
+                .then(networkResponse => {
+                    if (networkResponse && networkResponse.status === 200) {
+                        cache.put(exactKey, networkResponse.clone()).then(() => {
+                            trimCache(CACHE_NAME, MAX_RUNTIME_ENTRIES);
+                        });
+                    }
+                    return networkResponse;
+                })
+                .catch(() => undefined);
+
+            if (cached) {
+                // Update in background
+                networkFetch.catch(() => undefined);
+                return cached;
+            }
+
+            const res = await networkFetch;
+            return res;
+        })());
+        return;
+    }
+
+    // CSS/JS/fonts: stale-while-revalidate (keeps them fresh without blocking)
+    if (event.request.destination === 'style' || event.request.destination === 'script' || event.request.destination === 'font') {
+        // Network-first to respect cache-busting querystrings (serve newest when online).
+        event.respondWith((async () => {
+            const cache = await caches.open(CACHE_NAME);
+            try {
+                const networkResponse = await fetch(event.request);
+                if (networkResponse && networkResponse.status === 200) {
+                    await cache.put(exactKey, networkResponse.clone());
+                    trimCache(CACHE_NAME, MAX_ASSET_ENTRIES);
+                }
+                return networkResponse;
+            } catch {
+                return (
+                    (await cache.match(exactKey)) ||
+                    (await cache.match(exactKey, { ignoreSearch: true }))
+                );
+            }
+        })());
+        return;
+    }
+
+    // For other same-origin GETs, use cache-first with network fallback
     event.respondWith(
-        caches.match(cacheKey)
+        caches.match(exactKey)
+            .then(cachedResponse => cachedResponse || caches.match(exactKey, { ignoreSearch: true }))
             .then(cachedResponse => {
                 if (cachedResponse) return cachedResponse;
                 return fetch(event.request)
                     .then(networkResponse => {
                         if (networkResponse.status === 200) {
                             const responseClone = networkResponse.clone();
-                            caches.open(CACHE_NAME).then(cache => cache.put(cacheKey, responseClone));
+                            caches.open(CACHE_NAME).then(cache => cache.put(exactKey, responseClone));
                         }
                         return networkResponse;
                     })

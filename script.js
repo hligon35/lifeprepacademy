@@ -27,6 +27,10 @@ document.addEventListener('DOMContentLoaded', function() {
     initLazyLoading();
     initAnalytics();
     highlightCurrentPage();
+    initAutoCopyrightYear();
+    initImageFallbacks();
+    initContactFormNetworkHandler();
+    initOfflineReload();
 
     // Force initial position to top ONLY if user didn't load with a hash anchor
     requestAnimationFrame(() => {
@@ -41,6 +45,319 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+function initAutoCopyrightYear() {
+    const targets = document.querySelectorAll('[data-auto-year]');
+    if (!targets.length) return;
+
+    const year = String(new Date().getFullYear());
+    targets.forEach(el => {
+        el.textContent = year;
+    });
+}
+
+function initImageFallbacks() {
+    const imgs = document.querySelectorAll('img[data-fallback-src]');
+    if (!imgs.length) return;
+
+    imgs.forEach(img => {
+        const fallback = img.getAttribute('data-fallback-src');
+        if (!fallback) return;
+
+        img.addEventListener('error', function onErr() {
+            if (img.dataset.fallbackApplied === 'true') return;
+            img.dataset.fallbackApplied = 'true';
+            img.src = fallback;
+        }, { once: true });
+    });
+}
+
+function initOfflineReload() {
+    const btn = document.getElementById('offlineReloadButton');
+    if (!btn) return;
+    btn.addEventListener('click', () => location.reload());
+}
+
+// Contact form network handler (moved from inline script for CSP readiness)
+function initContactFormNetworkHandler() {
+    const form = document.getElementById('contactForm');
+    if (!form) return;
+    if (form.dataset.netHandlerInit === 'true') return;
+    form.dataset.netHandlerInit = 'true';
+
+    const statusDiv = document.getElementById('contact-form-status');
+    const submitBtn = document.getElementById('contactSubmitBtn');
+    const FETCH_URL = form.getAttribute('action');
+    const captchaContainer = document.getElementById('captchaContainer');
+
+    // Config: tune protections here
+    const MIN_DWELL_MS = 5000;                 // Require at least 5s on page before submit
+    const MIN_INTERVAL_MS = 2 * 60 * 1000;     // At least 2 minutes between submissions (per browser)
+    const PER_EMAIL_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12h cooldown per email (client-side)
+    const MAX_TYPED_THRESHOLD = 12;            // Require user to actually type >= 12 chars across fields
+    const REQUIRE_CAPTCHA = true;              // Enabled: require Turnstile on client to match server
+    const EMAIL_BLOCKLIST = [                  // Optional quick blocklist
+        // 'bad@example.com', '@spamdomain.com'
+    ];
+
+    let busy = false;
+    const pageStart = Date.now();
+
+    // Persistent client id for coarse rate-limiting in backend logs
+    const clientId = (() => {
+        try {
+            const k = 'contactClientId';
+            const existing = localStorage.getItem(k);
+            if (existing) return existing;
+            const id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+            localStorage.setItem(k, id);
+            return id;
+        } catch {
+            return 'na';
+        }
+    })();
+
+    // Track typed characters to filter raw bot posts
+    let typedChars = 0;
+    const fieldsToWatch = ['name', 'email', 'message'];
+    const lastVal = {};
+    fieldsToWatch.forEach(id => {
+        const el = form.querySelector('#' + id);
+        if (!el) return;
+        lastVal[id] = '';
+        el.addEventListener('input', () => {
+            const prev = lastVal[id] || '';
+            const cur = el.value || '';
+            const delta = Math.max(0, cur.length - prev.length);
+            typedChars += delta;
+            lastVal[id] = cur;
+        });
+    });
+
+    function track(action, category, label) {
+        if (typeof trackEvent === 'function') trackEvent(action, category, label);
+    }
+
+    function setStatus(msg, isError = false) {
+        if (!statusDiv) return;
+        statusDiv.textContent = msg;
+        statusDiv.classList.remove('visually-hidden');
+        statusDiv.classList.toggle('error', isError);
+    }
+
+    function toggle(disabled) {
+        if (!submitBtn) return;
+        submitBtn.disabled = disabled;
+        submitBtn.style.opacity = disabled ? '0.6' : '1';
+    }
+
+    function emailBlocked(email) {
+        if (!email) return false;
+        const e = email.toLowerCase().trim();
+        return EMAIL_BLOCKLIST.some(rule => {
+            const r = rule.toLowerCase();
+            return r.startsWith('@') ? e.endsWith(r) : e === r;
+        });
+    }
+
+    function simpleValidate() {
+        const requiredIds = ['name', 'email', 'subject', 'message'];
+        for (const id of requiredIds) {
+            const el = form.querySelector('#' + id);
+            if (!el || !el.value.trim()) return `Missing required field: ${id}`;
+        }
+        // Dwell-time gate
+        const dwell = Date.now() - pageStart;
+        if (dwell < MIN_DWELL_MS) return 'Please take a few seconds to complete the form before submitting.';
+        // Require some human typing
+        if (typedChars < MAX_TYPED_THRESHOLD) return 'Please provide a bit more detail in your message.';
+        // Blocklisted email/domains
+        const email = form.querySelector('#email')?.value || '';
+        if (emailBlocked(email)) return 'This email address is not permitted to submit the form.';
+        return null;
+    }
+
+    function buildBody() {
+        const fd = new FormData(form);
+        if (fd.get('hp_field')) throw new Error('Spam detected');
+        fd.append('userAgent', navigator.userAgent || '');
+        fd.append('page', location.href);
+        fd.append('submittedAt', new Date().toISOString());
+        fd.append('clientId', clientId);
+        fd.append('dwellMs', String(Date.now() - pageStart));
+        fd.append('typedChars', String(typedChars));
+        // If Turnstile is present, pass its token through to backend for verification
+        try {
+            const tsToken = document.querySelector('input[name="cf-turnstile-response"]')?.value;
+            if (tsToken) fd.append('cf_turnstile_response', tsToken);
+        } catch {
+            // ignore
+        }
+        const params = new URLSearchParams();
+        for (const [k, v] of fd.entries()) params.append(k, v);
+        return params.toString();
+    }
+
+    function tooSoonGlobal() {
+        try {
+            const last = Number(localStorage.getItem('contactLastSubmitAt') || '0');
+            return Date.now() - last < MIN_INTERVAL_MS;
+        } catch {
+            return false;
+        }
+    }
+
+    function tooSoonByEmail(email) {
+        if (!email) return false;
+        try {
+            const key = 'contactLastSubmitByEmail:' + email.toLowerCase();
+            const last = Number(localStorage.getItem(key) || '0');
+            return Date.now() - last < PER_EMAIL_INTERVAL_MS;
+        } catch {
+            return false;
+        }
+    }
+
+    function recordSubmission(email) {
+        try {
+            localStorage.setItem('contactLastSubmitAt', String(Date.now()));
+            if (email) localStorage.setItem('contactLastSubmitByEmail:' + email.toLowerCase(), String(Date.now()));
+            // Store last normalized message to detect duplicates
+            const msg = (form.querySelector('#message')?.value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+            localStorage.setItem('contactLastMsg', msg);
+        } catch {
+            // ignore
+        }
+    }
+
+    function isDuplicateMessage() {
+        try {
+            const last = localStorage.getItem('contactLastMsg') || '';
+            const cur = (form.querySelector('#message')?.value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+            return last && cur && last === cur;
+        } catch {
+            return false;
+        }
+    }
+
+    async function send() {
+        const body = buildBody();
+        const start = performance.now();
+        let res, raw;
+        try {
+            res = await fetch(FETCH_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                body,
+                redirect: 'follow'
+            });
+            raw = await res.text();
+        } catch (networkErr) {
+            console.error('[ContactForm] Network error', networkErr);
+            throw new Error('Network error – please check your connection.');
+        }
+        const duration = Math.round(performance.now() - start);
+        console.log('[ContactForm] Response time:', duration + 'ms');
+        console.log('[ContactForm] Raw response (first 200 chars):', raw.slice(0, 200));
+
+        let json = null;
+        try {
+            json = JSON.parse(raw);
+        } catch (parseErr) {
+            console.warn('[ContactForm] Non-JSON response. Consider updating Apps Script to return JSON.', parseErr);
+        }
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        // Strict path
+        if (json && json.status && ['ok', 'success'].includes(String(json.status).toLowerCase())) {
+            return json.message || 'Thank you! Your message has been sent.';
+        }
+
+        // Fallback: heuristics if server returns plain text that looks successful
+        const lowered = raw.toLowerCase();
+        if (!json && (lowered.includes('thank you') || lowered.includes('success'))) {
+            console.warn('[ContactForm] Using fallback success detection. Please standardize server to return JSON {"status":"success"}.');
+            return raw.slice(0, 140) || 'Thank you! Your message has been sent.';
+        }
+
+        throw new Error(json && json.message ? json.message : `Unexpected response (no success token): ${raw.slice(0, 140)}`);
+    }
+
+    // Show captcha widget if configured
+    try {
+        const key = captchaContainer?.getAttribute('data-sitekey') || '';
+        if (key && !key.startsWith('0x000000')) captchaContainer.style.display = 'block';
+    } catch {
+        // ignore
+    }
+
+    form.addEventListener('submit', async e => {
+        e.preventDefault();
+        if (busy) return;
+
+        busy = true;
+        toggle(true);
+        setStatus('Sending...');
+        track('form_submit_attempt', 'contact_form', 'start');
+
+        const validationError = simpleValidate();
+        if (validationError) {
+            setStatus(validationError, true);
+            track('form_submit', 'contact_form', 'validation_error');
+            busy = false;
+            toggle(false);
+            return;
+        }
+
+        // Client rate-limits
+        const email = form.querySelector('#email')?.value || '';
+        if (tooSoonGlobal()) {
+            setStatus('Please wait a couple of minutes before sending another message.', true);
+            busy = false;
+            toggle(false);
+            return;
+        }
+        if (tooSoonByEmail(email)) {
+            setStatus('You recently sent a message. Please try again later.', true);
+            busy = false;
+            toggle(false);
+            return;
+        }
+        if (isDuplicateMessage()) {
+            setStatus('This message appears to be a duplicate. Please modify it before sending.', true);
+            busy = false;
+            toggle(false);
+            return;
+        }
+
+        // Optional CAPTCHA gate
+        if (REQUIRE_CAPTCHA) {
+            const tsToken = document.querySelector('input[name="cf-turnstile-response"]')?.value;
+            if (!tsToken) {
+                setStatus('Please complete the verification before sending.', true);
+                busy = false;
+                toggle(false);
+                return;
+            }
+        }
+
+        try {
+            const msg = await send();
+            setStatus(msg, false);
+            form.reset();
+            recordSubmission(email);
+            track('form_submit', 'contact_form', 'success');
+        } catch (err) {
+            console.error('[ContactForm]', err);
+            setStatus(err.message || 'Submission failed.', true);
+            track('form_submit', 'contact_form', 'failure');
+        } finally {
+            busy = false;
+            toggle(false);
+        }
+    });
+}
 
 // Highlight current page in multi-page nav
 function highlightCurrentPage() {
@@ -240,12 +557,17 @@ function showError(field, message) {
     const errorDiv = document.createElement('div');
     errorDiv.className = 'error-message';
     errorDiv.textContent = message;
+    const errorId = (field.id ? `${field.id}-error` : `field-error-${Date.now()}`);
+    errorDiv.id = errorId;
+    errorDiv.setAttribute('role', 'alert');
     errorDiv.style.color = '#dc3545';
     errorDiv.style.fontSize = '0.875rem';
     errorDiv.style.marginTop = '0.25rem';
     
     field.parentNode.appendChild(errorDiv);
     field.style.borderColor = '#dc3545';
+    field.setAttribute('aria-invalid', 'true');
+    addAriaDescribedBy(field, errorId);
     // Announce error to screen readers
     const status = document.getElementById('contact-form-status');
     if (status) {
@@ -256,14 +578,40 @@ function showError(field, message) {
 function clearFieldError(field) {
     const existingError = field.parentNode.querySelector('.error-message');
     if (existingError) {
+        if (existingError.id) removeAriaDescribedBy(field, existingError.id);
         existingError.remove();
     }
     field.style.borderColor = '';
+    field.removeAttribute('aria-invalid');
 }
 
 function clearErrorMessages() {
     document.querySelectorAll('.error-message').forEach(error => error.remove());
     document.querySelectorAll('.success-message').forEach(success => success.remove());
+
+    // Clear any lingering aria-invalid/aria-describedby error references
+    document.querySelectorAll('.contact-form [aria-invalid="true"]').forEach(el => {
+        el.removeAttribute('aria-invalid');
+    });
+    document.querySelectorAll('.contact-form [aria-describedby]').forEach(el => {
+        const cur = (el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+        const next = cur.filter(t => !t.endsWith('-error'));
+        if (next.length) el.setAttribute('aria-describedby', next.join(' '));
+        else el.removeAttribute('aria-describedby');
+    });
+}
+
+function addAriaDescribedBy(el, id) {
+    const cur = (el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+    if (!cur.includes(id)) cur.push(id);
+    el.setAttribute('aria-describedby', cur.join(' '));
+}
+
+function removeAriaDescribedBy(el, id) {
+    const cur = (el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+    const next = cur.filter(t => t !== id);
+    if (next.length) el.setAttribute('aria-describedby', next.join(' '));
+    else el.removeAttribute('aria-describedby');
 }
 
 function showSuccessMessage(message) {

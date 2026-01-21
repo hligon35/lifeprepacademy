@@ -19,10 +19,26 @@
     --transition: all 0.3s ease;
     --border-radius: 8px;
     --max-width: 1800px;
+    --nav-height: 140px;
 }
 
 html {
     scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 /* Skip link (keyboard accessibility) */
 .skip-link {
@@ -49,6 +65,39 @@ body {
     color: var(--text-dark);
     background-color: var(--background-light);
     overflow-x: hidden;
+}
+
+/* Offline page (avoid inline <style> for CSP readiness) */
+body.offline-page {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    background: var(--background-light);
+}
+
+body.offline-page .card {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+    max-width: 520px;
+    text-align: center;
+}
+
+body.offline-page h1 {
+    margin-bottom: 0.5rem;
+}
+
+body.offline-page p {
+    margin: 0.5rem 0;
+}
+
+body.offline-page .actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
 /* Typography */
@@ -1235,6 +1284,12 @@ footer .social-links {
     padding: 2rem;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
+}
+
+/* Contact: Turnstile container (avoid inline styles for CSP readiness) */
+#captchaContainer {
+    margin: 0 0 1rem;
+    display: none;
 }
 
 /* Sponsor/Vendor buttons styled to take up same space as old form */

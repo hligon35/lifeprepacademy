@@ -19,18 +19,13 @@ const SKIP_FILES = new Set([
   'status.html'
 ]);
 
-function listHtmlFiles(dir) {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  const files = [];
-  for (const e of entries) {
-    const full = path.join(dir, e.name);
-    if (e.isDirectory()) {
-      files.push(...listHtmlFiles(full));
-    } else if (e.isFile() && e.name.toLowerCase().endsWith('.html')) {
-      files.push(full);
-    }
-  }
-  return files;
+function listRootHtmlFiles() {
+  // Only operate on site HTML pages in the repo root.
+  // This prevents accidentally minifying HTML inside node_modules or other folders.
+  return fs
+    .readdirSync(ROOT, { withFileTypes: true })
+    .filter((e) => e.isFile() && e.name.toLowerCase().endsWith('.html'))
+    .map((e) => path.join(ROOT, e.name));
 }
 
 function minifyHtml(html) {
@@ -47,7 +42,7 @@ function minifyHtml(html) {
 }
 
 function run() {
-  const allHtml = listHtmlFiles(ROOT);
+  const allHtml = listRootHtmlFiles();
   let count = 0;
   for (const file of allHtml) {
     const base = path.basename(file);
