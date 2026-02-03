@@ -23,7 +23,13 @@ async function minifyJS() {
     const jsPath = path.join(__dirname, 'script.js');
     const outPath = path.join(__dirname, 'script.min.js');
     const code = fs.readFileSync(jsPath, 'utf8');
-    const result = await terser.minify(code, { compress: true, mangle: true });
+    const result = await terser.minify(code, {
+      compress: {
+        passes: 2,
+        drop_console: true
+      },
+      mangle: true
+    });
     if (result.error) throw result.error;
     fs.writeFileSync(outPath, result.code, 'utf8');
     console.log('✔ JS minified -> script.min.js');

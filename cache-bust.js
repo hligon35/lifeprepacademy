@@ -23,6 +23,26 @@ function bustInFile(htmlPath, cssHash, jsHash) {
   html = html.replace(cssPattern, `$1?v=${cssHash}`);
   html = html.replace(jsPattern, `$1?v=${jsHash}`);
 
+  // Normalize favicon + apple-touch icon links
+  const faviconBlock =
+    '<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">' +
+    '<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">' +
+    '<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">';
+
+  // Remove existing icon tags (we'll inject a consistent block)
+  html = html
+    .replace(/<link\s+rel="apple-touch-icon"[^>]*>/gi, '')
+    .replace(/<link\s+rel="icon"[^>]*>/gi, '');
+
+  // If we don't already have our favicon assets referenced, inject them.
+  if (!/icons\/favicon-32\.png|icons\/apple-touch-icon\.png/i.test(html)) {
+    if (/<link\s+rel="canonical"/i.test(html)) {
+      html = html.replace(/(<link\s+rel="canonical"[^>]*>)/i, `${faviconBlock}$1`);
+    } else if (/<\/head>/i.test(html)) {
+      html = html.replace(/<\/head>/i, `${faviconBlock}</head>`);
+    }
+  }
+
   if (html !== before) {
     fs.writeFileSync(htmlPath, html, 'utf8');
     console.log(`✔ Cache-busted: ${path.basename(htmlPath)}`);

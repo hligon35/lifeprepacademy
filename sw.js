@@ -1,7 +1,7 @@
 // Service Worker for Lifeprep Academy Foundation
 // Provides basic caching for improved performance
 
-const CACHE_NAME = 'lifeprep-academy-v14';
+const CACHE_NAME = 'lifeprep-academy-v16';
 const MAX_RUNTIME_ENTRIES = 120;
 const MAX_ASSET_ENTRIES = 40;
 
@@ -22,12 +22,17 @@ const STATIC_ASSETS = [
     '/programs.html',
     '/events.html',
     '/contact.html',
+    '/privacy.html',
+    '/terms.html',
     '/style.min.css',
     '/script.min.js',
     '/logo.png',
     '/groupPhoto.avif',
     '/eventa.avif',
     '/manifest.json',
+    '/icons/favicon-16.png',
+    '/icons/favicon-32.png',
+    '/icons/apple-touch-icon.png',
     '/icons/icon-192.png',
     '/icons/icon-512.png',
     '/offline.html',

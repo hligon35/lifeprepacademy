@@ -19,6 +19,12 @@ async function run() {
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
   const targets = [
+    // Favicons
+    { size: 16, file: 'favicon-16.png' },
+    { size: 32, file: 'favicon-32.png' },
+    // Apple Touch Icon
+    { size: 180, file: 'apple-touch-icon.png' },
+    // PWA icons
     { size: 192, file: 'icon-192.png' },
     { size: 512, file: 'icon-512.png' }
   ];
