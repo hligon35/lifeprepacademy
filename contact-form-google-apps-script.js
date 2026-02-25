@@ -70,7 +70,7 @@ var TURNSTILE_SECRET_PROP = 'TURNSTILE_SECRET';
 // Debug logging for CAPTCHA verification (set true temporarily if you need to inspect Cloudflare responses in Logs)
 var DEBUG_CAPTCHA = false;
 // Bump this when you paste/redeploy so you can verify you're hitting the latest deployment.
-var SCRIPT_VERSION = '2026-02-25_sendgrid_hashkeys';
+var SCRIPT_VERSION = '2026-02-25_form_scoped_cooldowns';
 
 // SendGrid (primary email delivery) configuration.
 // Store your key in Apps Script: Project Settings -> Script properties.
@@ -116,6 +116,7 @@ function doPost(e) {
     var message = sanitize_(params.message, true);
     var userAgent = sanitize_(params.userAgent);
     var pageUrl = sanitize_(params.page);
+    var formType = detectFormType_(params, pageUrl);
     var submittedAt = sanitize_(params.submittedAt);
     var dwellMs = Number(params.dwellMs || 0);
     var typedChars = Number(params.typedChars || 0);
@@ -150,14 +151,16 @@ function doPost(e) {
       return jsonResponse_({ status: 'error', message: 'Submission blocked.' }, 403);
     }
 
-    // Check persistent cooldowns and duplicates before any side-effects
-    if (tooSoonByEmail_(email, EMAIL_WINDOW_MS) || tooSoonByClient_(clientId, CLIENT_WINDOW_MS)) {
-      return jsonResponse_({ status: 'error', message: 'Please wait a moment before submitting again.' }, 429);
-    }
-    if (isDuplicateMessage_(email, message)) {
+    // Check duplicates first: prevents double-clicks from showing a cooldown error.
+    if (isDuplicateMessage_(email, message, formType)) {
       // Silently accept but do not re-send email/log to avoid floods
-      recordSubmission_(email, clientId, message);
+      recordSubmission_(email, clientId, message, formType);
       return jsonResponse_({ status: 'success', message: 'Submission received.' });
+    }
+
+    // Then enforce cooldowns (per email + per client)
+    if (tooSoonByEmail_(email, EMAIL_WINDOW_MS, formType) || tooSoonByClient_(clientId, CLIENT_WINDOW_MS)) {
+      return jsonResponse_({ status: 'error', message: 'Please wait a moment before submitting again.' }, 429);
     }
 
     // Optional CAPTCHA verification
@@ -177,26 +180,28 @@ function doPost(e) {
       primary = ALIAS_ADDRESS;
     }
 
-    var formType = detectFormType_(params, pageUrl);
     var sender = getSenderIdentity_(formType);
     var confirmationBcc = getConfirmationBcc_(formType);
     var emailSubject = (formType === 'youth' ? 'Youth Programs Form' : 'Contact Form') + ': ' + subjectField;
     var plainBody = buildPlainBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
     var htmlBody = buildHtmlBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
 
-    // Attach a full submission export (TXT + PDF)
-    var ts = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd_HH-mm-ss');
-    var exportTxt = buildExportText_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
-    var txtBlob = Utilities.newBlob(exportTxt, MimeType.PLAIN_TEXT, 'submission_' + ts + '.txt');
-    var exportHtml = buildExportHtml_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
-    var pdfBlob;
-    try {
-      pdfBlob = HtmlService.createHtmlOutput(exportHtml).getBlob().getAs(MimeType.PDF).setName('submission_' + ts + '.pdf');
-    } catch (pdfErr) {
-      // If PDF conversion fails, still send TXT.
-      pdfBlob = null;
+    // Youth Programs only: attach a full submission export (TXT + PDF)
+    var attachments = null;
+    if (formType === 'youth') {
+      var ts = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd_HH-mm-ss');
+      var exportTxt = buildExportText_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
+      var txtBlob = Utilities.newBlob(exportTxt, MimeType.PLAIN_TEXT, 'submission_' + ts + '.txt');
+      var exportHtml = buildExportHtml_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
+      var pdfBlob;
+      try {
+        pdfBlob = HtmlService.createHtmlOutput(exportHtml).getBlob().getAs(MimeType.PDF).setName('submission_' + ts + '.pdf');
+      } catch (pdfErr) {
+        // If PDF conversion fails, still send TXT.
+        pdfBlob = null;
+      }
+      attachments = pdfBlob ? [txtBlob, pdfBlob] : [txtBlob];
     }
-    var attachments = pdfBlob ? [txtBlob, pdfBlob] : [txtBlob];
 
     // Send email to primary to ensure INBOX delivery; BCC alias for record (avoid Gmail self-send suppression)
     // Try to send "From" the ALIAS_ADDRESS if it is configured as a Gmail alias on the sending account.
@@ -251,7 +256,7 @@ function doPost(e) {
     }
 
     // Persistent cooldowns + duplicate guard
-    recordSubmission_(email, clientId, message);
+    recordSubmission_(email, clientId, message, formType);
 
     return jsonResponse_({ status: 'success', message: 'Submission received.', sheetRow: sheetRow, version: SCRIPT_VERSION });
   } catch (err) {
@@ -360,23 +365,44 @@ function isValidEmail_(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function buildPlainBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields) {
+function buildFinePrintText_(pageUrl, userAgent, submittedAt, ip) {
   var lines = [];
-  lines.push('--- Contact Submission ---');
+  lines.push('---');
   lines.push('Script Version: ' + SCRIPT_VERSION);
-  lines.push('Name: ' + name);
-  lines.push('Email: ' + email);
-  lines.push('Subject: ' + subjectField);
   if (pageUrl) lines.push('Page: ' + pageUrl);
   if (submittedAt) lines.push('Client Submitted At: ' + submittedAt);
   if (ip) lines.push('IP: ' + ip);
   if (userAgent) lines.push('User-Agent: ' + userAgent);
+  return lines.join('\n');
+}
+
+function buildFinePrintHtml_(pageUrl, userAgent, submittedAt, ip) {
+  var parts = [];
+  parts.push('<hr style="margin:20px 0;border:none;border-top:1px solid #eee">');
+  parts.push('<div style="font-size:11px;line-height:1.4;color:#777">');
+  parts.push('<div><strong>Script Version:</strong> ' + escapeHtml_(SCRIPT_VERSION) + '</div>');
+  if (pageUrl) parts.push('<div><strong>Page:</strong> ' + escapeHtml_(pageUrl) + '</div>');
+  if (submittedAt) parts.push('<div><strong>Client Submitted At:</strong> ' + escapeHtml_(submittedAt) + '</div>');
+  if (ip) parts.push('<div><strong>IP:</strong> ' + escapeHtml_(ip) + '</div>');
+  if (userAgent) parts.push('<div><strong>User-Agent:</strong> ' + escapeHtml_(userAgent) + '</div>');
+  parts.push('</div>');
+  return parts.join('');
+}
+
+function buildPlainBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields) {
+  var lines = [];
+  lines.push('--- Contact Submission ---');
+  lines.push('Name: ' + name);
+  lines.push('Email: ' + email);
+  lines.push('Subject: ' + subjectField);
   lines.push('');
   lines.push('Message:');
   lines.push(message);
   lines.push('');
   lines.push('All Fields:');
   lines = lines.concat(formatAllFieldsPlain_(allFields));
+  lines.push('');
+  lines.push(buildFinePrintText_(pageUrl, userAgent, submittedAt, ip));
   lines.push('---------------------------');
   return lines.join('\n');
 }
@@ -385,21 +411,16 @@ function buildHtmlBody_(name, email, subjectField, message, pageUrl, userAgent, 
   var headerStyle = 'margin:0 0 12px;color:#281156';
   return '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#222">'
     + '<h2 style="' + headerStyle + '">New Website Contact Submission</h2>'
-    + '<p style="margin:0 0 12px;color:#555"><strong>Script Version:</strong> ' + escapeHtml_(SCRIPT_VERSION) + '</p>'
     + '<p><strong>Name:</strong> ' + escapeHtml_(name) + '<br>'
     + '<strong>Email:</strong> ' + escapeHtml_(email) + '<br>'
     + '<strong>Subject:</strong> ' + escapeHtml_(subjectField) + '<br>'
-    + (pageUrl ? '<strong>Page:</strong> ' + escapeHtml_(pageUrl) + '<br>' : '')
-    + (submittedAt ? '<strong>Client Submitted At:</strong> ' + escapeHtml_(submittedAt) + '<br>' : '')
-    + (ip ? '<strong>IP:</strong> ' + escapeHtml_(ip) + '<br>' : '')
-    + (userAgent ? '<strong>User-Agent:</strong> ' + escapeHtml_(userAgent) + '<br>' : '')
     + '</p>'
     + '<hr style="margin:20px 0;border:none;border-top:1px solid #ddd">'
     + '<h3 style="margin:0 0 8px;color:#281156">Message</h3>'
     + '<p style="white-space:pre-line;margin:0 0 16px">' + escapeHtml_(message) + '</p>'
     + '<h3 style="margin:0 0 8px;color:#281156">All Fields</h3>'
     + buildAllFieldsTableHtml_(allFields)
-    + '<p style="font-size:12px;color:#666;margin-top:24px">TXT and PDF exports are attached.</p>'
+    + buildFinePrintHtml_(pageUrl, userAgent, submittedAt, ip)
     + '</div>';
 }
 
@@ -502,10 +523,6 @@ function buildExportText_(name, email, subjectField, message, pageUrl, userAgent
   lines.push('Name: ' + name);
   lines.push('Email: ' + email);
   lines.push('Subject: ' + subjectField);
-  if (pageUrl) lines.push('Page: ' + pageUrl);
-  if (submittedAt) lines.push('Client Submitted At: ' + submittedAt);
-  if (ip) lines.push('IP: ' + ip);
-  if (userAgent) lines.push('User-Agent: ' + userAgent);
   lines.push('');
   lines.push('Message:');
   lines.push(message);
@@ -513,6 +530,7 @@ function buildExportText_(name, email, subjectField, message, pageUrl, userAgent
   lines.push('All Fields:');
   lines = lines.concat(formatAllFieldsPlain_(allFields));
   lines.push('');
+  lines.push(buildFinePrintText_(pageUrl, userAgent, submittedAt, ip));
   return lines.join('\n');
 }
 
@@ -522,10 +540,6 @@ function buildExportHtml_(name, email, subjectField, message, pageUrl, userAgent
     + '<strong>Name:</strong> ' + escapeHtml_(name) + '<br>'
     + '<strong>Email:</strong> ' + escapeHtml_(email) + '<br>'
     + '<strong>Subject:</strong> ' + escapeHtml_(subjectField) + '<br>'
-    + (pageUrl ? '<strong>Page:</strong> ' + escapeHtml_(pageUrl) + '<br>' : '')
-    + (submittedAt ? '<strong>Client Submitted At:</strong> ' + escapeHtml_(submittedAt) + '<br>' : '')
-    + (ip ? '<strong>IP:</strong> ' + escapeHtml_(ip) + '<br>' : '')
-    + (userAgent ? '<strong>User-Agent:</strong> ' + escapeHtml_(userAgent) + '<br>' : '')
     + '</p>';
   return '<!doctype html><html><head><meta charset="utf-8"><title>Form Submission</title></head>'
     + '<body style="font-family:Arial,sans-serif;color:#222;font-size:13px;line-height:1.5">'
@@ -535,6 +549,7 @@ function buildExportHtml_(name, email, subjectField, message, pageUrl, userAgent
     + '<div style="white-space:pre-line;border:1px solid #ddd;padding:10px;border-radius:6px">' + escapeHtml_(message) + '</div>'
     + '<h2 style="margin:14px 0 6px;color:#281156;font-size:16px">All Fields</h2>'
     + buildAllFieldsTableHtml_(allFields)
+    + buildFinePrintHtml_(pageUrl, userAgent, submittedAt, ip)
     + '</body></html>';
 }
 
@@ -577,16 +592,26 @@ function emailBlocked_(email){
   var e = String(email||'').toLowerCase();
   return EMAIL_BLOCKLIST.some(function(rule){ var r=String(rule||'').toLowerCase(); return r.startsWith('@')? e.endsWith(r): e===r; });
 }
-function tooSoonByEmail_(email, windowMs){
+function tooSoonByEmail_(email, windowMs, formType){
   if (!email) return false;
   var now=Date.now();
 
   // New (hashed) key
   var ek = emailKey_(email);
   if (ek) {
-    var keyNew='lastEmailTS:'+ek;
+    var suffix = formType ? (':' + String(formType)) : '';
+    var keyNew='lastEmailTS:'+ek+suffix;
     var lastNew=Number(props_().getProperty(keyNew)||'0');
     if (lastNew && now-lastNew<windowMs) return true;
+
+    // If formType is provided, do not fall back to legacy/untyped keys.
+    // This prevents Contact submissions from blocking Youth (and vice versa).
+    if (formType) return false;
+
+    // Backward-compatible untyped hashed key
+    var keyNewUntyped='lastEmailTS:'+ek;
+    var lastNewUntyped=Number(props_().getProperty(keyNewUntyped)||'0');
+    if (lastNewUntyped && now-lastNewUntyped<windowMs) return true;
   }
 
   // Legacy key (raw email) for backward compatibility
@@ -600,14 +625,21 @@ function tooSoonByClient_(clientId, windowMs){
   var key='lastClientTS:'+clientId, now=Date.now(), last=Number(props_().getProperty(key)||'0');
   if (last && now-last<windowMs) return true; return false;
 }
-function recordSubmission_(email, clientId, message){
+function recordSubmission_(email, clientId, message, formType){
   try{
     var now=Date.now();
     if (email) {
       var ek = emailKey_(email);
       if (ek) {
-        props_().setProperty('lastEmailTS:'+ek, String(now));
-        if (message) props_().setProperty('lastMsg:'+ek, normalizeMsg_(message));
+        var suffix = formType ? (':' + String(formType)) : '';
+        props_().setProperty('lastEmailTS:'+ek+suffix, String(now));
+        if (message) props_().setProperty('lastMsg:'+ek+suffix, normalizeMsg_(message));
+
+        // Cleanup old untyped hashed keys once we start using typed keys.
+        if (suffix) {
+          props_().deleteProperty('lastEmailTS:'+ek);
+          props_().deleteProperty('lastMsg:'+ek);
+        }
       }
 
       // Remove legacy PII keys if they exist.
@@ -617,13 +649,20 @@ function recordSubmission_(email, clientId, message){
     if (clientId && clientId!=='na') props_().setProperty('lastClientTS:'+clientId, String(now));
   }catch(e){}
 }
-function isDuplicateMessage_(email, message){
+function isDuplicateMessage_(email, message, formType){
   if (!email||!message) return false;
   var norm = normalizeMsg_(message);
   var ek = emailKey_(email);
   if (ek) {
-    var lastNew = props_().getProperty('lastMsg:'+ek) || '';
+    var suffix = formType ? (':' + String(formType)) : '';
+    var lastNew = props_().getProperty('lastMsg:'+ek+suffix) || '';
     if (lastNew && norm === lastNew) return true;
+
+    // If formType is provided, do not fall back to legacy/untyped keys.
+    if (formType) return false;
+
+    var lastNewUntyped = props_().getProperty('lastMsg:'+ek) || '';
+    if (lastNewUntyped && norm === lastNewUntyped) return true;
   }
   // Legacy fallback
   var lastOld = props_().getProperty('lastMsg:'+email) || '';

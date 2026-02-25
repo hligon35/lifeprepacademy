@@ -1359,12 +1359,12 @@ footer .social-links {
     transition: var(--transition);
 }
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
+.contact-form .form-group input:focus,
+.contact-form .form-group select:focus,
+.contact-form .form-group textarea:focus {
     outline: none;
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(249, 181, 21, 0.22);
 }
 
 .form-group textarea {
@@ -1501,8 +1501,8 @@ footer .social-links {
     max-width: 100%;
     padding: 0.5rem 0.65rem;
     text-align: center;
-    appearance: textfield;
     -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 .page-youth-programs .qty-input::-webkit-outer-spin-button,
@@ -1518,7 +1518,7 @@ footer .social-links {
     padding: 0;
     margin: 0;
     margin-top: 0.25rem;
-    accent-color: var(--accent-color);
+    accent-color: var(--secondary-color);
 }
 
 .page-youth-programs .checkbox-label span {
