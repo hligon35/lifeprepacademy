@@ -24,10 +24,11 @@ function bustInFile(htmlPath, cssHash, jsHash) {
   html = html.replace(jsPattern, `$1?v=${jsHash}`);
 
   // Normalize favicon + apple-touch icon links
-  const faviconBlock =
-    '<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">' +
-    '<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">' +
-    '<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">';
+  const faviconBlock = [
+    '<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">',
+    '<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">',
+    '<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">'
+  ].join('\n');
 
   // Remove existing icon tags (we'll inject a consistent block)
   html = html

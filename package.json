@@ -6,13 +6,16 @@
   "scripts": {
     "optimize": "node optimize-images.js",
     "serve": "http-server -p 3000",
-    "build": "node build-assets.js && node cache-bust.js && node minify-html.js"
+    "build": "node build-assets.js && node cache-bust.js",
+    "build:prod": "node build-assets.js && node cache-bust.js && node minify-html.js",
+    "format:html": "node format-html.js"
   },
   "devDependencies": {
     "sharp": "^0.32.6",
     "http-server": "^14.1.1",
     "csso": "^5.0.5",
-    "terser": "^5.31.0"
+    "terser": "^5.31.0",
+    "prettier": "^3.6.2"
   },
   "keywords": ["image-optimization", "performance", "web"],
   "author": "Lifeprep Academy Foundation",
