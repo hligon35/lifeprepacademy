@@ -27,11 +27,34 @@ var SHEET_NAME = 'ContactForm';
 var ALIAS_ADDRESS = 'info@lifeprepacademyfoundation.com';
 var PRIMARY_INBOX = 'bhall@lifeprepacademyfoundation.com'; // Set to real login (e.g. 'yourname@domain.com'). Blank -> auto detect.
 
-// Send acknowledgement email back to submitter?
-var SEND_ACK = false; // disabled to stop auto-replies to submitters
+// Submitter confirmations
+// Contact form confirmations remain disabled by default to reduce auto-reply risk.
+var SEND_ACK = false; // legacy/global (contact) acknowledgement
 var ACK_SUBJECT = 'We received your message';
-var ACK_HTML = function(name){return '<p>Hi '+escapeHtml_(name||'there')+',</p><p>Thank you for contacting Lifeprep Academy Foundation. We\'ve received your message and will respond soon.</p><p><em>This is an automated confirmation.</em></p>';};
-var ACK_TEXT = function(name){return 'Hi '+(name||'there')+'\n\nThank you for contacting Lifeprep Academy Foundation. We\'ve received your message and will respond soon.\n\n(This is an automated confirmation.)';};
+var ACK_HTML = function(name){return '<p>Hi '+escapeHtml_(name||'there')+',</p><p>Thank you for contacting LifePrep Academy Foundation. We\'ve received your message and will respond soon.</p><p><em>This is an automated confirmation.</em></p>';};
+var ACK_TEXT = function(name){return 'Hi '+(name||'there')+'\n\nThank you for contacting LifePrep Academy Foundation. We\'ve received your message and will respond soon.\n\n(This is an automated confirmation.)';};
+
+// Youth Programs: send a confirmation email + PDF copy to the submitter.
+var SEND_YOUTH_CONFIRMATION = true;
+var YOUTH_CONFIRM_SUBJECT = 'Youth Program Registration Request Received';
+var YOUTH_CONFIRM_HTML = function(name){
+  var n = escapeHtml_(name || 'there');
+  return ''
+    + '<div style="font-family:Arial,sans-serif;color:' + EMAIL_TEXT + ';line-height:1.55">'
+    + '<p>Hi ' + n + ',</p>'
+    + '<p>Thank you for your interest in LifePrep Academy Foundation Youth Programs. We\'ve received your registration request.</p>'
+    + '<p><strong>A PDF copy of your submission is attached</strong> for your records.</p>'
+    + '<p>If you have questions, reply to this email or contact us at <a href="mailto:youthdept@lifeprepacademyfoundation.com">youthdept@lifeprepacademyfoundation.com</a>.</p>'
+    + '<p style="font-size:12px;color:#666"><em>This is an automated confirmation.</em></p>'
+    + '</div>';
+};
+var YOUTH_CONFIRM_TEXT = function(name){
+  return 'Hi ' + (name || 'there') + '\n\n'
+    + 'Thank you for your interest in LifePrep Academy Foundation Youth Programs. We\'ve received your registration request.\n\n'
+    + 'A PDF copy of your submission is attached for your records.\n\n'
+    + 'Questions? Reply to this email or contact youthdept@lifeprepacademyfoundation.com\n\n'
+    + '(This is an automated confirmation.)';
+};
 
 // Basic rate limit (per IP) configuration (very lightweight / optional)
 var RATE_LIMIT_PER_MIN = 15; // max submissions per IP per rolling minute window
@@ -70,7 +93,7 @@ var TURNSTILE_SECRET_PROP = 'TURNSTILE_SECRET';
 // Debug logging for CAPTCHA verification (set true temporarily if you need to inspect Cloudflare responses in Logs)
 var DEBUG_CAPTCHA = false;
 // Bump this when you paste/redeploy so you can verify you're hitting the latest deployment.
-var SCRIPT_VERSION = '2026-02-25_email_palette_cooldowns';
+var SCRIPT_VERSION = '2026-02-25_youth_submitter_pdf_confirmation';
 
 // SendGrid (primary email delivery) configuration.
 // Store your key in Apps Script: Project Settings -> Script properties.
@@ -161,7 +184,7 @@ function doPost(e) {
     if (isDuplicateMessage_(email, message, formType)) {
       // Silently accept but do not re-send email/log to avoid floods
       recordSubmission_(email, clientId, message, formType);
-      return jsonResponse_({ status: 'success', message: 'Submission received.' });
+      return jsonResponse_({ status: 'success', message: successMessage_(formType) });
     }
 
     // Then enforce cooldowns (per email + per client)
@@ -194,6 +217,9 @@ function doPost(e) {
 
     // Youth Programs only: attach a full submission export (TXT + PDF)
     var attachments = null;
+    var youthAdminPdfBlob = null;
+    var youthAdminTxtBlob = null;
+    var youthRegistrantPdfBlob = null;
     if (formType === 'youth') {
       var ts = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd_HH-mm-ss');
       var exportTxt = buildExportText_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
@@ -206,7 +232,17 @@ function doPost(e) {
         // If PDF conversion fails, still send TXT.
         pdfBlob = null;
       }
+      youthAdminTxtBlob = txtBlob;
+      youthAdminPdfBlob = pdfBlob;
       attachments = pdfBlob ? [txtBlob, pdfBlob] : [txtBlob];
+
+      // Privacy-safe PDF for the registrant (no IP/User-Agent/page URL).
+      try {
+        var registrantHtml = buildRegistrantExportHtml_(name, email, subjectField, message, submittedAt, allFields);
+        youthRegistrantPdfBlob = HtmlService.createHtmlOutput(registrantHtml).getBlob().getAs(MimeType.PDF).setName('your_submission_' + ts + '.pdf');
+      } catch (registrantPdfErr) {
+        youthRegistrantPdfBlob = null;
+      }
     }
 
     // Send email to primary to ensure INBOX delivery; BCC alias for record (avoid Gmail self-send suppression)
@@ -225,15 +261,32 @@ function doPost(e) {
       from: sender.email // SendGrid: From email; Gmail fallback: uses alias if available
     });
 
-    // Optional acknowledgement
-    if (SEND_ACK && isValidEmail_(email)) {
+    // Youth Programs: submitter confirmation + PDF copy
+    if (formType === 'youth' && SEND_YOUTH_CONFIRMATION && isValidEmail_(email)) {
+      try {
+        sendMail_({
+          to: email,
+          subject: YOUTH_CONFIRM_SUBJECT,
+          body: YOUTH_CONFIRM_TEXT(name),
+          htmlBody: YOUTH_CONFIRM_HTML(name),
+          name: sender.name || 'LPAF Youth Programs',
+          from: sender.email,
+          attachments: youthRegistrantPdfBlob ? [youthRegistrantPdfBlob] : undefined
+        });
+      } catch (yAckErr) {
+        // Do not fail overall if youth confirmation fails
+      }
+    }
+
+    // Optional acknowledgement (legacy / contact form)
+    if (formType !== 'youth' && SEND_ACK && isValidEmail_(email)) {
       try {
         sendMail_({
           to: email,
           subject: ACK_SUBJECT,
           body: ACK_TEXT(name),
           htmlBody: ACK_HTML(name),
-          name: 'Lifeprep Academy Foundation'
+          name: 'LifePrep Academy Foundation'
         });
       } catch (ackErr) {
         // Do not fail overall if ack fails
@@ -264,10 +317,18 @@ function doPost(e) {
     // Persistent cooldowns + duplicate guard
     recordSubmission_(email, clientId, message, formType);
 
-    return jsonResponse_({ status: 'success', message: 'Submission received.', sheetRow: sheetRow, version: SCRIPT_VERSION });
+    return jsonResponse_({ status: 'success', message: successMessage_(formType), sheetRow: sheetRow, version: SCRIPT_VERSION });
   } catch (err) {
     return jsonResponse_({ status: 'error', message: err.message, version: SCRIPT_VERSION }, 500);
   }
+}
+
+function successMessage_(formType) {
+  var type = String(formType || '').trim().toLowerCase();
+  if (type === 'youth') {
+    return 'Thanks! We received your registration request. Please check your email for a PDF copy of your submission.';
+  }
+  return 'Thank you! Your message has been sent.';
 }
 
 // ---------- Helpers ----------
@@ -322,7 +383,7 @@ function getSenderIdentity_(formType) {
   if (type === 'youth') {
     emailProp = SENDGRID_FROM_EMAIL_YOUTH_PROP;
     nameProp = SENDGRID_FROM_NAME_YOUTH_PROP;
-    fallbackName = 'LPAF Youth Programs Form';
+    fallbackName = 'LPAF Youth Program Form';
   } else if (type === 'contact') {
     emailProp = SENDGRID_FROM_EMAIL_CONTACT_PROP;
     nameProp = SENDGRID_FROM_NAME_CONTACT_PROP;
@@ -414,7 +475,7 @@ function buildPlainBody_(name, email, subjectField, message, pageUrl, userAgent,
 }
 
 function buildHtmlBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields) {
-  var title = 'New Website Contact Submission';
+  var title = 'New Youth Program Submission';
   return ''
     + '<div style="background:' + EMAIL_BG + ';padding:24px 12px">'
     +   '<div style="max-width:720px;margin:0 auto;border:1px solid ' + EMAIL_GOLD + ';background:#fff">'
@@ -532,7 +593,7 @@ function buildAllFieldsTableHtml_(allFields) {
 
 function buildExportText_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields) {
   var lines = [];
-  lines.push('Lifeprep Academy Foundation - Form Submission');
+  lines.push('LifePrep Academy Foundation - Form Submission');
   lines.push('');
   lines.push('Name: ' + name);
   lines.push('Email: ' + email);
@@ -560,7 +621,7 @@ function buildExportHtml_(name, email, subjectField, message, pageUrl, userAgent
     +   '<div style="padding:18px">'
     +     '<div style="max-width:820px;margin:0 auto;border:1px solid ' + EMAIL_GOLD + ';background:#fff">'
     +       '<div style="background:' + EMAIL_PRIMARY + ';padding:14px 16px;border-bottom:4px solid ' + EMAIL_GOLD + '">'
-    +         '<div style="margin:0;font-size:18px;font-weight:700;color:' + EMAIL_GOLD + '">Lifeprep Academy Foundation - Form Submission</div>'
+    +         '<div style="margin:0;font-size:18px;font-weight:700;color:' + EMAIL_GOLD + '">LifePrep Academy Foundation - Form Submission</div>'
     +       '</div>'
     +       '<div style="padding:16px">'
     +         meta
@@ -570,6 +631,34 @@ function buildExportHtml_(name, email, subjectField, message, pageUrl, userAgent
     +         '<div style="margin:14px 0 8px;font-size:15px;font-weight:700;color:' + EMAIL_PRIMARY + '">All Fields</div>'
     +         buildAllFieldsTableHtml_(allFields)
     +         buildFinePrintHtml_(pageUrl, userAgent, submittedAt, ip)
+    +       '</div>'
+    +     '</div>'
+    +   '</div>'
+    + '</body></html>';
+}
+
+function buildRegistrantExportHtml_(name, email, subjectField, message, submittedAt, allFields) {
+  var meta = ''
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 10px">'
+    + '<tr><td style="padding:0 0 6px"><strong style="color:' + EMAIL_PRIMARY + '">Name:</strong> ' + escapeHtml_(name) + '</td></tr>'
+    + '<tr><td style="padding:0 0 6px"><strong style="color:' + EMAIL_PRIMARY + '">Email:</strong> ' + escapeHtml_(email) + '</td></tr>'
+    + '<tr><td style="padding:0 0 6px"><strong style="color:' + EMAIL_PRIMARY + '">Subject:</strong> ' + escapeHtml_(subjectField) + '</td></tr>'
+    + (submittedAt ? '<tr><td style="padding:0"><strong style="color:' + EMAIL_PRIMARY + '">Submitted At:</strong> ' + escapeHtml_(submittedAt) + '</td></tr>' : '')
+    + '</table>';
+  return '<!doctype html><html><head><meta charset="utf-8"><title>Your Submission</title></head>'
+    + '<body style="font-family:Arial,sans-serif;color:' + EMAIL_TEXT + ';font-size:13px;line-height:1.5;background:#fff;margin:0;padding:0">'
+    +   '<div style="padding:18px">'
+    +     '<div style="max-width:820px;margin:0 auto;border:1px solid ' + EMAIL_GOLD + ';background:#fff">'
+    +       '<div style="background:' + EMAIL_PRIMARY + ';padding:14px 16px;border-bottom:4px solid ' + EMAIL_GOLD + '">'
+    +         '<div style="margin:0;font-size:18px;font-weight:700;color:' + EMAIL_GOLD + '">LifePrep Academy Foundation - Your Submission</div>'
+    +       '</div>'
+    +       '<div style="padding:16px">'
+    +         meta
+    +         '<div style="height:2px;background:' + EMAIL_GOLD + ';margin:12px 0"></div>'
+    +         '<div style="margin:0 0 8px;font-size:15px;font-weight:700;color:' + EMAIL_PRIMARY + '">Message</div>'
+    +         '<div style="white-space:pre-line;border:1px solid ' + EMAIL_GOLD + ';padding:12px;border-radius:6px;background:#fff">' + escapeHtml_(message) + '</div>'
+    +         '<div style="margin:14px 0 8px;font-size:15px;font-weight:700;color:' + EMAIL_PRIMARY + '">All Fields</div>'
+    +         buildAllFieldsTableHtml_(allFields)
     +       '</div>'
     +     '</div>'
     +   '</div>'

@@ -1,4 +1,4 @@
-// Service Worker for Lifeprep Academy Foundation
+// Service Worker for LifePrep Academy Foundation
 // Provides basic caching for improved performance
 
 const CACHE_NAME = 'lifeprep-academy-v16';

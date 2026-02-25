@@ -1,4 +1,4 @@
-// Enhanced JavaScript for Lifeprep Academy Foundation Website
+// Enhanced JavaScript for LifePrep Academy Foundation Website
 // Prevent browser from restoring a scrolled position on reload
 if ('scrollRestoration' in history) {
     history.scrollRestoration = 'manual';
