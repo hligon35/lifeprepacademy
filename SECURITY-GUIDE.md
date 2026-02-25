@@ -115,3 +115,29 @@ Practical tip: after enabling Cloudflare proxying + headers, validate with a bro
 
 - Removed inline event handlers where feasible to improve CSP readiness.
 - Standardized `Referrer-Policy` and `theme-color` meta on key pages.
+
+## SendGrid API key placement (Forms)
+
+This site submits forms to a Google Apps Script Web App. The Apps Script handler can send mail via **SendGrid** (primary) and fall back to **Gmail/MailApp** if SendGrid is unavailable.
+
+To keep secrets out of this repo, store the SendGrid key in **Apps Script Script Properties**:
+
+1. Open the Apps Script project that is deployed as your Web App.
+2. Go to **Project Settings** (gear icon).
+3. Under **Script properties**, add:
+  - `SENDGRID_API_KEY` = your SendGrid API key
+  - (Optional) `SENDGRID_FROM_EMAIL` = default SendGrid-verified sender address
+  - (Optional) `SENDGRID_FROM_NAME` = default display name for outgoing emails
+
+If you want **different sender identities** for different forms, also add:
+
+- Contact form sender:
+  - `SENDGRID_FROM_EMAIL_CONTACT`
+  - `SENDGRID_FROM_NAME_CONTACT`
+- Youth Programs form sender:
+  - `SENDGRID_FROM_EMAIL_YOUTH`
+  - `SENDGRID_FROM_NAME_YOUTH`
+
+Do not hard-code API keys in `contact-form-google-apps-script.js`.
+
+Note: the form handler may also create its own Script Properties for anti-spam/cooldowns (e.g., keys starting with `lastEmailTS:`, `lastClientTS:`, `lastMsg:`). Those are internal bookkeeping entries and are safe to delete (they will be recreated as needed).

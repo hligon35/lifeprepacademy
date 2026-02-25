@@ -69,6 +69,22 @@ var REQUIRE_CAPTCHA = true; // enabled: require CAPTCHA verification on server
 var TURNSTILE_SECRET_PROP = 'TURNSTILE_SECRET';
 // Debug logging for CAPTCHA verification (set true temporarily if you need to inspect Cloudflare responses in Logs)
 var DEBUG_CAPTCHA = false;
+// Bump this when you paste/redeploy so you can verify you're hitting the latest deployment.
+var SCRIPT_VERSION = '2026-02-25_sendgrid_hashkeys';
+
+// SendGrid (primary email delivery) configuration.
+// Store your key in Apps Script: Project Settings -> Script properties.
+// Required: SENDGRID_API_KEY
+// Optional: SENDGRID_FROM_EMAIL, SENDGRID_FROM_NAME
+var SENDGRID_ENABLED = true;
+var SENDGRID_API_KEY_PROP = 'SENDGRID_API_KEY';
+var SENDGRID_FROM_EMAIL_PROP = 'SENDGRID_FROM_EMAIL';
+var SENDGRID_FROM_NAME_PROP = 'SENDGRID_FROM_NAME';
+// Optional per-form SendGrid sender settings (used when a form submits form_type)
+var SENDGRID_FROM_EMAIL_CONTACT_PROP = 'SENDGRID_FROM_EMAIL_CONTACT';
+var SENDGRID_FROM_NAME_CONTACT_PROP = 'SENDGRID_FROM_NAME_CONTACT';
+var SENDGRID_FROM_EMAIL_YOUTH_PROP = 'SENDGRID_FROM_EMAIL_YOUTH';
+var SENDGRID_FROM_NAME_YOUTH_PROP = 'SENDGRID_FROM_NAME_YOUTH';
 // ===================================================
 
 function doPost(e) {
@@ -155,7 +171,9 @@ function doPost(e) {
       primary = ALIAS_ADDRESS;
     }
 
-    var emailSubject = 'Contact Form: ' + subjectField;
+    var formType = detectFormType_(params, pageUrl);
+    var sender = getSenderIdentity_(formType);
+    var emailSubject = (formType === 'youth' ? 'Youth Programs Form' : 'Contact Form') + ': ' + subjectField;
     var plainBody = buildPlainBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
     var htmlBody = buildHtmlBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
 
@@ -184,8 +202,8 @@ function doPost(e) {
       body: plainBody,
       htmlBody: htmlBody,
       attachments: attachments,
-      name: 'LPAF Contact Form',
-      from: ALIAS_ADDRESS // Uses Gmail alias if available; otherwise falls back to default sender
+      name: sender.name,
+      from: sender.email // SendGrid: From email; Gmail fallback: uses alias if available
     });
 
     // Optional acknowledgement
@@ -227,9 +245,9 @@ function doPost(e) {
     // Persistent cooldowns + duplicate guard
     recordSubmission_(email, clientId, message);
 
-    return jsonResponse_({ status: 'success', message: 'Submission received.', sheetRow: sheetRow });
+    return jsonResponse_({ status: 'success', message: 'Submission received.', sheetRow: sheetRow, version: SCRIPT_VERSION });
   } catch (err) {
-    return jsonResponse_({ status: 'error', message: err.message }, 500);
+    return jsonResponse_({ status: 'error', message: err.message, version: SCRIPT_VERSION }, 500);
   }
 }
 
@@ -263,6 +281,42 @@ function parseParams_(e) {
   return params;
 }
 
+function detectFormType_(params, pageUrl) {
+  var raw = String((params && (params.form_type || params.formType || params.form || params.source)) || '').trim().toLowerCase();
+  if (raw) {
+    if (raw.indexOf('youth') !== -1) return 'youth';
+    if (raw.indexOf('contact') !== -1) return 'contact';
+  }
+  var url = String(pageUrl || '').toLowerCase();
+  if (url.indexOf('youth-programs') !== -1) return 'youth';
+  return 'contact';
+}
+
+function getSenderIdentity_(formType) {
+  var props = props_();
+  var type = String(formType || '').trim().toLowerCase();
+
+  var emailProp = SENDGRID_FROM_EMAIL_PROP;
+  var nameProp = SENDGRID_FROM_NAME_PROP;
+  var fallbackName = 'LPAF Contact Form';
+
+  if (type === 'youth') {
+    emailProp = SENDGRID_FROM_EMAIL_YOUTH_PROP;
+    nameProp = SENDGRID_FROM_NAME_YOUTH_PROP;
+    fallbackName = 'LPAF Youth Programs Form';
+  } else if (type === 'contact') {
+    emailProp = SENDGRID_FROM_EMAIL_CONTACT_PROP;
+    nameProp = SENDGRID_FROM_NAME_CONTACT_PROP;
+    fallbackName = 'LPAF Contact Form';
+  }
+
+  // Prefer per-form properties; fall back to defaults; fall back to ALIAS_ADDRESS for non-SendGrid mailers.
+  var email = String((props.getProperty(emailProp) || props.getProperty(SENDGRID_FROM_EMAIL_PROP) || ALIAS_ADDRESS || '')).trim();
+  var name = String((props.getProperty(nameProp) || props.getProperty(SENDGRID_FROM_NAME_PROP) || fallbackName || '')).trim();
+
+  return { email: email, name: name };
+}
+
 function sanitize_(val, allowBreaks) {
   if (!val) return '';
   var s = String(val).trim();
@@ -281,6 +335,7 @@ function isValidEmail_(email) {
 function buildPlainBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields) {
   var lines = [];
   lines.push('--- Contact Submission ---');
+  lines.push('Script Version: ' + SCRIPT_VERSION);
   lines.push('Name: ' + name);
   lines.push('Email: ' + email);
   lines.push('Subject: ' + subjectField);
@@ -302,6 +357,7 @@ function buildHtmlBody_(name, email, subjectField, message, pageUrl, userAgent, 
   var headerStyle = 'margin:0 0 12px;color:#281156';
   return '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#222">'
     + '<h2 style="' + headerStyle + '">New Website Contact Submission</h2>'
+    + '<p style="margin:0 0 12px;color:#555"><strong>Script Version:</strong> ' + escapeHtml_(SCRIPT_VERSION) + '</p>'
     + '<p><strong>Name:</strong> ' + escapeHtml_(name) + '<br>'
     + '<strong>Email:</strong> ' + escapeHtml_(email) + '<br>'
     + '<strong>Subject:</strong> ' + escapeHtml_(subjectField) + '<br>'
@@ -473,14 +529,43 @@ function rateLimitOkay_(ip) {
 
 // Additional anti-spam via ScriptProperties persistence
 function props_(){ return PropertiesService.getScriptProperties(); }
+
+// Hash emails before using them in Script Properties keys (avoid PII in property names).
+function emailKey_(email) {
+  var normalized = String(email || '').trim().toLowerCase();
+  if (!normalized) return '';
+  try {
+    var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, normalized, Utilities.Charset.UTF_8);
+    return bytes.map(function(b){
+      var v = (b < 0 ? b + 256 : b);
+      return (v < 16 ? '0' : '') + v.toString(16);
+    }).join('');
+  } catch (e) {
+    // Best-effort fallback (still avoids raw email); only used if digest is unavailable.
+    return Utilities.base64EncodeWebSafe(normalized).slice(0, 48);
+  }
+}
 function emailBlocked_(email){
   var e = String(email||'').toLowerCase();
   return EMAIL_BLOCKLIST.some(function(rule){ var r=String(rule||'').toLowerCase(); return r.startsWith('@')? e.endsWith(r): e===r; });
 }
 function tooSoonByEmail_(email, windowMs){
   if (!email) return false;
-  var key='lastEmailTS:'+email, now=Date.now(), last=Number(props_().getProperty(key)||'0');
-  if (last && now-last<windowMs) return true; return false;
+  var now=Date.now();
+
+  // New (hashed) key
+  var ek = emailKey_(email);
+  if (ek) {
+    var keyNew='lastEmailTS:'+ek;
+    var lastNew=Number(props_().getProperty(keyNew)||'0');
+    if (lastNew && now-lastNew<windowMs) return true;
+  }
+
+  // Legacy key (raw email) for backward compatibility
+  var keyOld='lastEmailTS:'+email;
+  var lastOld=Number(props_().getProperty(keyOld)||'0');
+  if (lastOld && now-lastOld<windowMs) return true;
+  return false;
 }
 function tooSoonByClient_(clientId, windowMs){
   if (!clientId || clientId==='na') return false;
@@ -490,13 +575,31 @@ function tooSoonByClient_(clientId, windowMs){
 function recordSubmission_(email, clientId, message){
   try{
     var now=Date.now();
-    if (email) props_().setProperty('lastEmailTS:'+email, String(now));
+    if (email) {
+      var ek = emailKey_(email);
+      if (ek) {
+        props_().setProperty('lastEmailTS:'+ek, String(now));
+        if (message) props_().setProperty('lastMsg:'+ek, normalizeMsg_(message));
+      }
+
+      // Remove legacy PII keys if they exist.
+      props_().deleteProperty('lastEmailTS:'+email);
+      props_().deleteProperty('lastMsg:'+email);
+    }
     if (clientId && clientId!=='na') props_().setProperty('lastClientTS:'+clientId, String(now));
-    if (email && message) props_().setProperty('lastMsg:'+email, normalizeMsg_(message));
   }catch(e){}
 }
 function isDuplicateMessage_(email, message){
-  if (!email||!message) return false; var last=props_().getProperty('lastMsg:'+email)||''; return last && normalizeMsg_(message)===last;
+  if (!email||!message) return false;
+  var norm = normalizeMsg_(message);
+  var ek = emailKey_(email);
+  if (ek) {
+    var lastNew = props_().getProperty('lastMsg:'+ek) || '';
+    if (lastNew && norm === lastNew) return true;
+  }
+  // Legacy fallback
+  var lastOld = props_().getProperty('lastMsg:'+email) || '';
+  return lastOld && norm === lastOld;
 }
 function normalizeMsg_(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,' '); }
 
@@ -577,9 +680,8 @@ function textResponse_(msg, code) {
 }
 
 /**
- * sendMail_ tries to send using GmailApp with a configured alias so that
- * recipients see "From: alias". If the alias is unavailable or sending via
- * GmailApp fails (e.g., due to restricted scopes), it falls back to MailApp.
+ * sendMail_ sends through SendGrid (primary) if configured, with automatic
+ * fallback to GmailApp/MailApp.
  *
  * opts: { to, subject, body, htmlBody?, name?, replyTo?, bcc?, from?, attachments? }
  */
@@ -593,6 +695,26 @@ function sendMail_(opts) {
   var bcc = opts.bcc;
   var from = opts.from; // desired alias address
   var attachments = opts.attachments;
+
+  // Primary: SendGrid
+  if (SENDGRID_ENABLED) {
+    try {
+      var sent = sendViaSendGrid_({
+        to: to,
+        bcc: bcc,
+        replyTo: replyTo,
+        subject: subject,
+        body: body,
+        htmlBody: htmlBody,
+        name: name,
+        from: from,
+        attachments: attachments
+      });
+      if (sent) return;
+    } catch (sgErr) {
+      // Fall through to Gmail/MailApp backup.
+    }
+  }
 
   // If possible, use GmailApp with alias.
   // Note: GmailApp respects aliases configured in Gmail settings (Send mail as).
@@ -630,6 +752,83 @@ function sendMail_(opts) {
   }
 }
 
+function sendViaSendGrid_(opts) {
+  var apiKey = String((props_().getProperty(SENDGRID_API_KEY_PROP) || '')).trim();
+  if (!apiKey) return false;
+
+  var to = parseEmailList_(opts.to);
+  if (!to.length) throw new Error('SendGrid: missing "to" address.');
+
+  var bcc = parseEmailList_(opts.bcc);
+  var replyTo = String(opts.replyTo || '').trim();
+
+  var fromEmail = String((opts.from || props_().getProperty(SENDGRID_FROM_EMAIL_PROP) || ALIAS_ADDRESS || '')).trim();
+  if (!fromEmail) throw new Error('SendGrid: missing From email. Set Script Property SENDGRID_FROM_EMAIL.');
+  var fromName = String((opts.name || props_().getProperty(SENDGRID_FROM_NAME_PROP) || 'LPAF Website') || '').trim();
+
+  var subject = String(opts.subject || 'Website Contact');
+  var textBody = String(opts.body || ' ');
+  var htmlBody = opts.htmlBody ? String(opts.htmlBody) : '';
+
+  var personalization = { to: to.map(function(e){ return { email: e }; }) };
+  if (bcc.length) personalization.bcc = bcc.map(function(e){ return { email: e }; });
+
+  var payload = {
+    personalizations: [personalization],
+    from: { email: fromEmail, name: fromName },
+    subject: subject,
+    content: []
+  };
+
+  if (replyTo && isValidEmail_(replyTo)) payload.reply_to = { email: replyTo };
+
+  // Send both plain text and HTML when available.
+  payload.content.push({ type: 'text/plain', value: textBody });
+  if (htmlBody) payload.content.push({ type: 'text/html', value: htmlBody });
+
+  // Attachments (base64)
+  if (opts.attachments && opts.attachments.length) {
+    payload.attachments = opts.attachments.map(function(blob){
+      var safeBlob = blob;
+      var filename = (safeBlob && safeBlob.getName && safeBlob.getName()) ? safeBlob.getName() : 'attachment';
+      var mimeType = (safeBlob && safeBlob.getContentType && safeBlob.getContentType()) ? safeBlob.getContentType() : 'application/octet-stream';
+      var bytes = safeBlob.getBytes ? safeBlob.getBytes() : [];
+      return {
+        content: Utilities.base64Encode(bytes),
+        filename: filename,
+        type: mimeType,
+        disposition: 'attachment'
+      };
+    });
+  }
+
+  var res = UrlFetchApp.fetch('https://api.sendgrid.com/v3/mail/send', {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true,
+    headers: {
+      Authorization: 'Bearer ' + apiKey
+    }
+  });
+
+  var code = Number(res.getResponseCode());
+  if (code >= 200 && code < 300) return true; // 202 typical
+
+  var errText = '';
+  try { errText = res.getContentText(); } catch (e) {}
+  throw new Error('SendGrid: request failed (' + code + '): ' + (errText || 'unknown error'));
+}
+
+function parseEmailList_(value) {
+  if (!value) return [];
+  var s = String(value);
+  // Accept comma/semicolon separated.
+  var parts = s.split(/[;,]/g).map(function(x){ return String(x || '').trim(); }).filter(Boolean);
+  // Keep only plausible email strings.
+  return parts.filter(function(x){ return isValidEmail_(x); });
+}
+
 // Check if a given email is configured as a Gmail alias on this account
 function isAliasConfigured_(alias) {
   try {
@@ -658,9 +857,10 @@ function admin_purgeOldCooldowns_(daysToKeep) {
     if (prefixes.some(function(p){ return k.indexOf(p) === 0; })) {
       var v = all[k];
       if (k.indexOf('lastMsg:') === 0) {
-        // Message hashes: remove if corresponding timestamp is old or missing
-        var email = k.slice('lastMsg:'.length);
-        var ts = Number(all['lastEmailTS:' + email] || '0');
+        // Message keys: remove if corresponding timestamp is old or missing.
+        // Suffix may be a legacy raw email OR a hashed identifier.
+        var ident = k.slice('lastMsg:'.length);
+        var ts = Number(all['lastEmailTS:' + ident] || '0');
         if (!ts || ts < cutoff) { sp.deleteProperty(k); removed++; }
       } else {
         // Timestamp keys: remove if old
@@ -684,6 +884,8 @@ function admin_clearSmsGatewayCooldowns_() {
   Object.keys(all).forEach(function(k){
     if (k.indexOf('lastEmailTS:') === 0 || k.indexOf('lastMsg:') === 0) {
       var email = k.replace(/^lastEmailTS:|^lastMsg:/, '');
+      // Only applies to legacy keys that embed the raw email address.
+      if (email.indexOf('@') === -1) return;
       var lower = String(email || '').toLowerCase();
       if (smsDomains.some(function(d){ return lower.endsWith(d); })) {
         sp.deleteProperty(k);
