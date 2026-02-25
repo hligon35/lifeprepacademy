@@ -85,6 +85,12 @@ var SENDGRID_FROM_EMAIL_CONTACT_PROP = 'SENDGRID_FROM_EMAIL_CONTACT';
 var SENDGRID_FROM_NAME_CONTACT_PROP = 'SENDGRID_FROM_NAME_CONTACT';
 var SENDGRID_FROM_EMAIL_YOUTH_PROP = 'SENDGRID_FROM_EMAIL_YOUTH';
 var SENDGRID_FROM_NAME_YOUTH_PROP = 'SENDGRID_FROM_NAME_YOUTH';
+
+// Optional: send a confirmation copy (BCC) of each submission
+// Can be a comma/semicolon separated list.
+var FORM_CONFIRM_TO_PROP = 'FORM_CONFIRM_TO';
+var FORM_CONFIRM_TO_CONTACT_PROP = 'FORM_CONFIRM_TO_CONTACT';
+var FORM_CONFIRM_TO_YOUTH_PROP = 'FORM_CONFIRM_TO_YOUTH';
 // ===================================================
 
 function doPost(e) {
@@ -173,6 +179,7 @@ function doPost(e) {
 
     var formType = detectFormType_(params, pageUrl);
     var sender = getSenderIdentity_(formType);
+    var confirmationBcc = getConfirmationBcc_(formType);
     var emailSubject = (formType === 'youth' ? 'Youth Programs Form' : 'Contact Form') + ': ' + subjectField;
     var plainBody = buildPlainBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
     var htmlBody = buildHtmlBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
@@ -194,9 +201,10 @@ function doPost(e) {
     // Send email to primary to ensure INBOX delivery; BCC alias for record (avoid Gmail self-send suppression)
     // Try to send "From" the ALIAS_ADDRESS if it is configured as a Gmail alias on the sending account.
     var bccAddr = primary !== ALIAS_ADDRESS ? ALIAS_ADDRESS : undefined;
+    var bccCombined = [bccAddr, confirmationBcc].filter(function(x){ return x && String(x).trim(); }).join(', ');
     sendMail_({
       to: primary,
-      bcc: bccAddr,
+      bcc: bccCombined || undefined,
       replyTo: email,
       subject: emailSubject,
       body: plainBody,
@@ -315,6 +323,26 @@ function getSenderIdentity_(formType) {
   var name = String((props.getProperty(nameProp) || props.getProperty(SENDGRID_FROM_NAME_PROP) || fallbackName || '')).trim();
 
   return { email: email, name: name };
+}
+
+function getConfirmationBcc_(formType) {
+  var props = props_();
+  var type = String(formType || '').trim().toLowerCase();
+  var value = '';
+
+  if (type === 'youth') {
+    value = props.getProperty(FORM_CONFIRM_TO_YOUTH_PROP) || '';
+  } else if (type === 'contact') {
+    value = props.getProperty(FORM_CONFIRM_TO_CONTACT_PROP) || '';
+  }
+
+  if (!String(value || '').trim()) {
+    value = props.getProperty(FORM_CONFIRM_TO_PROP) || '';
+  }
+
+  // Normalize to a comma-separated string; downstream mailers handle parsing.
+  var list = parseEmailList_(value);
+  return list.length ? list.join(', ') : '';
 }
 
 function sanitize_(val, allowBreaks) {

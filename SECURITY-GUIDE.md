@@ -138,6 +138,14 @@ If you want **different sender identities** for different forms, also add:
   - `SENDGRID_FROM_EMAIL_YOUTH`
   - `SENDGRID_FROM_NAME_YOUTH`
 
+If you want a **confirmation copy** of each submission sent to an internal address (BCC), add one of:
+
+- All forms:
+  - `FORM_CONFIRM_TO` = e.g. `hligon@getsparqd.com`
+- Per form:
+  - `FORM_CONFIRM_TO_CONTACT`
+  - `FORM_CONFIRM_TO_YOUTH`
+
 Do not hard-code API keys in `contact-form-google-apps-script.js`.
 
 Note: the form handler may also create its own Script Properties for anti-spam/cooldowns (e.g., keys starting with `lastEmailTS:`, `lastClientTS:`, `lastMsg:`). Those are internal bookkeeping entries and are safe to delete (they will be recreated as needed).
