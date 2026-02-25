@@ -36,10 +36,10 @@ var ACK_TEXT = function(name){return 'Hi '+(name||'there')+'\n\nThank you for co
 // Basic rate limit (per IP) configuration (very lightweight / optional)
 var RATE_LIMIT_PER_MIN = 15; // max submissions per IP per rolling minute window
 // Anti-spam thresholds and options
-var MIN_DWELL_MS = 8000;       // require >= 8s dwell time (server-enforced)
-var MIN_TYPED_CHARS = 24;      // require >= 24 typed characters (server-enforced)
-var EMAIL_WINDOW_MS = 12 * 60 * 60 * 1000;  // per-email cooldown (12 hours)
-var CLIENT_WINDOW_MS = 10 * 60 * 1000;      // per-client cooldown (10 minutes)
+var MIN_DWELL_MS = 3000;       // require >= 3s dwell time (server-enforced)
+var MIN_TYPED_CHARS = 12;      // require >= 12 typed characters (server-enforced)
+var EMAIL_WINDOW_MS = 2 * 60 * 1000;        // per-email cooldown (2 minutes)
+var CLIENT_WINDOW_MS = 30 * 1000;           // per-client cooldown (30 seconds)
 var EMAIL_BLOCKLIST = [
   // Carrier SMS/MMS gateways (rarely valid for contact forms; heavily abused by bots)
   '@vtext.com',            // Verizon SMS
@@ -70,7 +70,7 @@ var TURNSTILE_SECRET_PROP = 'TURNSTILE_SECRET';
 // Debug logging for CAPTCHA verification (set true temporarily if you need to inspect Cloudflare responses in Logs)
 var DEBUG_CAPTCHA = false;
 // Bump this when you paste/redeploy so you can verify you're hitting the latest deployment.
-var SCRIPT_VERSION = '2026-02-25_email_palette';
+var SCRIPT_VERSION = '2026-02-25_email_palette_cooldowns';
 
 // SendGrid (primary email delivery) configuration.
 // Store your key in Apps Script: Project Settings -> Script properties.

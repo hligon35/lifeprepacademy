@@ -90,10 +90,10 @@ function initContactFormNetworkHandler() {
     const FETCH_URL = form.getAttribute('action');
     const captchaContainer = document.getElementById('captchaContainer');
 
-    // Config: tune protections here
-    const MIN_DWELL_MS = 5000;                 // Require at least 5s on page before submit
-    const MIN_INTERVAL_MS = 2 * 60 * 1000;     // At least 2 minutes between submissions (per browser)
-    const PER_EMAIL_INTERVAL_MS = 12 * 60 * 60 * 1000; // 12h cooldown per email (client-side)
+    // Config: client-side protections (UX only; server enforces real security)
+    const MIN_DWELL_MS = 3000;                 // Require at least 3s on page before submit
+    const MIN_INTERVAL_MS = 30 * 1000;         // 30s between submissions (per browser)
+    const PER_EMAIL_INTERVAL_MS = 2 * 60 * 1000; // 2m cooldown per email (client-side)
     const MAX_TYPED_THRESHOLD = 12;            // Require user to actually type >= 12 chars across fields
     const REQUIRE_CAPTCHA = true;              // Enabled: require Turnstile on client to match server
     const EMAIL_BLOCKLIST = [                  // Optional quick blocklist
@@ -103,6 +103,16 @@ function initContactFormNetworkHandler() {
     let busy = false;
     const pageStart = Date.now();
     let statusHideTimer = null;
+
+    const formType = (() => {
+        try {
+            const v = form.querySelector('input[name="form_type"]')?.value || '';
+            const norm = String(v).trim().toLowerCase();
+            return norm || 'contact';
+        } catch {
+            return 'contact';
+        }
+    })();
 
     // Persistent client id for coarse rate-limiting in backend logs
     const clientId = (() => {
@@ -220,7 +230,7 @@ function initContactFormNetworkHandler() {
 
     function tooSoonGlobal() {
         try {
-            const last = Number(localStorage.getItem('contactLastSubmitAt') || '0');
+            const last = Number(localStorage.getItem('contactLastSubmitAt:' + formType) || '0');
             return Date.now() - last < MIN_INTERVAL_MS;
         } catch {
             return false;
@@ -230,7 +240,7 @@ function initContactFormNetworkHandler() {
     function tooSoonByEmail(email) {
         if (!email) return false;
         try {
-            const key = 'contactLastSubmitByEmail:' + email.toLowerCase();
+            const key = 'contactLastSubmitByEmail:' + formType + ':' + email.toLowerCase();
             const last = Number(localStorage.getItem(key) || '0');
             return Date.now() - last < PER_EMAIL_INTERVAL_MS;
         } catch {
@@ -240,11 +250,11 @@ function initContactFormNetworkHandler() {
 
     function recordSubmission(email) {
         try {
-            localStorage.setItem('contactLastSubmitAt', String(Date.now()));
-            if (email) localStorage.setItem('contactLastSubmitByEmail:' + email.toLowerCase(), String(Date.now()));
+            localStorage.setItem('contactLastSubmitAt:' + formType, String(Date.now()));
+            if (email) localStorage.setItem('contactLastSubmitByEmail:' + formType + ':' + email.toLowerCase(), String(Date.now()));
             // Store last normalized message to detect duplicates
             const msg = (form.querySelector('#message')?.value || '').trim().toLowerCase().replace(/\s+/g, ' ');
-            localStorage.setItem('contactLastMsg', msg);
+            localStorage.setItem('contactLastMsg:' + formType, msg);
         } catch {
             // ignore
         }
@@ -252,7 +262,7 @@ function initContactFormNetworkHandler() {
 
     function isDuplicateMessage() {
         try {
-            const last = localStorage.getItem('contactLastMsg') || '';
+            const last = localStorage.getItem('contactLastMsg:' + formType) || '';
             const cur = (form.querySelector('#message')?.value || '').trim().toLowerCase().replace(/\s+/g, ' ');
             return last && cur && last === cur;
         } catch {
@@ -333,7 +343,7 @@ function initContactFormNetworkHandler() {
         // Client rate-limits
         const email = form.querySelector('#email')?.value || '';
         if (tooSoonGlobal()) {
-            setStatus('Please wait a couple of minutes before sending another message.', true);
+            setStatus('Please wait a moment before sending another message.', true);
             busy = false;
             toggle(false);
             return;
