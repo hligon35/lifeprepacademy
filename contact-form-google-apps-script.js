@@ -70,7 +70,7 @@ var TURNSTILE_SECRET_PROP = 'TURNSTILE_SECRET';
 // Debug logging for CAPTCHA verification (set true temporarily if you need to inspect Cloudflare responses in Logs)
 var DEBUG_CAPTCHA = false;
 // Bump this when you paste/redeploy so you can verify you're hitting the latest deployment.
-var SCRIPT_VERSION = '2026-02-25_form_scoped_cooldowns';
+var SCRIPT_VERSION = '2026-02-25_email_palette';
 
 // SendGrid (primary email delivery) configuration.
 // Store your key in Apps Script: Project Settings -> Script properties.
@@ -91,6 +91,12 @@ var SENDGRID_FROM_NAME_YOUTH_PROP = 'SENDGRID_FROM_NAME_YOUTH';
 var FORM_CONFIRM_TO_PROP = 'FORM_CONFIRM_TO';
 var FORM_CONFIRM_TO_CONTACT_PROP = 'FORM_CONFIRM_TO_CONTACT';
 var FORM_CONFIRM_TO_YOUTH_PROP = 'FORM_CONFIRM_TO_YOUTH';
+
+// Email/PDF palette (match style.css :root)
+var EMAIL_PRIMARY = '#281156';   // --primary-color
+var EMAIL_GOLD = '#f9b515';      // --secondary-color
+var EMAIL_BG = '#f8f9fa';        // --background-light
+var EMAIL_TEXT = '#292929';      // --text-dark
 // ===================================================
 
 function doPost(e) {
@@ -378,13 +384,13 @@ function buildFinePrintText_(pageUrl, userAgent, submittedAt, ip) {
 
 function buildFinePrintHtml_(pageUrl, userAgent, submittedAt, ip) {
   var parts = [];
-  parts.push('<hr style="margin:20px 0;border:none;border-top:1px solid #eee">');
-  parts.push('<div style="font-size:11px;line-height:1.4;color:#777">');
-  parts.push('<div><strong>Script Version:</strong> ' + escapeHtml_(SCRIPT_VERSION) + '</div>');
-  if (pageUrl) parts.push('<div><strong>Page:</strong> ' + escapeHtml_(pageUrl) + '</div>');
-  if (submittedAt) parts.push('<div><strong>Client Submitted At:</strong> ' + escapeHtml_(submittedAt) + '</div>');
-  if (ip) parts.push('<div><strong>IP:</strong> ' + escapeHtml_(ip) + '</div>');
-  if (userAgent) parts.push('<div><strong>User-Agent:</strong> ' + escapeHtml_(userAgent) + '</div>');
+  parts.push('<hr style="margin:20px 0;border:none;border-top:2px solid ' + EMAIL_GOLD + '">');
+  parts.push('<div style="font-size:11px;line-height:1.4;color:#666">');
+  parts.push('<div><strong style="color:' + EMAIL_PRIMARY + '">Script Version:</strong> ' + escapeHtml_(SCRIPT_VERSION) + '</div>');
+  if (pageUrl) parts.push('<div><strong style="color:' + EMAIL_PRIMARY + '">Page:</strong> ' + escapeHtml_(pageUrl) + '</div>');
+  if (submittedAt) parts.push('<div><strong style="color:' + EMAIL_PRIMARY + '">Client Submitted At:</strong> ' + escapeHtml_(submittedAt) + '</div>');
+  if (ip) parts.push('<div><strong style="color:' + EMAIL_PRIMARY + '">IP:</strong> ' + escapeHtml_(ip) + '</div>');
+  if (userAgent) parts.push('<div><strong style="color:' + EMAIL_PRIMARY + '">User-Agent:</strong> ' + escapeHtml_(userAgent) + '</div>');
   parts.push('</div>');
   return parts.join('');
 }
@@ -408,19 +414,27 @@ function buildPlainBody_(name, email, subjectField, message, pageUrl, userAgent,
 }
 
 function buildHtmlBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields) {
-  var headerStyle = 'margin:0 0 12px;color:#281156';
-  return '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#222">'
-    + '<h2 style="' + headerStyle + '">New Website Contact Submission</h2>'
-    + '<p><strong>Name:</strong> ' + escapeHtml_(name) + '<br>'
-    + '<strong>Email:</strong> ' + escapeHtml_(email) + '<br>'
-    + '<strong>Subject:</strong> ' + escapeHtml_(subjectField) + '<br>'
-    + '</p>'
-    + '<hr style="margin:20px 0;border:none;border-top:1px solid #ddd">'
-    + '<h3 style="margin:0 0 8px;color:#281156">Message</h3>'
-    + '<p style="white-space:pre-line;margin:0 0 16px">' + escapeHtml_(message) + '</p>'
-    + '<h3 style="margin:0 0 8px;color:#281156">All Fields</h3>'
-    + buildAllFieldsTableHtml_(allFields)
-    + buildFinePrintHtml_(pageUrl, userAgent, submittedAt, ip)
+  var title = 'New Website Contact Submission';
+  return ''
+    + '<div style="background:' + EMAIL_BG + ';padding:24px 12px">'
+    +   '<div style="max-width:720px;margin:0 auto;border:1px solid ' + EMAIL_GOLD + ';background:#fff">'
+    +     '<div style="background:' + EMAIL_PRIMARY + ';padding:16px 18px;border-bottom:4px solid ' + EMAIL_GOLD + '">'
+    +       '<div style="margin:0;font-family:Arial,sans-serif;font-size:18px;line-height:1.2;font-weight:700;color:' + EMAIL_GOLD + '">' + escapeHtml_(title) + '</div>'
+    +     '</div>'
+    +     '<div style="padding:18px;font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:' + EMAIL_TEXT + '">'
+    +       '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 14px">'
+    +         '<tr><td style="padding:0 0 6px"><strong style="color:' + EMAIL_PRIMARY + '">Name:</strong> ' + escapeHtml_(name) + '</td></tr>'
+    +         '<tr><td style="padding:0 0 6px"><strong style="color:' + EMAIL_PRIMARY + '">Email:</strong> ' + escapeHtml_(email) + '</td></tr>'
+    +         '<tr><td style="padding:0 0 0"><strong style="color:' + EMAIL_PRIMARY + '">Subject:</strong> ' + escapeHtml_(subjectField) + '</td></tr>'
+    +       '</table>'
+    +       '<div style="height:2px;background:' + EMAIL_GOLD + ';margin:14px 0"></div>'
+    +       '<div style="margin:0 0 8px;font-size:15px;font-weight:700;color:' + EMAIL_PRIMARY + '">Message</div>'
+    +       '<div style="white-space:pre-line;margin:0 0 16px;border:1px solid ' + EMAIL_GOLD + ';padding:12px;border-radius:6px;background:#fff">' + escapeHtml_(message) + '</div>'
+    +       '<div style="margin:0 0 8px;font-size:15px;font-weight:700;color:' + EMAIL_PRIMARY + '">All Fields</div>'
+    +       buildAllFieldsTableHtml_(allFields)
+    +       buildFinePrintHtml_(pageUrl, userAgent, submittedAt, ip)
+    +     '</div>'
+    +   '</div>'
     + '</div>';
 }
 
@@ -507,8 +521,8 @@ function buildAllFieldsTableHtml_(allFields) {
 
   var rows = keys.map(function(k){
     return '<tr>'
-      + '<td style="padding:6px 10px;border:1px solid #ddd;background:#fafafa;white-space:nowrap"><strong>' + escapeHtml_(formatKeyLabel_(k)) + '</strong></td>'
-      + '<td style="padding:6px 10px;border:1px solid #ddd">' + escapeHtml_(String(allFields[k])) + '</td>'
+      + '<td style="padding:6px 10px;border:1px solid ' + EMAIL_GOLD + ';white-space:nowrap"><strong style="color:' + EMAIL_PRIMARY + '">' + escapeHtml_(formatKeyLabel_(k)) + '</strong></td>'
+      + '<td style="padding:6px 10px;border:1px solid ' + EMAIL_GOLD + '">' + escapeHtml_(String(allFields[k])) + '</td>'
       + '</tr>';
   }).join('');
   return '<table style="border-collapse:collapse;width:100%;font-size:13px">'
@@ -536,20 +550,29 @@ function buildExportText_(name, email, subjectField, message, pageUrl, userAgent
 
 function buildExportHtml_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields) {
   var meta = ''
-    + '<p style="margin:0 0 10px">'
-    + '<strong>Name:</strong> ' + escapeHtml_(name) + '<br>'
-    + '<strong>Email:</strong> ' + escapeHtml_(email) + '<br>'
-    + '<strong>Subject:</strong> ' + escapeHtml_(subjectField) + '<br>'
-    + '</p>';
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 10px">'
+    + '<tr><td style="padding:0 0 6px"><strong style="color:' + EMAIL_PRIMARY + '">Name:</strong> ' + escapeHtml_(name) + '</td></tr>'
+    + '<tr><td style="padding:0 0 6px"><strong style="color:' + EMAIL_PRIMARY + '">Email:</strong> ' + escapeHtml_(email) + '</td></tr>'
+    + '<tr><td style="padding:0"><strong style="color:' + EMAIL_PRIMARY + '">Subject:</strong> ' + escapeHtml_(subjectField) + '</td></tr>'
+    + '</table>';
   return '<!doctype html><html><head><meta charset="utf-8"><title>Form Submission</title></head>'
-    + '<body style="font-family:Arial,sans-serif;color:#222;font-size:13px;line-height:1.5">'
-    + '<h1 style="margin:0 0 12px;color:#281156;font-size:20px">Lifeprep Academy Foundation - Form Submission</h1>'
-    + meta
-    + '<h2 style="margin:14px 0 6px;color:#281156;font-size:16px">Message</h2>'
-    + '<div style="white-space:pre-line;border:1px solid #ddd;padding:10px;border-radius:6px">' + escapeHtml_(message) + '</div>'
-    + '<h2 style="margin:14px 0 6px;color:#281156;font-size:16px">All Fields</h2>'
-    + buildAllFieldsTableHtml_(allFields)
-    + buildFinePrintHtml_(pageUrl, userAgent, submittedAt, ip)
+    + '<body style="font-family:Arial,sans-serif;color:' + EMAIL_TEXT + ';font-size:13px;line-height:1.5;background:#fff;margin:0;padding:0">'
+    +   '<div style="padding:18px">'
+    +     '<div style="max-width:820px;margin:0 auto;border:1px solid ' + EMAIL_GOLD + ';background:#fff">'
+    +       '<div style="background:' + EMAIL_PRIMARY + ';padding:14px 16px;border-bottom:4px solid ' + EMAIL_GOLD + '">'
+    +         '<div style="margin:0;font-size:18px;font-weight:700;color:' + EMAIL_GOLD + '">Lifeprep Academy Foundation - Form Submission</div>'
+    +       '</div>'
+    +       '<div style="padding:16px">'
+    +         meta
+    +         '<div style="height:2px;background:' + EMAIL_GOLD + ';margin:12px 0"></div>'
+    +         '<div style="margin:0 0 8px;font-size:15px;font-weight:700;color:' + EMAIL_PRIMARY + '">Message</div>'
+    +         '<div style="white-space:pre-line;border:1px solid ' + EMAIL_GOLD + ';padding:12px;border-radius:6px;background:#fff">' + escapeHtml_(message) + '</div>'
+    +         '<div style="margin:14px 0 8px;font-size:15px;font-weight:700;color:' + EMAIL_PRIMARY + '">All Fields</div>'
+    +         buildAllFieldsTableHtml_(allFields)
+    +         buildFinePrintHtml_(pageUrl, userAgent, submittedAt, ip)
+    +       '</div>'
+    +     '</div>'
+    +   '</div>'
     + '</body></html>';
 }
 
