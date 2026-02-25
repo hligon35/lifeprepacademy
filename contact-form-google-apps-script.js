@@ -95,10 +95,13 @@ function doPost(e) {
     var userAgent = sanitize_(params.userAgent);
     var pageUrl = sanitize_(params.page);
     var submittedAt = sanitize_(params.submittedAt);
-  var dwellMs = Number(params.dwellMs || 0);
-  var typedChars = Number(params.typedChars || 0);
-  var clientId = String(params.clientId || 'na');
-  var tsToken = params['cf_turnstile_response'];
+    var dwellMs = Number(params.dwellMs || 0);
+    var typedChars = Number(params.typedChars || 0);
+    var clientId = String(params.clientId || 'na');
+    var tsToken = params['cf_turnstile_response'];
+
+    // Capture all submitted fields (for email + attachments + optional logging)
+    var allFields = buildAllFields_(params);
 
     if (!name || !email || !message) {
       return jsonResponse_({ status: 'error', message: 'Required fields missing.' }, 422);
@@ -153,8 +156,22 @@ function doPost(e) {
     }
 
     var emailSubject = 'Contact Form: ' + subjectField;
-    var plainBody = buildPlainBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip);
-    var htmlBody = buildHtmlBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip);
+    var plainBody = buildPlainBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
+    var htmlBody = buildHtmlBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
+
+    // Attach a full submission export (TXT + PDF)
+    var ts = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd_HH-mm-ss');
+    var exportTxt = buildExportText_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
+    var txtBlob = Utilities.newBlob(exportTxt, MimeType.PLAIN_TEXT, 'submission_' + ts + '.txt');
+    var exportHtml = buildExportHtml_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
+    var pdfBlob;
+    try {
+      pdfBlob = HtmlService.createHtmlOutput(exportHtml).getBlob().getAs(MimeType.PDF).setName('submission_' + ts + '.pdf');
+    } catch (pdfErr) {
+      // If PDF conversion fails, still send TXT.
+      pdfBlob = null;
+    }
+    var attachments = pdfBlob ? [txtBlob, pdfBlob] : [txtBlob];
 
     // Send email to primary to ensure INBOX delivery; BCC alias for record (avoid Gmail self-send suppression)
     // Try to send "From" the ALIAS_ADDRESS if it is configured as a Gmail alias on the sending account.
@@ -166,6 +183,7 @@ function doPost(e) {
       subject: emailSubject,
       body: plainBody,
       htmlBody: htmlBody,
+      attachments: attachments,
       name: 'LPAF Contact Form',
       from: ALIAS_ADDRESS // Uses Gmail alias if available; otherwise falls back to default sender
     });
@@ -198,7 +216,8 @@ function doPost(e) {
             page: pageUrl,
             userAgent: userAgent,
             submittedAt: submittedAt,
-            ip: ip
+            ip: ip,
+            extraFields: JSON.stringify(allFields)
         });
       } catch (sheetErr) {
         return jsonResponse_({ status: 'partial', message: 'Email sent but sheet logging failed: ' + sheetErr.message });
@@ -217,13 +236,27 @@ function doPost(e) {
 // ---------- Helpers ----------
 function parseParams_(e) {
   var params = {};
+  // Prefer e.parameters to preserve multi-value fields (arrays).
+  if (e.parameters && Object.keys(e.parameters).length) {
+    Object.keys(e.parameters).forEach(function(k) {
+      var v = e.parameters[k];
+      if (v === undefined || v === null) return;
+      if (Array.isArray(v)) {
+        params[k] = v.filter(function(x){ return x !== undefined && x !== null && String(x).trim() !== ''; }).map(function(x){ return String(x); }).join(', ');
+      } else {
+        params[k] = String(v);
+      }
+    });
+    return params;
+  }
   if (e.parameter && Object.keys(e.parameter).length) {
     params = e.parameter; // URL-encoded form fields
-  } else if (e.postData) {
+    return params;
+  }
+  if (e.postData) {
     if (e.postData.type === 'application/json') {
       try { params = JSON.parse(e.postData.contents) || {}; } catch (err) { throw new Error('Invalid JSON body.'); }
     } else if (e.postData.type === 'application/x-www-form-urlencoded') {
-      // Already covered by e.parameter normally
       params = e.parameter || {};
     }
   }
@@ -245,21 +278,30 @@ function isValidEmail_(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function buildPlainBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip) {
-  return '--- Contact Submission ---' +
-    '\nName: ' + name +
-    '\nEmail: ' + email +
-    '\nSubject: ' + subjectField +
-    (pageUrl ? '\nPage: ' + pageUrl : '') +
-    (submittedAt ? '\nClient Submitted At: ' + submittedAt : '') +
-    (ip ? '\nIP: ' + ip : '') +
-    (userAgent ? '\nUser-Agent: ' + userAgent : '') +
-    '\n\nMessage:\n' + message + '\n---------------------------';
+function buildPlainBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields) {
+  var lines = [];
+  lines.push('--- Contact Submission ---');
+  lines.push('Name: ' + name);
+  lines.push('Email: ' + email);
+  lines.push('Subject: ' + subjectField);
+  if (pageUrl) lines.push('Page: ' + pageUrl);
+  if (submittedAt) lines.push('Client Submitted At: ' + submittedAt);
+  if (ip) lines.push('IP: ' + ip);
+  if (userAgent) lines.push('User-Agent: ' + userAgent);
+  lines.push('');
+  lines.push('Message:');
+  lines.push(message);
+  lines.push('');
+  lines.push('All Fields:');
+  lines = lines.concat(formatAllFieldsPlain_(allFields));
+  lines.push('---------------------------');
+  return lines.join('\n');
 }
 
-function buildHtmlBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip) {
+function buildHtmlBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields) {
+  var headerStyle = 'margin:0 0 12px;color:#281156';
   return '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#222">'
-    + '<h2 style="margin:0 0 12px">New Website Contact Submission</h2>'
+    + '<h2 style="' + headerStyle + '">New Website Contact Submission</h2>'
     + '<p><strong>Name:</strong> ' + escapeHtml_(name) + '<br>'
     + '<strong>Email:</strong> ' + escapeHtml_(email) + '<br>'
     + '<strong>Subject:</strong> ' + escapeHtml_(subjectField) + '<br>'
@@ -269,8 +311,11 @@ function buildHtmlBody_(name, email, subjectField, message, pageUrl, userAgent, 
     + (userAgent ? '<strong>User-Agent:</strong> ' + escapeHtml_(userAgent) + '<br>' : '')
     + '</p>'
     + '<hr style="margin:20px 0;border:none;border-top:1px solid #ddd">'
-    + '<p style="white-space:pre-line;margin:0 0 12px">' + escapeHtml_(message) + '</p>'
-    + '<p style="font-size:12px;color:#666;margin-top:24px">Delivered by Lifeprep Academy Foundation Contact Form.</p>'
+    + '<h3 style="margin:0 0 8px;color:#281156">Message</h3>'
+    + '<p style="white-space:pre-line;margin:0 0 16px">' + escapeHtml_(message) + '</p>'
+    + '<h3 style="margin:0 0 8px;color:#281156">All Fields</h3>'
+    + buildAllFieldsTableHtml_(allFields)
+    + '<p style="font-size:12px;color:#666;margin-top:24px">TXT and PDF exports are attached.</p>'
     + '</div>';
 }
 
@@ -280,7 +325,17 @@ function logSubmission_(entry) {
   var ss = SpreadsheetApp.openById(SHEET_ID);
   var sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
   if (sh.getLastRow() === 0) {
-    sh.appendRow(['Timestamp','Name','Email','Subject','Message','Page','UserAgent','Client Submitted At','IP']);
+    sh.appendRow(['Timestamp','Name','Email','Subject','Message','Page','UserAgent','Client Submitted At','IP','Extra Fields']);
+  }
+  // If sheet already exists but missing Extra Fields column, add it.
+  try {
+    var header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0] || [];
+    if (header.indexOf('Extra Fields') === -1) {
+      sh.insertColumnAfter(sh.getLastColumn());
+      sh.getRange(1, sh.getLastColumn()).setValue('Extra Fields');
+    }
+  } catch (hdrErr) {
+    // ignore
   }
   sh.appendRow([
     new Date(),
@@ -291,9 +346,112 @@ function logSubmission_(entry) {
     entry.page,
     entry.userAgent,
     entry.submittedAt,
-    entry.ip
+    entry.ip,
+    entry.extraFields || ''
   ]);
   return sh.getLastRow();
+}
+
+// Build a stable, filtered map of all submitted fields suitable for email/logging.
+function buildAllFields_(params) {
+  var internalKeys = {
+    hp_field: true,
+    cf_turnstile_response: true,
+    userAgent: true,
+    page: true,
+    submittedAt: true,
+    dwellMs: true,
+    typedChars: true,
+    clientId: true
+  };
+
+  var out = {};
+  Object.keys(params || {}).forEach(function(k) {
+    if (!k) return;
+    if (internalKeys[k]) return;
+    var v = params[k];
+    if (v === undefined || v === null) return;
+    var s = String(v).trim();
+    if (!s) return;
+    // Avoid leaking captcha tokens and other hidden implementation details
+    if (k.toLowerCase().indexOf('turnstile') !== -1) return;
+    out[k] = s;
+  });
+  return out;
+}
+
+function formatKeyLabel_(k) {
+  var s = String(k || '');
+  s = s.replace(/[_\-]+/g, ' ');
+  s = s.replace(/\s+/g, ' ').trim();
+  return s.replace(/\b\w/g, function(m){ return m.toUpperCase(); });
+}
+
+function formatAllFieldsPlain_(allFields) {
+  var keys = Object.keys(allFields || {});
+  keys.sort();
+  return keys.map(function(k){
+    return formatKeyLabel_(k) + ': ' + String(allFields[k]);
+  });
+}
+
+function buildAllFieldsTableHtml_(allFields) {
+  var keys = Object.keys(allFields || {});
+  keys.sort();
+  if (!keys.length) return '<p style="margin:0;color:#555">(No extra fields)</p>';
+
+  var rows = keys.map(function(k){
+    return '<tr>'
+      + '<td style="padding:6px 10px;border:1px solid #ddd;background:#fafafa;white-space:nowrap"><strong>' + escapeHtml_(formatKeyLabel_(k)) + '</strong></td>'
+      + '<td style="padding:6px 10px;border:1px solid #ddd">' + escapeHtml_(String(allFields[k])) + '</td>'
+      + '</tr>';
+  }).join('');
+  return '<table style="border-collapse:collapse;width:100%;font-size:13px">'
+    + '<tbody>' + rows + '</tbody>'
+    + '</table>';
+}
+
+function buildExportText_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields) {
+  var lines = [];
+  lines.push('Lifeprep Academy Foundation - Form Submission');
+  lines.push('');
+  lines.push('Name: ' + name);
+  lines.push('Email: ' + email);
+  lines.push('Subject: ' + subjectField);
+  if (pageUrl) lines.push('Page: ' + pageUrl);
+  if (submittedAt) lines.push('Client Submitted At: ' + submittedAt);
+  if (ip) lines.push('IP: ' + ip);
+  if (userAgent) lines.push('User-Agent: ' + userAgent);
+  lines.push('');
+  lines.push('Message:');
+  lines.push(message);
+  lines.push('');
+  lines.push('All Fields:');
+  lines = lines.concat(formatAllFieldsPlain_(allFields));
+  lines.push('');
+  return lines.join('\n');
+}
+
+function buildExportHtml_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields) {
+  var meta = ''
+    + '<p style="margin:0 0 10px">'
+    + '<strong>Name:</strong> ' + escapeHtml_(name) + '<br>'
+    + '<strong>Email:</strong> ' + escapeHtml_(email) + '<br>'
+    + '<strong>Subject:</strong> ' + escapeHtml_(subjectField) + '<br>'
+    + (pageUrl ? '<strong>Page:</strong> ' + escapeHtml_(pageUrl) + '<br>' : '')
+    + (submittedAt ? '<strong>Client Submitted At:</strong> ' + escapeHtml_(submittedAt) + '<br>' : '')
+    + (ip ? '<strong>IP:</strong> ' + escapeHtml_(ip) + '<br>' : '')
+    + (userAgent ? '<strong>User-Agent:</strong> ' + escapeHtml_(userAgent) + '<br>' : '')
+    + '</p>';
+  return '<!doctype html><html><head><meta charset="utf-8"><title>Form Submission</title></head>'
+    + '<body style="font-family:Arial,sans-serif;color:#222;font-size:13px;line-height:1.5">'
+    + '<h1 style="margin:0 0 12px;color:#281156;font-size:20px">Lifeprep Academy Foundation - Form Submission</h1>'
+    + meta
+    + '<h2 style="margin:14px 0 6px;color:#281156;font-size:16px">Message</h2>'
+    + '<div style="white-space:pre-line;border:1px solid #ddd;padding:10px;border-radius:6px">' + escapeHtml_(message) + '</div>'
+    + '<h2 style="margin:14px 0 6px;color:#281156;font-size:16px">All Fields</h2>'
+    + buildAllFieldsTableHtml_(allFields)
+    + '</body></html>';
 }
 
 // In-memory simplistic rate limiting (resets when script instance cold starts)
@@ -423,7 +581,7 @@ function textResponse_(msg, code) {
  * recipients see "From: alias". If the alias is unavailable or sending via
  * GmailApp fails (e.g., due to restricted scopes), it falls back to MailApp.
  *
- * opts: { to, subject, body, htmlBody?, name?, replyTo?, bcc?, from? }
+ * opts: { to, subject, body, htmlBody?, name?, replyTo?, bcc?, from?, attachments? }
  */
 function sendMail_(opts) {
   var to = opts.to;
@@ -434,6 +592,7 @@ function sendMail_(opts) {
   var replyTo = opts.replyTo;
   var bcc = opts.bcc;
   var from = opts.from; // desired alias address
+  var attachments = opts.attachments;
 
   // If possible, use GmailApp with alias.
   // Note: GmailApp respects aliases configured in Gmail settings (Send mail as).
@@ -443,6 +602,7 @@ function sendMail_(opts) {
       if (htmlBody) adv.htmlBody = htmlBody;
       if (replyTo) adv.replyTo = replyTo;
       if (bcc) adv.bcc = bcc;
+      if (attachments && attachments.length) adv.attachments = attachments;
       // Ask Gmail to use this alias as the From address (must be configured/verified in Gmail settings)
       adv.from = from;
       // GmailApp does not accept a separate plain text body when htmlBody is present; body is always required
@@ -462,7 +622,8 @@ function sendMail_(opts) {
       htmlBody: htmlBody,
       name: name,
       replyTo: replyTo,
-      bcc: bcc
+      bcc: bcc,
+      attachments: attachments
     });
   } catch (e2) {
     throw e2;

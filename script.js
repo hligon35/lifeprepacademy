@@ -102,6 +102,7 @@ function initContactFormNetworkHandler() {
 
     let busy = false;
     const pageStart = Date.now();
+    let statusHideTimer = null;
 
     // Persistent client id for coarse rate-limiting in backend logs
     const clientId = (() => {
@@ -140,9 +141,28 @@ function initContactFormNetworkHandler() {
 
     function setStatus(msg, isError = false) {
         if (!statusDiv) return;
+        if (statusHideTimer) {
+            clearTimeout(statusHideTimer);
+            statusHideTimer = null;
+        }
         statusDiv.textContent = msg;
         statusDiv.classList.remove('visually-hidden');
         statusDiv.classList.toggle('error', isError);
+
+        // Toast behavior: auto-hide on success so it feels lightweight.
+        const lowered = String(msg || '').trim().toLowerCase();
+        const isSendingState = lowered === 'sending...' || lowered === 'sending';
+        if (!isError && !isSendingState && lowered) {
+            statusHideTimer = setTimeout(() => {
+                try {
+                    statusDiv.classList.add('visually-hidden');
+                    statusDiv.textContent = '';
+                    statusDiv.classList.remove('error');
+                } catch {
+                    // ignore
+                }
+            }, 6000);
+        }
     }
 
     function toggle(disabled) {
