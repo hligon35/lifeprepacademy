@@ -1444,6 +1444,12 @@ footer .social-links {
     width: 100%;
     max-width: 360px;
     height: auto;
+    display: block;
+    margin-inline: auto;
+}
+
+.page-youth-programs .program-card .program-logo--nfl {
+    transform: translateX(14px);
 }
 
 @media (min-width: 900px) {

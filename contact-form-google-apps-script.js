@@ -56,7 +56,7 @@ var YOUTH_CONFIRM_HTML = function(name){
     + '<p style="margin:0 0 12px">Hi ' + n + ',</p>'
     + '<p style="margin:0 0 12px">Thank you for your interest in ' + BRAND_NAME + ' Youth Programs. We\'ve received your registration request.</p>'
     + '<p style="margin:0 0 12px"><strong>A PDF copy of your submission is attached</strong> for your records.</p>'
-    + '<p style="margin:0">If you have questions, reply to this email or contact <a href="mailto:youthdept@lifeprepacademyfoundation.com" style="color:' + EMAIL_PRIMARY + ';font-weight:700;text-decoration:none">youthdept@lifeprepacademyfoundation.com</a>.</p>';
+    + '<p style="margin:0">If you have questions, reply to this email or contact <a href="mailto:info@lifeprepacademyfoundation.com" style="color:' + EMAIL_PRIMARY + ';font-weight:700;text-decoration:none">info@lifeprepacademyfoundation.com</a>.</p>';
   return buildEmailShell_({
     preheader: 'Your youth program request has been received.',
     eyebrow: 'Youth Programs',
@@ -70,7 +70,7 @@ var YOUTH_CONFIRM_TEXT = function(name){
   return 'Hi ' + (name || 'there') + '\n\n'
     + 'Thank you for your interest in LifePrep Academy Foundation Youth Programs. We\'ve received your registration request.\n\n'
     + 'A PDF copy of your submission is attached for your records.\n\n'
-    + 'Questions? Reply to this email or contact youthdept@lifeprepacademyfoundation.com\n\n'
+    + 'Questions? Reply to this email or contact info@lifeprepacademyfoundation.com\n\n'
     + '(This is an automated confirmation.)';
 };
 
