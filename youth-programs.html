@@ -117,6 +117,17 @@
 									class="program-logo"
 								/>
 								<p><strong>Coming soon!</strong></p>
+								<button
+									type="button"
+									class="btn btn-primary"
+									id="nflFlagToggleBtn"
+									data-program-trigger="nfl"
+									data-button-label="More Info"
+									aria-controls="youth-contact"
+									aria-expanded="false"
+								>
+									More Info
+								</button>
 							</article>
 
 							<article class="program-card">
@@ -133,7 +144,9 @@
 									type="button"
 									class="btn btn-primary"
 									id="mlsgoToggleBtn"
-									aria-controls="mlsgo-contact"
+									data-program-trigger="mlsgo"
+									data-button-label="More Info"
+									aria-controls="youth-contact"
 									aria-expanded="false"
 								>
 									More Info
@@ -143,20 +156,27 @@
 					</div>
 				</section>
 
-				<section class="contact-section" id="mlsgo-contact" hidden>
+				<section class="contact-section" id="youth-contact" hidden>
 					<div class="container">
-						<h2>More Info: MLS GO</h2>
-						<p class="muted">Complete the form below and we’ll follow up with next steps.</p>
+						<h2>Youth Programs Contact</h2>
+						<p class="muted">
+							Use the form below to ask about NFL FLAG or MLS GO. We&rsquo;ll follow up with
+							next steps and availability.
+						</p>
 
 						<form
 							class="contact-form"
 							id="contactForm"
 							data-no-script-handler="true"
-							action="https://script.google.com/macros/s/AKfycbw-FN8S7VBTFirNOJXnG6Vz5GrjnIstRWncTZyBZDt2J6VlnmGYpGvU0T6Bwwjowqhz/exec"
+							action="https://script.google.com/macros/s/AKfycbziLG5BQZCOXtnVeG-lowJD4CVCVQ3kngiH418Jp0ZXv5rJ-_nhbeVhSAWzUkPIfjj1/exec"
 							method="POST"
 							aria-describedby="contact-form-status"
 						>
-							<h3 class="mlsgo-form-title">MLS GO Team Interest</h3>
+							<h3 class="mlsgo-form-title" id="youth-contact-title">Youth Programs Inquiry</h3>
+							<p class="muted" id="youth-contact-helper">
+								Choose a program and send us your question. We&rsquo;ll reply with details on
+								enrollment, timing, and next steps.
+							</p>
 							<input type="hidden" name="form_type" value="youth" />
 
 							<div class="hp-wrapper" aria-hidden="true">
@@ -176,64 +196,7 @@
 
 							<div class="form-grid">
 								<div class="form-group">
-									<label for="teamName">Team Name *</label>
-									<input
-										type="text"
-										id="teamName"
-										name="team_name"
-										required
-										autocomplete="organization"
-										placeholder="Team Name TBD"
-									/>
-								</div>
-
-								<div class="form-group">
-									<label for="ageDivision">Age Division *</label>
-									<select id="ageDivision" name="age_division" required class="select-fit">
-										<option value="" disabled selected>Select an age division</option>
-										<option value="U6">U6</option>
-										<option value="U8">U8</option>
-										<option value="U10">U10</option>
-										<option value="U12">U12</option>
-										<option value="U14">U14</option>
-										<option value="U16">U16</option>
-										<option value="U18">U18</option>
-										<option value="Other">Other</option>
-									</select>
-								</div>
-
-								<div class="form-group">
-									<label for="season">Season *</label>
-									<select id="season" name="season" required class="select-fit">
-										<option value="" disabled selected>Select a season</option>
-										<option value="Spring">Spring</option>
-										<option value="Summer">Summer</option>
-										<option value="Fall">Fall</option>
-									</select>
-								</div>
-
-								<div class="form-group">
-									<label for="practiceDays">Preferred Practice Days (optional)</label>
-									<input
-										type="text"
-										id="practiceDays"
-										name="preferred_practice_days"
-										placeholder="e.g., Mon/Wed"
-									/>
-								</div>
-
-								<div class="form-group">
-									<label for="practiceLocation">Preferred Practice Location (optional)</label>
-									<input
-										type="text"
-										id="practiceLocation"
-										name="preferred_practice_location"
-										placeholder="City / field / neighborhood"
-									/>
-								</div>
-
-								<div class="form-group">
-									<label for="name">Head Coach / Team Manager Name *</label>
+									<label for="name">Full Name *</label>
 									<input
 										type="text"
 										id="name"
@@ -258,313 +221,30 @@
 								</div>
 
 								<div class="form-group">
-									<label for="coachPhone">Phone Number *</label>
+									<label for="phone">Phone Number</label>
 									<input
 										type="tel"
-										id="coachPhone"
+										id="phone"
 										name="phone"
-										required
 										autocomplete="tel"
 										inputmode="tel"
+										placeholder="Optional"
 									/>
 								</div>
 
 								<div class="form-group">
-									<label for="preferredContact">Preferred Contact Method *</label>
-									<select
-										id="preferredContact"
-										name="preferred_contact_method"
-										required
-										class="select-fit"
-									>
-										<option value="" disabled selected>Select a method</option>
-										<option value="Email">Email</option>
-										<option value="Phone">Phone</option>
-										<option value="Text">Text</option>
-									</select>
-								</div>
-
-								<div class="form-group">
-									<label for="coachShirtSize">Coach Shirt Size (optional)</label>
-									<select id="coachShirtSize" name="coach_shirt_size" class="select-fit">
-										<option value="" selected>Optional</option>
-										<option value="YS">YS</option>
-										<option value="YM">YM</option>
-										<option value="YL">YL</option>
-										<option value="AS">AS</option>
-										<option value="AM">AM</option>
-										<option value="AL">AL</option>
-										<option value="AXL">AXL</option>
-										<option value="A2XL">A2XL</option>
-									</select>
-								</div>
-
-								<div class="form-group">
-									<label for="estimatedPlayers">Estimated Number of Players *</label>
-									<input
-										type="number"
-										id="estimatedPlayers"
-										name="estimated_players"
-										required
-										min="1"
-										inputmode="numeric"
-									/>
-								</div>
-
-								<div class="form-group">
-									<label for="ageRange">Age Range of Players *</label>
+									<label for="organization">Organization / Team Name</label>
 									<input
 										type="text"
-										id="ageRange"
-										name="age_range_players"
-										required
-										placeholder="e.g., 7–8"
+										id="organization"
+										name="organization"
+										autocomplete="organization"
+										placeholder="Optional"
 									/>
 								</div>
 
 								<div class="form-group">
-									<label for="playersCommitted">Do you already have players committed? *</label>
-									<select id="playersCommitted" name="players_committed" required class="select-fit">
-										<option value="" disabled selected>Select one</option>
-										<option value="Yes">Yes</option>
-										<option value="No">No</option>
-										<option value="Partially">Partially</option>
-									</select>
-								</div>
-
-								<div class="form-group">
-									<label for="committedCount">If yes/partially, how many? (optional)</label>
-									<input
-										type="number"
-										id="committedCount"
-										name="players_committed_count"
-										min="0"
-										inputmode="numeric"
-									/>
-								</div>
-
-								<div class="form-group">
-									<label for="assistantCoachNeeded">Assistant Coach Needed? *</label>
-									<select
-										id="assistantCoachNeeded"
-										name="assistant_coach_needed"
-										required
-										class="select-fit"
-									>
-										<option value="" disabled selected>Select one</option>
-										<option value="Yes">Yes</option>
-										<option value="No">No</option>
-									</select>
-								</div>
-
-								<div class="form-group">
-									<label for="teamParentNeeded">
-										Team Parent /
-										<br />
-										Manager Needed? *
-									</label>
-									<select id="teamParentNeeded" name="team_parent_needed" required class="select-fit">
-										<option value="" disabled selected>Select one</option>
-										<option value="Yes">Yes</option>
-										<option value="No">No</option>
-									</select>
-								</div>
-
-								<div class="form-group span-all">
-									<label>Expected Jersey Sizes Needed (optional)</label>
-									<input type="hidden" id="jerseySizes" name="expected_jersey_sizes" value="" />
-									<div
-										class="jersey-size-grid"
-										role="group"
-										aria-label="Expected Jersey Sizes Needed"
-									>
-										<div class="jersey-size-row">
-											<label class="checkbox-label jersey-size-label">
-												<input
-													type="checkbox"
-													name="jersey_size_YS"
-													value="YS"
-													data-jersey-size="YS"
-												/>
-												<span>YS</span>
-											</label>
-											<input
-												type="number"
-												class="qty-input"
-												name="jersey_qty_YS"
-												min="0"
-												inputmode="numeric"
-												placeholder="Qty"
-												aria-label="YS quantity"
-											/>
-										</div>
-										<div class="jersey-size-row">
-											<label class="checkbox-label jersey-size-label">
-												<input
-													type="checkbox"
-													name="jersey_size_YM"
-													value="YM"
-													data-jersey-size="YM"
-												/>
-												<span>YM</span>
-											</label>
-											<input
-												type="number"
-												class="qty-input"
-												name="jersey_qty_YM"
-												min="0"
-												inputmode="numeric"
-												placeholder="Qty"
-												aria-label="YM quantity"
-											/>
-										</div>
-										<div class="jersey-size-row">
-											<label class="checkbox-label jersey-size-label">
-												<input
-													type="checkbox"
-													name="jersey_size_YL"
-													value="YL"
-													data-jersey-size="YL"
-												/>
-												<span>YL</span>
-											</label>
-											<input
-												type="number"
-												class="qty-input"
-												name="jersey_qty_YL"
-												min="0"
-												inputmode="numeric"
-												placeholder="Qty"
-												aria-label="YL quantity"
-											/>
-										</div>
-										<div class="jersey-size-row">
-											<label class="checkbox-label jersey-size-label">
-												<input
-													type="checkbox"
-													name="jersey_size_AS"
-													value="AS"
-													data-jersey-size="AS"
-												/>
-												<span>AS</span>
-											</label>
-											<input
-												type="number"
-												class="qty-input"
-												name="jersey_qty_AS"
-												min="0"
-												inputmode="numeric"
-												placeholder="Qty"
-												aria-label="AS quantity"
-											/>
-										</div>
-										<div class="jersey-size-row">
-											<label class="checkbox-label jersey-size-label">
-												<input
-													type="checkbox"
-													name="jersey_size_AM"
-													value="AM"
-													data-jersey-size="AM"
-												/>
-												<span>AM</span>
-											</label>
-											<input
-												type="number"
-												class="qty-input"
-												name="jersey_qty_AM"
-												min="0"
-												inputmode="numeric"
-												placeholder="Qty"
-												aria-label="AM quantity"
-											/>
-										</div>
-										<div class="jersey-size-row">
-											<label class="checkbox-label jersey-size-label">
-												<input
-													type="checkbox"
-													name="jersey_size_AL"
-													value="AL"
-													data-jersey-size="AL"
-												/>
-												<span>AL</span>
-											</label>
-											<input
-												type="number"
-												class="qty-input"
-												name="jersey_qty_AL"
-												min="0"
-												inputmode="numeric"
-												placeholder="Qty"
-												aria-label="AL quantity"
-											/>
-										</div>
-										<div class="jersey-size-row">
-											<label class="checkbox-label jersey-size-label">
-												<input
-													type="checkbox"
-													name="jersey_size_AXL"
-													value="AXL"
-													data-jersey-size="AXL"
-												/>
-												<span>AXL</span>
-											</label>
-											<input
-												type="number"
-												class="qty-input"
-												name="jersey_qty_AXL"
-												min="0"
-												inputmode="numeric"
-												placeholder="Qty"
-												aria-label="AXL quantity"
-											/>
-										</div>
-										<div class="jersey-size-row">
-											<label class="checkbox-label jersey-size-label">
-												<input
-													type="checkbox"
-													name="jersey_size_A2XL"
-													value="A2XL"
-													data-jersey-size="A2XL"
-												/>
-												<span>A2XL</span>
-											</label>
-											<input
-												type="number"
-												class="qty-input"
-												name="jersey_qty_A2XL"
-												min="0"
-												inputmode="numeric"
-												placeholder="Qty"
-												aria-label="A2XL quantity"
-											/>
-										</div>
-									</div>
-								</div>
-
-								<div class="form-group span-all">
-									<label class="checkbox-label checkbox-label--tight">
-										<input
-											type="checkbox"
-											id="collectSizesLater"
-											name="collect_sizes_later"
-											value="yes"
-										/>
-										<span>We will collect sizes later</span>
-									</label>
-								</div>
-
-								<div class="form-group">
-									<label for="favoriteClub">Favorite MLS Club (optional)</label>
-									<input type="text" id="favoriteClub" name="favorite_mls_club" />
-								</div>
-
-								<div class="form-group">
-									<label for="heardAbout">How did you hear about MLS GO? (optional)</label>
-									<input type="text" id="heardAbout" name="heard_about_mls_go" />
-								</div>
-
-								<div class="form-group">
-									<label for="subject">Subject *</label>
+									<label for="subject">Program *</label>
 									<select
 										id="subject"
 										name="subject"
@@ -572,18 +252,31 @@
 										aria-required="true"
 										class="select-fit select-fit-lg"
 									>
-										<option value="MLS GO / Youth Team Information" selected>
-											MLS GO / Youth Team Information
+										<option value="" disabled>Select a program</option>
+										<option value="MLS GO / Youth Programs Information">
+											MLS GO / Youth Programs Information
 										</option>
-										<option value="NFL FLAG / Youth Team Information">
-											NFL FLAG / Youth Team Information
+										<option value="NFL FLAG / Youth Programs Information">
+											NFL FLAG / Youth Programs Information
 										</option>
-										<option value="General Youth Programs">General Youth Programs</option>
+										<option value="General Youth Programs">
+											General Youth Programs
+										</option>
+									</select>
+								</div>
+
+								<div class="form-group">
+									<label for="preferredContact">Preferred Contact Method</label>
+									<select id="preferredContact" name="preferred_contact_method" class="select-fit">
+										<option value="" selected>No preference</option>
+										<option value="Email">Email</option>
+										<option value="Phone">Phone</option>
+										<option value="Text">Text</option>
 									</select>
 								</div>
 
 								<div class="form-group span-all">
-									<label for="message">Additional Notes / Message *</label>
+									<label for="message">How can we help? *</label>
 									<textarea
 										id="message"
 										name="message"
@@ -591,30 +284,14 @@
 										required
 										autocomplete="on"
 										aria-required="true"
-										placeholder="Please share any details you’d like us to know (minimum 10 characters)."
+										placeholder="Tell us what you need to know, who the program is for, and any timing questions."
 									></textarea>
-								</div>
-
-								<div class="form-group span-all">
-									<label class="checkbox-label checkbox-label--tight">
-										<input
-											type="checkbox"
-											id="acknowledge"
-											name="acknowledge_requirements"
-											value="yes"
-											required
-										/>
-										<span>
-											I understand that full MLS GO registration forms, waivers, and background
-											checks will be required before the season begins.
-										</span>
-									</label>
 								</div>
 
 								<div class="form-group span-all">
 									<div class="form-actions">
 										<button type="submit" class="btn btn-primary" id="contactSubmitBtn">
-											Send Request
+											Send Message
 										</button>
 										<div
 											id="contact-form-status"
@@ -628,6 +305,487 @@
 						</form>
 					</div>
 				</section>
+
+				<template id="mlsgo-team-interest-form-template">
+					<form
+						class="contact-form"
+						id="contactForm"
+						data-no-script-handler="true"
+						action="https://script.google.com/macros/s/AKfycbziLG5BQZCOXtnVeG-lowJD4CVCVQ3kngiH418Jp0ZXv5rJ-_nhbeVhSAWzUkPIfjj1/exec"
+						method="POST"
+						aria-describedby="contact-form-status"
+					>
+						<h3 class="mlsgo-form-title">MLS GO Team Interest</h3>
+						<input type="hidden" name="form_type" value="youth" />
+
+						<div class="hp-wrapper" aria-hidden="true">
+							<label>
+								Do not fill this field
+								<input type="text" name="hp_field" tabindex="-1" autocomplete="off" />
+							</label>
+						</div>
+
+						<div
+							id="captchaContainer"
+							class="cf-turnstile"
+							data-sitekey="0x4AAAAAAB5rtUiQ1MiqGIxp"
+							data-size="compact"
+							data-theme="light"
+						></div>
+
+						<div class="form-grid">
+							<div class="form-group">
+								<label for="teamName">Team Name *</label>
+								<input
+									type="text"
+									id="teamName"
+									name="team_name"
+									required
+									autocomplete="organization"
+									placeholder="Team Name TBD"
+								/>
+							</div>
+
+							<div class="form-group">
+								<label for="ageDivision">Age Division *</label>
+								<select id="ageDivision" name="age_division" required class="select-fit">
+									<option value="" disabled selected>Select an age division</option>
+									<option value="U6">U6</option>
+									<option value="U8">U8</option>
+									<option value="U10">U10</option>
+									<option value="U12">U12</option>
+									<option value="U14">U14</option>
+									<option value="U16">U16</option>
+									<option value="U18">U18</option>
+									<option value="Other">Other</option>
+								</select>
+							</div>
+
+							<div class="form-group">
+								<label for="season">Season *</label>
+								<select id="season" name="season" required class="select-fit">
+									<option value="" disabled selected>Select a season</option>
+									<option value="Spring">Spring</option>
+									<option value="Summer">Summer</option>
+									<option value="Fall">Fall</option>
+								</select>
+							</div>
+
+							<div class="form-group">
+								<label for="practiceDays">Preferred Practice Days (optional)</label>
+								<input
+									type="text"
+									id="practiceDays"
+									name="preferred_practice_days"
+									placeholder="e.g., Mon/Wed"
+								/>
+							</div>
+
+							<div class="form-group">
+								<label for="practiceLocation">Preferred Practice Location (optional)</label>
+								<input
+									type="text"
+									id="practiceLocation"
+									name="preferred_practice_location"
+									placeholder="City / field / neighborhood"
+								/>
+							</div>
+
+							<div class="form-group">
+								<label for="name">Head Coach / Team Manager Name *</label>
+								<input
+									type="text"
+									id="name"
+									name="name"
+									required
+									autocomplete="name"
+									aria-required="true"
+								/>
+							</div>
+
+							<div class="form-group">
+								<label for="email">Email Address *</label>
+								<input
+									type="email"
+									id="email"
+									name="email"
+									required
+									autocomplete="email"
+									inputmode="email"
+									aria-required="true"
+								/>
+							</div>
+
+							<div class="form-group">
+								<label for="coachPhone">Phone Number *</label>
+								<input
+									type="tel"
+									id="coachPhone"
+									name="phone"
+									required
+									autocomplete="tel"
+									inputmode="tel"
+								/>
+							</div>
+
+							<div class="form-group">
+								<label for="preferredContact">Preferred Contact Method *</label>
+								<select
+									id="preferredContact"
+									name="preferred_contact_method"
+									required
+									class="select-fit"
+								>
+									<option value="" disabled selected>Select a method</option>
+									<option value="Email">Email</option>
+									<option value="Phone">Phone</option>
+									<option value="Text">Text</option>
+								</select>
+							</div>
+
+							<div class="form-group">
+								<label for="coachShirtSize">Coach Shirt Size (optional)</label>
+								<select id="coachShirtSize" name="coach_shirt_size" class="select-fit">
+									<option value="" selected>Optional</option>
+									<option value="YS">YS</option>
+									<option value="YM">YM</option>
+									<option value="YL">YL</option>
+									<option value="AS">AS</option>
+									<option value="AM">AM</option>
+									<option value="AL">AL</option>
+									<option value="AXL">AXL</option>
+									<option value="A2XL">A2XL</option>
+								</select>
+							</div>
+
+							<div class="form-group">
+								<label for="estimatedPlayers">Estimated Number of Players *</label>
+								<input
+									type="number"
+									id="estimatedPlayers"
+									name="estimated_players"
+									required
+									min="1"
+									inputmode="numeric"
+								/>
+							</div>
+
+							<div class="form-group">
+								<label for="ageRange">Age Range of Players *</label>
+								<input
+									type="text"
+									id="ageRange"
+									name="age_range_players"
+									required
+									placeholder="e.g., 7–8"
+								/>
+							</div>
+
+							<div class="form-group">
+								<label for="playersCommitted">Do you already have players committed? *</label>
+								<select id="playersCommitted" name="players_committed" required class="select-fit">
+									<option value="" disabled selected>Select one</option>
+									<option value="Yes">Yes</option>
+									<option value="No">No</option>
+									<option value="Partially">Partially</option>
+								</select>
+							</div>
+
+							<div class="form-group">
+								<label for="committedCount">If yes/partially, how many? (optional)</label>
+								<input
+									type="number"
+									id="committedCount"
+									name="players_committed_count"
+									min="0"
+									inputmode="numeric"
+								/>
+							</div>
+
+							<div class="form-group">
+								<label for="assistantCoachNeeded">Assistant Coach Needed? *</label>
+								<select
+									id="assistantCoachNeeded"
+									name="assistant_coach_needed"
+									required
+									class="select-fit"
+								>
+									<option value="" disabled selected>Select one</option>
+									<option value="Yes">Yes</option>
+									<option value="No">No</option>
+								</select>
+							</div>
+
+							<div class="form-group">
+								<label for="teamParentNeeded">
+									Team Parent /
+									<br />
+									Manager Needed? *
+								</label>
+								<select id="teamParentNeeded" name="team_parent_needed" required class="select-fit">
+									<option value="" disabled selected>Select one</option>
+									<option value="Yes">Yes</option>
+									<option value="No">No</option>
+								</select>
+							</div>
+
+							<div class="form-group span-all">
+								<label>Expected Jersey Sizes Needed (optional)</label>
+								<input type="hidden" id="jerseySizes" name="expected_jersey_sizes" value="" />
+								<div
+									class="jersey-size-grid"
+									role="group"
+									aria-label="Expected Jersey Sizes Needed"
+								>
+									<div class="jersey-size-row">
+										<label class="checkbox-label jersey-size-label">
+											<input
+												type="checkbox"
+												name="jersey_size_YS"
+												value="YS"
+												data-jersey-size="YS"
+											/>
+											<span>YS</span>
+										</label>
+										<input
+											type="number"
+											class="qty-input"
+											name="jersey_qty_YS"
+											min="0"
+											inputmode="numeric"
+											placeholder="Qty"
+											aria-label="YS quantity"
+										/>
+									</div>
+									<div class="jersey-size-row">
+										<label class="checkbox-label jersey-size-label">
+											<input
+												type="checkbox"
+												name="jersey_size_YM"
+												value="YM"
+												data-jersey-size="YM"
+											/>
+											<span>YM</span>
+										</label>
+										<input
+											type="number"
+											class="qty-input"
+											name="jersey_qty_YM"
+											min="0"
+											inputmode="numeric"
+											placeholder="Qty"
+											aria-label="YM quantity"
+										/>
+									</div>
+									<div class="jersey-size-row">
+										<label class="checkbox-label jersey-size-label">
+											<input
+												type="checkbox"
+												name="jersey_size_YL"
+												value="YL"
+												data-jersey-size="YL"
+											/>
+											<span>YL</span>
+										</label>
+										<input
+											type="number"
+											class="qty-input"
+											name="jersey_qty_YL"
+											min="0"
+											inputmode="numeric"
+											placeholder="Qty"
+											aria-label="YL quantity"
+										/>
+									</div>
+									<div class="jersey-size-row">
+										<label class="checkbox-label jersey-size-label">
+											<input
+												type="checkbox"
+												name="jersey_size_AS"
+												value="AS"
+												data-jersey-size="AS"
+											/>
+											<span>AS</span>
+										</label>
+										<input
+											type="number"
+											class="qty-input"
+											name="jersey_qty_AS"
+											min="0"
+											inputmode="numeric"
+											placeholder="Qty"
+											aria-label="AS quantity"
+										/>
+									</div>
+									<div class="jersey-size-row">
+										<label class="checkbox-label jersey-size-label">
+											<input
+												type="checkbox"
+												name="jersey_size_AM"
+												value="AM"
+												data-jersey-size="AM"
+											/>
+											<span>AM</span>
+										</label>
+										<input
+											type="number"
+											class="qty-input"
+											name="jersey_qty_AM"
+											min="0"
+											inputmode="numeric"
+											placeholder="Qty"
+											aria-label="AM quantity"
+										/>
+									</div>
+									<div class="jersey-size-row">
+										<label class="checkbox-label jersey-size-label">
+											<input
+												type="checkbox"
+												name="jersey_size_AL"
+												value="AL"
+												data-jersey-size="AL"
+											/>
+											<span>AL</span>
+										</label>
+										<input
+											type="number"
+											class="qty-input"
+											name="jersey_qty_AL"
+											min="0"
+											inputmode="numeric"
+											placeholder="Qty"
+											aria-label="AL quantity"
+										/>
+									</div>
+									<div class="jersey-size-row">
+										<label class="checkbox-label jersey-size-label">
+											<input
+												type="checkbox"
+												name="jersey_size_AXL"
+												value="AXL"
+												data-jersey-size="AXL"
+											/>
+											<span>AXL</span>
+										</label>
+										<input
+											type="number"
+											class="qty-input"
+											name="jersey_qty_AXL"
+											min="0"
+											inputmode="numeric"
+											placeholder="Qty"
+											aria-label="AXL quantity"
+										/>
+									</div>
+									<div class="jersey-size-row">
+										<label class="checkbox-label jersey-size-label">
+											<input
+												type="checkbox"
+												name="jersey_size_A2XL"
+												value="A2XL"
+												data-jersey-size="A2XL"
+											/>
+											<span>A2XL</span>
+										</label>
+										<input
+											type="number"
+											class="qty-input"
+											name="jersey_qty_A2XL"
+											min="0"
+											inputmode="numeric"
+											placeholder="Qty"
+											aria-label="A2XL quantity"
+										/>
+									</div>
+								</div>
+							</div>
+
+							<div class="form-group span-all">
+								<label class="checkbox-label checkbox-label--tight">
+									<input
+										type="checkbox"
+										id="collectSizesLater"
+										name="collect_sizes_later"
+										value="yes"
+									/>
+									<span>We will collect sizes later</span>
+								</label>
+							</div>
+
+							<div class="form-group">
+								<label for="favoriteClub">Favorite MLS Club (optional)</label>
+								<input type="text" id="favoriteClub" name="favorite_mls_club" />
+							</div>
+
+							<div class="form-group">
+								<label for="heardAbout">How did you hear about MLS GO? (optional)</label>
+								<input type="text" id="heardAbout" name="heard_about_mls_go" />
+							</div>
+
+							<div class="form-group">
+								<label for="subject">Subject *</label>
+								<select
+									id="subject"
+									name="subject"
+									required
+									aria-required="true"
+									class="select-fit select-fit-lg"
+								>
+									<option value="MLS GO / Youth Team Information" selected>
+										MLS GO / Youth Team Information
+									</option>
+									<option value="NFL FLAG / Youth Team Information">
+										NFL FLAG / Youth Team Information
+									</option>
+									<option value="General Youth Programs">General Youth Programs</option>
+								</select>
+							</div>
+
+							<div class="form-group span-all">
+								<label for="message">Additional Notes / Message *</label>
+								<textarea
+									id="message"
+									name="message"
+									rows="6"
+									required
+									autocomplete="on"
+									aria-required="true"
+									placeholder="Please share any details you’d like us to know (minimum 10 characters)."
+								></textarea>
+							</div>
+
+							<div class="form-group span-all">
+								<label class="checkbox-label checkbox-label--tight">
+									<input
+										type="checkbox"
+										id="acknowledge"
+										name="acknowledge_requirements"
+										value="yes"
+										required
+									/>
+									<span>
+										I understand that full MLS GO registration forms, waivers, and background
+										checks will be required before the season begins.
+									</span>
+								</label>
+							</div>
+
+							<div class="form-group span-all">
+								<div class="form-actions">
+									<button type="submit" class="btn btn-primary" id="contactSubmitBtn">
+										Send Request
+									</button>
+									<div
+										id="contact-form-status"
+										class="form-toast visually-hidden"
+										aria-live="polite"
+										role="status"
+									></div>
+								</div>
+							</div>
+						</div>
+					</form>
+				</template>
 			</main>
 
 			<footer role="contentinfo">
@@ -696,11 +854,34 @@
 		<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 		<script>
 			(function () {
-				const toggleBtn = document.getElementById("mlsgoToggleBtn");
-				const contactSection = document.getElementById("mlsgo-contact");
-				if (!toggleBtn || !contactSection) return;
+				const toggleButtons = Array.from(document.querySelectorAll("[data-program-trigger]"));
+				const contactSection = document.getElementById("youth-contact");
+				const contactTitle = document.getElementById("youth-contact-title");
+				const contactHelper = document.getElementById("youth-contact-helper");
+				const subjectField = document.getElementById("subject");
+				const messageField = document.getElementById("message");
+				if (!toggleButtons.length || !contactSection || !contactTitle || !contactHelper || !subjectField) return;
 
 				const CAPTCHA_CONTAINER_ID = "captchaContainer";
+				const programConfig = {
+					nfl: {
+						title: "More Info: NFL FLAG",
+						helper:
+							"Complete the form below and we&rsquo;ll follow up with NFL FLAG program details and next steps.",
+						subject: "NFL FLAG / Youth Programs Information",
+						placeholder:
+							"Tell us what you want to know about NFL FLAG, your participant age range, and any timing questions.",
+					},
+					mlsgo: {
+						title: "More Info: MLS GO",
+						helper:
+							"Complete the form below and we&rsquo;ll follow up with MLS GO program details and next steps.",
+						subject: "MLS GO / Youth Programs Information",
+						placeholder:
+							"Tell us what you want to know about MLS GO, who the program is for, and any timing questions.",
+					},
+				};
+				let activeProgram = "";
 
 				function ensureTurnstileRendered() {
 					const container = document.getElementById(CAPTCHA_CONTAINER_ID);
@@ -725,67 +906,54 @@
 					}
 				}
 
-				function setOpen(open, { scroll } = { scroll: true }) {
+				function syncButtons() {
+					toggleButtons.forEach(function (button) {
+						const program = button.getAttribute("data-program-trigger") || "";
+						const isActive = !contactSection.hasAttribute("hidden") && activeProgram === program;
+						button.setAttribute("aria-expanded", isActive ? "true" : "false");
+						button.textContent = isActive ? "Hide Form" : button.getAttribute("data-button-label") || "More Info";
+					});
+				}
+
+				function applyProgram(program) {
+					const config = programConfig[program] || programConfig.mlsgo;
+					activeProgram = program;
+					contactTitle.textContent = config.title;
+					contactHelper.innerHTML = config.helper;
+					subjectField.value = config.subject;
+					if (messageField && !messageField.value.trim()) {
+						messageField.placeholder = config.placeholder;
+					}
+				}
+
+				function setOpen(open, program, { scroll } = { scroll: true }) {
 					if (open) {
+						applyProgram(program);
 						contactSection.removeAttribute("hidden");
-						toggleBtn.setAttribute("aria-expanded", "true");
-						toggleBtn.textContent = "Hide Form";
+						syncButtons();
 
 						// Give Turnstile a beat to initialize once visible.
 						setTimeout(ensureTurnstileRendered, 50);
 
 						if (scroll) contactSection.scrollIntoView({ behavior: "smooth", block: "start" });
 					} else {
+						activeProgram = "";
 						contactSection.setAttribute("hidden", "");
-						toggleBtn.setAttribute("aria-expanded", "false");
-						toggleBtn.textContent = "More Info";
+						syncButtons();
 					}
 				}
 
-				toggleBtn.addEventListener("click", function () {
-					const isHidden = contactSection.hasAttribute("hidden");
-					setOpen(isHidden, { scroll: true });
+				toggleButtons.forEach(function (button) {
+					button.addEventListener("click", function () {
+						const program = button.getAttribute("data-program-trigger") || "mlsgo";
+						const isActive = !contactSection.hasAttribute("hidden") && activeProgram === program;
+						setOpen(!isActive, program, { scroll: true });
+					});
 				});
 
-				// If user navigates directly to the hash, open the form.
-				if (location.hash === "#mlsgo-contact") {
-					setOpen(true, { scroll: false });
+				if (location.hash === "#youth-contact" || location.hash === "#mlsgo-contact") {
+					setOpen(true, "mlsgo", { scroll: false });
 				}
-			})();
-
-			(function () {
-				const form = document.getElementById("contactForm");
-				const hidden = document.getElementById("jerseySizes");
-				if (!form || !hidden) return;
-
-				function packJerseySizes() {
-					const rows = document.querySelectorAll(".jersey-size-row");
-					const parts = [];
-
-					rows.forEach(function (row) {
-						const checkbox = row.querySelector('input[type="checkbox"][data-jersey-size]');
-						if (!checkbox || !checkbox.checked) return;
-
-						const size = checkbox.getAttribute("data-jersey-size") || checkbox.value || "";
-						const qtyInput = row.querySelector('input[type="number"].qty-input');
-						const qty = qtyInput && qtyInput.value ? String(qtyInput.value).trim() : "";
-						if (qty && qty !== "0") {
-							parts.push(size + ":" + qty);
-						} else {
-							parts.push(size);
-						}
-					});
-
-					hidden.value = parts.join(", ");
-				}
-
-				form.addEventListener(
-					"submit",
-					function () {
-						packJerseySizes();
-					},
-					true,
-				);
 			})();
 		</script>
 	</body>

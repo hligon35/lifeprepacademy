@@ -31,7 +31,20 @@ var PRIMARY_INBOX = 'bhall@lifeprepacademyfoundation.com'; // Set to real login 
 // Contact form confirmations remain disabled by default to reduce auto-reply risk.
 var SEND_ACK = false; // legacy/global (contact) acknowledgement
 var ACK_SUBJECT = 'We received your message';
-var ACK_HTML = function(name){return '<p>Hi '+escapeHtml_(name||'there')+',</p><p>Thank you for contacting LifePrep Academy Foundation. We\'ve received your message and will respond soon.</p><p><em>This is an automated confirmation.</em></p>';};
+var ACK_HTML = function(name){
+  var intro = ''
+    + '<p style="margin:0 0 12px">Hi ' + escapeHtml_(name || 'there') + ',</p>'
+    + '<p style="margin:0 0 12px">Thank you for contacting ' + BRAND_NAME + '. We received your message and will respond soon.</p>'
+    + '<p style="margin:0">This is an automated confirmation for your records.</p>';
+  return buildEmailShell_({
+    preheader: 'We received your message.',
+    eyebrow: 'Contact Confirmation',
+    title: 'Your Message Was Received',
+    introHtml: intro,
+    accentLabel: 'We appreciate your interest and will follow up as soon as possible.',
+    footerNote: 'This is an automated confirmation from ' + BRAND_NAME + '.'
+  });
+};
 var ACK_TEXT = function(name){return 'Hi '+(name||'there')+'\n\nThank you for contacting LifePrep Academy Foundation. We\'ve received your message and will respond soon.\n\n(This is an automated confirmation.)';};
 
 // Youth Programs: send a confirmation email + PDF copy to the submitter.
@@ -39,14 +52,19 @@ var SEND_YOUTH_CONFIRMATION = true;
 var YOUTH_CONFIRM_SUBJECT = 'Youth Program Registration Request Received';
 var YOUTH_CONFIRM_HTML = function(name){
   var n = escapeHtml_(name || 'there');
-  return ''
-    + '<div style="font-family:Arial,sans-serif;color:' + EMAIL_TEXT + ';line-height:1.55">'
-    + '<p>Hi ' + n + ',</p>'
-    + '<p>Thank you for your interest in LifePrep Academy Foundation Youth Programs. We\'ve received your registration request.</p>'
-    + '<p><strong>A PDF copy of your submission is attached</strong> for your records.</p>'
-    + '<p>If you have questions, reply to this email or contact us at <a href="mailto:youthdept@lifeprepacademyfoundation.com">youthdept@lifeprepacademyfoundation.com</a>.</p>'
-    + '<p style="font-size:12px;color:#666"><em>This is an automated confirmation.</em></p>'
-    + '</div>';
+  var intro = ''
+    + '<p style="margin:0 0 12px">Hi ' + n + ',</p>'
+    + '<p style="margin:0 0 12px">Thank you for your interest in ' + BRAND_NAME + ' Youth Programs. We\'ve received your registration request.</p>'
+    + '<p style="margin:0 0 12px"><strong>A PDF copy of your submission is attached</strong> for your records.</p>'
+    + '<p style="margin:0">If you have questions, reply to this email or contact <a href="mailto:youthdept@lifeprepacademyfoundation.com" style="color:' + EMAIL_PRIMARY + ';font-weight:700;text-decoration:none">youthdept@lifeprepacademyfoundation.com</a>.</p>';
+  return buildEmailShell_({
+    preheader: 'Your youth program request has been received.',
+    eyebrow: 'Youth Programs',
+    title: 'Registration Request Received',
+    introHtml: intro,
+    accentLabel: 'We will follow up with next steps, timing, and any requested details.',
+    footerNote: 'This is an automated confirmation from ' + BRAND_NAME + ' Youth Programs.'
+  });
 };
 var YOUTH_CONFIRM_TEXT = function(name){
   return 'Hi ' + (name || 'there') + '\n\n'
@@ -93,7 +111,7 @@ var TURNSTILE_SECRET_PROP = 'TURNSTILE_SECRET';
 // Debug logging for CAPTCHA verification (set true temporarily if you need to inspect Cloudflare responses in Logs)
 var DEBUG_CAPTCHA = false;
 // Bump this when you paste/redeploy so you can verify you're hitting the latest deployment.
-var SCRIPT_VERSION = '2026-02-25_youth_submitter_pdf_confirmation';
+var SCRIPT_VERSION = '2026-03-24_sendgrid_primary_branded_email_templates';
 
 // SendGrid (primary email delivery) configuration.
 // Store your key in Apps Script: Project Settings -> Script properties.
@@ -120,6 +138,11 @@ var EMAIL_PRIMARY = '#281156';   // --primary-color
 var EMAIL_GOLD = '#f9b515';      // --secondary-color
 var EMAIL_BG = '#f8f9fa';        // --background-light
 var EMAIL_TEXT = '#292929';      // --text-dark
+var EMAIL_SURFACE = '#ffffff';
+var EMAIL_MUTED = '#6b7280';
+var BRAND_NAME = 'LifePrep Academy Foundation';
+var BRAND_URL = 'https://www.lifeprepacademyfoundation.com/';
+var BRAND_LOGO_URL = 'https://www.lifeprepacademyfoundation.com/logo.png';
 // ===================================================
 
 function doPost(e) {
@@ -445,8 +468,8 @@ function buildFinePrintText_(pageUrl, userAgent, submittedAt, ip) {
 
 function buildFinePrintHtml_(pageUrl, userAgent, submittedAt, ip) {
   var parts = [];
-  parts.push('<hr style="margin:20px 0;border:none;border-top:2px solid ' + EMAIL_GOLD + '">');
-  parts.push('<div style="font-size:11px;line-height:1.4;color:#666">');
+  parts.push('<hr style="margin:24px 0 16px;border:none;border-top:1px solid rgba(40,17,86,0.14)">');
+  parts.push('<div style="font-size:11px;line-height:1.5;color:' + EMAIL_MUTED + '">');
   parts.push('<div><strong style="color:' + EMAIL_PRIMARY + '">Script Version:</strong> ' + escapeHtml_(SCRIPT_VERSION) + '</div>');
   if (pageUrl) parts.push('<div><strong style="color:' + EMAIL_PRIMARY + '">Page:</strong> ' + escapeHtml_(pageUrl) + '</div>');
   if (submittedAt) parts.push('<div><strong style="color:' + EMAIL_PRIMARY + '">Client Submitted At:</strong> ' + escapeHtml_(submittedAt) + '</div>');
@@ -454,6 +477,79 @@ function buildFinePrintHtml_(pageUrl, userAgent, submittedAt, ip) {
   if (userAgent) parts.push('<div><strong style="color:' + EMAIL_PRIMARY + '">User-Agent:</strong> ' + escapeHtml_(userAgent) + '</div>');
   parts.push('</div>');
   return parts.join('');
+}
+
+function buildEmailShell_(options) {
+  options = options || {};
+  var preheader = escapeHtml_(options.preheader || BRAND_NAME);
+  var eyebrow = options.eyebrow ? '<div style="font-size:11px;line-height:1.2;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:' + EMAIL_GOLD + ';margin:0 0 12px">' + escapeHtml_(options.eyebrow) + '</div>' : '';
+  var title = options.title ? '<h1 style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:28px;line-height:1.1;font-weight:800;color:#ffffff">' + escapeHtml_(options.title) + '</h1>' : '';
+  var introHtml = String(options.introHtml || '');
+  var bodyHtml = String(options.bodyHtml || '');
+  var accentLabel = options.accentLabel ? '<div style="margin:18px 0 0;padding:14px 16px;border-left:4px solid ' + EMAIL_GOLD + ';background:rgba(249,181,21,0.12);font-size:14px;line-height:1.5;color:' + EMAIL_TEXT + ';font-weight:600">' + escapeHtml_(options.accentLabel) + '</div>' : '';
+  var footerNote = options.footerNote ? '<p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:' + EMAIL_MUTED + '">' + escapeHtml_(options.footerNote) + '</p>' : '';
+
+  return ''
+    + '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+    + '<body style="margin:0;padding:0;background:' + EMAIL_BG + ';font-family:Arial,sans-serif;color:' + EMAIL_TEXT + '">'
+    +   '<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all">' + preheader + '</div>'
+    +   '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:' + EMAIL_BG + '">'
+    +     '<tr>'
+    +       '<td style="padding:24px 12px">'
+    +         '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:720px;margin:0 auto;border-collapse:collapse">'
+    +           '<tr>'
+    +             '<td style="background:linear-gradient(135deg,' + EMAIL_PRIMARY + ' 0%,#3d1a78 58%,#522b9d 100%);border-radius:22px 22px 0 0;padding:24px 28px;border-bottom:4px solid ' + EMAIL_GOLD + '">'
+    +               '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse">'
+    +                 '<tr>'
+    +                   '<td style="vertical-align:top;padding-right:16px">'
+    +                     '<a href="' + BRAND_URL + '" style="text-decoration:none;color:#ffffff">'
+    +                       '<img src="' + BRAND_LOGO_URL + '" alt="' + BRAND_NAME + ' logo" width="92" height="92" style="display:block;width:92px;height:auto;background:rgba(255,255,255,0.22);padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,0.22)">'
+    +                     '</a>'
+    +                   '</td>'
+    +                   '<td style="vertical-align:middle">'
+    +                     eyebrow
+    +                     + title
+    +                     + '<div style="font-size:14px;line-height:1.55;color:rgba(255,255,255,0.88)">Empowering lives through education and community development.</div>'
+    +                   '</td>'
+    +                 '</tr>'
+    +               '</table>'
+    +             '</td>'
+    +           '</tr>'
+    +           '<tr>'
+    +             '<td style="background:' + EMAIL_SURFACE + ';border:1px solid rgba(40,17,86,0.12);border-top:none;border-radius:0 0 22px 22px;padding:28px">'
+    +               '<div style="font-size:15px;line-height:1.65;color:' + EMAIL_TEXT + '">' + introHtml + bodyHtml + accentLabel + footerNote + '</div>'
+    +             '</td>'
+    +           '</tr>'
+    +           '<tr>'
+    +             '<td style="padding:14px 6px 0;text-align:center;font-size:12px;line-height:1.5;color:' + EMAIL_MUTED + '">'
+    +               '<a href="' + BRAND_URL + '" style="color:' + EMAIL_PRIMARY + ';font-weight:700;text-decoration:none">lifeprepacademyfoundation.com</a>'
+    +             '</td>'
+    +           '</tr>'
+    +         '</table>'
+    +       '</td>'
+    +     '</tr>'
+    +   '</table>'
+    + '</body></html>';
+}
+
+function buildFieldSummaryHtml_(name, email, subjectField) {
+  return ''
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:separate;border-spacing:0;margin:0 0 18px;border:1px solid rgba(40,17,86,0.12);border-radius:14px;overflow:hidden">'
+    +   '<tr><td style="padding:12px 16px;background:rgba(40,17,86,0.04);font-size:13px;line-height:1.4;color:' + EMAIL_MUTED + ';font-weight:700;text-transform:uppercase;letter-spacing:0.08em">Submission Details</td></tr>'
+    +   '<tr><td style="padding:14px 16px">'
+    +     '<div style="margin:0 0 8px"><strong style="color:' + EMAIL_PRIMARY + '">Name:</strong> ' + escapeHtml_(name) + '</div>'
+    +     '<div style="margin:0 0 8px"><strong style="color:' + EMAIL_PRIMARY + '">Email:</strong> ' + escapeHtml_(email) + '</div>'
+    +     '<div style="margin:0"><strong style="color:' + EMAIL_PRIMARY + '">Subject:</strong> ' + escapeHtml_(subjectField) + '</div>'
+    +   '</td></tr>'
+    + '</table>';
+}
+
+function buildMessageCardHtml_(heading, message) {
+  return ''
+    + '<div style="margin:0 0 18px">'
+    +   '<div style="margin:0 0 8px;font-size:15px;line-height:1.3;font-weight:800;color:' + EMAIL_PRIMARY + '">' + escapeHtml_(heading) + '</div>'
+    +   '<div style="white-space:pre-line;border:1px solid rgba(40,17,86,0.14);padding:16px;border-radius:14px;background:linear-gradient(180deg,#ffffff 0%,#faf7ff 100%)">' + escapeHtml_(message) + '</div>'
+    + '</div>';
 }
 
 function buildPlainBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields) {
@@ -475,28 +571,24 @@ function buildPlainBody_(name, email, subjectField, message, pageUrl, userAgent,
 }
 
 function buildHtmlBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields) {
-  var title = 'New Youth Program Submission';
-  return ''
-    + '<div style="background:' + EMAIL_BG + ';padding:24px 12px">'
-    +   '<div style="max-width:720px;margin:0 auto;border:1px solid ' + EMAIL_GOLD + ';background:#fff">'
-    +     '<div style="background:' + EMAIL_PRIMARY + ';padding:16px 18px;border-bottom:4px solid ' + EMAIL_GOLD + '">'
-    +       '<div style="margin:0;font-family:Arial,sans-serif;font-size:18px;line-height:1.2;font-weight:700;color:' + EMAIL_GOLD + '">' + escapeHtml_(title) + '</div>'
-    +     '</div>'
-    +     '<div style="padding:18px;font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:' + EMAIL_TEXT + '">'
-    +       '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 14px">'
-    +         '<tr><td style="padding:0 0 6px"><strong style="color:' + EMAIL_PRIMARY + '">Name:</strong> ' + escapeHtml_(name) + '</td></tr>'
-    +         '<tr><td style="padding:0 0 6px"><strong style="color:' + EMAIL_PRIMARY + '">Email:</strong> ' + escapeHtml_(email) + '</td></tr>'
-    +         '<tr><td style="padding:0 0 0"><strong style="color:' + EMAIL_PRIMARY + '">Subject:</strong> ' + escapeHtml_(subjectField) + '</td></tr>'
-    +       '</table>'
-    +       '<div style="height:2px;background:' + EMAIL_GOLD + ';margin:14px 0"></div>'
-    +       '<div style="margin:0 0 8px;font-size:15px;font-weight:700;color:' + EMAIL_PRIMARY + '">Message</div>'
-    +       '<div style="white-space:pre-line;margin:0 0 16px;border:1px solid ' + EMAIL_GOLD + ';padding:12px;border-radius:6px;background:#fff">' + escapeHtml_(message) + '</div>'
-    +       '<div style="margin:0 0 8px;font-size:15px;font-weight:700;color:' + EMAIL_PRIMARY + '">All Fields</div>'
-    +       buildAllFieldsTableHtml_(allFields)
-    +       buildFinePrintHtml_(pageUrl, userAgent, submittedAt, ip)
-    +     '</div>'
-    +   '</div>'
-    + '</div>';
+  var type = detectFormType_({ form_type: allFields && allFields.form_type }, pageUrl);
+  var title = type === 'youth' ? 'New Youth Program Submission' : 'New Contact Form Submission';
+  var intro = '<p style="margin:0 0 16px">A new website submission has been received. Details are included below.</p>';
+  var body = ''
+    + buildFieldSummaryHtml_(name, email, subjectField)
+    + buildMessageCardHtml_('Message', message)
+    + '<div style="margin:0 0 8px;font-size:15px;line-height:1.3;font-weight:800;color:' + EMAIL_PRIMARY + '">All Fields</div>'
+    + buildAllFieldsTableHtml_(allFields)
+    + buildFinePrintHtml_(pageUrl, userAgent, submittedAt, ip);
+  return buildEmailShell_({
+    preheader: title,
+    eyebrow: type === 'youth' ? 'Youth Programs Submission' : 'Website Contact Submission',
+    title: title,
+    introHtml: intro,
+    bodyHtml: body,
+    accentLabel: 'This message was submitted through the ' + BRAND_NAME + ' website.',
+    footerNote: 'Administrative notification for ' + BRAND_NAME + '.'
+  });
 }
 
 function escapeHtml_(text) { return String(text || '').replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]); }); }
@@ -578,15 +670,15 @@ function formatAllFieldsPlain_(allFields) {
 function buildAllFieldsTableHtml_(allFields) {
   var keys = Object.keys(allFields || {});
   keys.sort();
-  if (!keys.length) return '<p style="margin:0;color:#555">(No extra fields)</p>';
+  if (!keys.length) return '<p style="margin:0;color:' + EMAIL_MUTED + '">(No extra fields)</p>';
 
   var rows = keys.map(function(k){
     return '<tr>'
-      + '<td style="padding:6px 10px;border:1px solid ' + EMAIL_GOLD + ';white-space:nowrap"><strong style="color:' + EMAIL_PRIMARY + '">' + escapeHtml_(formatKeyLabel_(k)) + '</strong></td>'
-      + '<td style="padding:6px 10px;border:1px solid ' + EMAIL_GOLD + '">' + escapeHtml_(String(allFields[k])) + '</td>'
+      + '<td style="padding:10px 12px;border-bottom:1px solid rgba(40,17,86,0.1);white-space:nowrap;vertical-align:top;background:rgba(40,17,86,0.03)"><strong style="color:' + EMAIL_PRIMARY + '">' + escapeHtml_(formatKeyLabel_(k)) + '</strong></td>'
+      + '<td style="padding:10px 12px;border-bottom:1px solid rgba(40,17,86,0.1);vertical-align:top;background:#fff">' + escapeHtml_(String(allFields[k])) + '</td>'
       + '</tr>';
   }).join('');
-  return '<table style="border-collapse:collapse;width:100%;font-size:13px">'
+  return '<table style="border-collapse:separate;border-spacing:0;width:100%;font-size:13px;border:1px solid rgba(40,17,86,0.12);border-radius:14px;overflow:hidden">'
     + '<tbody>' + rows + '</tbody>'
     + '</table>';
 }
@@ -610,59 +702,41 @@ function buildExportText_(name, email, subjectField, message, pageUrl, userAgent
 }
 
 function buildExportHtml_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields) {
-  var meta = ''
-    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 10px">'
-    + '<tr><td style="padding:0 0 6px"><strong style="color:' + EMAIL_PRIMARY + '">Name:</strong> ' + escapeHtml_(name) + '</td></tr>'
-    + '<tr><td style="padding:0 0 6px"><strong style="color:' + EMAIL_PRIMARY + '">Email:</strong> ' + escapeHtml_(email) + '</td></tr>'
-    + '<tr><td style="padding:0"><strong style="color:' + EMAIL_PRIMARY + '">Subject:</strong> ' + escapeHtml_(subjectField) + '</td></tr>'
-    + '</table>';
-  return '<!doctype html><html><head><meta charset="utf-8"><title>Form Submission</title></head>'
-    + '<body style="font-family:Arial,sans-serif;color:' + EMAIL_TEXT + ';font-size:13px;line-height:1.5;background:#fff;margin:0;padding:0">'
-    +   '<div style="padding:18px">'
-    +     '<div style="max-width:820px;margin:0 auto;border:1px solid ' + EMAIL_GOLD + ';background:#fff">'
-    +       '<div style="background:' + EMAIL_PRIMARY + ';padding:14px 16px;border-bottom:4px solid ' + EMAIL_GOLD + '">'
-    +         '<div style="margin:0;font-size:18px;font-weight:700;color:' + EMAIL_GOLD + '">LifePrep Academy Foundation - Form Submission</div>'
-    +       '</div>'
-    +       '<div style="padding:16px">'
-    +         meta
-    +         '<div style="height:2px;background:' + EMAIL_GOLD + ';margin:12px 0"></div>'
-    +         '<div style="margin:0 0 8px;font-size:15px;font-weight:700;color:' + EMAIL_PRIMARY + '">Message</div>'
-    +         '<div style="white-space:pre-line;border:1px solid ' + EMAIL_GOLD + ';padding:12px;border-radius:6px;background:#fff">' + escapeHtml_(message) + '</div>'
-    +         '<div style="margin:14px 0 8px;font-size:15px;font-weight:700;color:' + EMAIL_PRIMARY + '">All Fields</div>'
-    +         buildAllFieldsTableHtml_(allFields)
-    +         buildFinePrintHtml_(pageUrl, userAgent, submittedAt, ip)
-    +       '</div>'
-    +     '</div>'
-    +   '</div>'
-    + '</body></html>';
+  var body = ''
+    + buildFieldSummaryHtml_(name, email, subjectField)
+    + buildMessageCardHtml_('Message', message)
+    + '<div style="margin:0 0 8px;font-size:15px;line-height:1.3;font-weight:800;color:' + EMAIL_PRIMARY + '">All Fields</div>'
+    + buildAllFieldsTableHtml_(allFields)
+    + buildFinePrintHtml_(pageUrl, userAgent, submittedAt, ip);
+  return buildEmailShell_({
+    preheader: 'Form Submission Export',
+    eyebrow: 'Form Submission Export',
+    title: 'Website Submission Record',
+    introHtml: '<p style="margin:0 0 16px">This export contains the full details submitted through the website form.</p>',
+    bodyHtml: body,
+    accentLabel: 'Generated automatically for recordkeeping and follow-up.',
+    footerNote: 'Prepared by ' + BRAND_NAME + '.'
+  });
 }
 
 function buildRegistrantExportHtml_(name, email, subjectField, message, submittedAt, allFields) {
-  var meta = ''
-    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 10px">'
-    + '<tr><td style="padding:0 0 6px"><strong style="color:' + EMAIL_PRIMARY + '">Name:</strong> ' + escapeHtml_(name) + '</td></tr>'
-    + '<tr><td style="padding:0 0 6px"><strong style="color:' + EMAIL_PRIMARY + '">Email:</strong> ' + escapeHtml_(email) + '</td></tr>'
-    + '<tr><td style="padding:0 0 6px"><strong style="color:' + EMAIL_PRIMARY + '">Subject:</strong> ' + escapeHtml_(subjectField) + '</td></tr>'
-    + (submittedAt ? '<tr><td style="padding:0"><strong style="color:' + EMAIL_PRIMARY + '">Submitted At:</strong> ' + escapeHtml_(submittedAt) + '</td></tr>' : '')
-    + '</table>';
-  return '<!doctype html><html><head><meta charset="utf-8"><title>Your Submission</title></head>'
-    + '<body style="font-family:Arial,sans-serif;color:' + EMAIL_TEXT + ';font-size:13px;line-height:1.5;background:#fff;margin:0;padding:0">'
-    +   '<div style="padding:18px">'
-    +     '<div style="max-width:820px;margin:0 auto;border:1px solid ' + EMAIL_GOLD + ';background:#fff">'
-    +       '<div style="background:' + EMAIL_PRIMARY + ';padding:14px 16px;border-bottom:4px solid ' + EMAIL_GOLD + '">'
-    +         '<div style="margin:0;font-size:18px;font-weight:700;color:' + EMAIL_GOLD + '">LifePrep Academy Foundation - Your Submission</div>'
-    +       '</div>'
-    +       '<div style="padding:16px">'
-    +         meta
-    +         '<div style="height:2px;background:' + EMAIL_GOLD + ';margin:12px 0"></div>'
-    +         '<div style="margin:0 0 8px;font-size:15px;font-weight:700;color:' + EMAIL_PRIMARY + '">Message</div>'
-    +         '<div style="white-space:pre-line;border:1px solid ' + EMAIL_GOLD + ';padding:12px;border-radius:6px;background:#fff">' + escapeHtml_(message) + '</div>'
-    +         '<div style="margin:14px 0 8px;font-size:15px;font-weight:700;color:' + EMAIL_PRIMARY + '">All Fields</div>'
-    +         buildAllFieldsTableHtml_(allFields)
-    +       '</div>'
-    +     '</div>'
-    +   '</div>'
-    + '</body></html>';
+  var intro = '<p style="margin:0 0 16px">Thank you for your submission. This document is a copy of the information we received.</p>';
+  var submitted = submittedAt ? '<p style="margin:0 0 16px"><strong style="color:' + EMAIL_PRIMARY + '">Submitted At:</strong> ' + escapeHtml_(submittedAt) + '</p>' : '';
+  var body = ''
+    + buildFieldSummaryHtml_(name, email, subjectField)
+    + submitted
+    + buildMessageCardHtml_('Message', message)
+    + '<div style="margin:0 0 8px;font-size:15px;line-height:1.3;font-weight:800;color:' + EMAIL_PRIMARY + '">All Fields</div>'
+    + buildAllFieldsTableHtml_(allFields);
+  return buildEmailShell_({
+    preheader: 'Your submission receipt',
+    eyebrow: 'Your Submission',
+    title: 'Copy of Your Submission',
+    introHtml: intro,
+    bodyHtml: body,
+    accentLabel: 'Keep this copy for your records.',
+    footerNote: 'Thank you for connecting with ' + BRAND_NAME + '.'
+  });
 }
 
 // In-memory simplistic rate limiting (resets when script instance cold starts)
