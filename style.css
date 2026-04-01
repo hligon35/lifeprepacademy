@@ -1668,10 +1668,38 @@ footer .social-links {
     content: '🔒';
     font-size: 0.9rem;
 }
+.donate-disclaimer {
+    max-width: 760px;
+    margin: 0.35rem auto 0;
+    font-size: 0.82rem;
+    line-height: 1.65;
+    color: rgba(255,255,255,0.82);
+}
+.donate-disclaimer a {
+    color: #fff;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.footer-disclaimer {
+    margin: 2rem auto 0;
+    max-width: 1100px;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.78);
+    font-size: 0.9rem;
+    line-height: 1.7;
+}
+.footer-disclaimer a {
+    color: #fff;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
 
 @media (max-width: 640px) {
     .donate-section { padding: 3.5rem 0 3rem; }
     .donate-section .btn.btn-primary { width: 100%; max-width: 340px; }
+    .footer-disclaimer { font-size: 0.85rem; }
 }
 
 @media (min-width: 1200px) {
