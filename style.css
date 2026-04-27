@@ -1120,12 +1120,11 @@ img[loading="lazy"].loaded {
 }
 
 .contact-content {
-        display: grid;
-        /* Use explicit column widths for a more intentional, narrower layout */
-        grid-template-columns: minmax(0, 420px) minmax(0, 520px);
-        gap: 2.5rem;
-        align-items: start;
-        justify-content: center;
+    display: grid;
+    grid-template-columns: minmax(0, 720px);
+    gap: 0;
+    align-items: start;
+    justify-content: center;
 }
 
 /* Narrow overall width of contact section on large screens */
@@ -1686,7 +1685,7 @@ footer .social-links {
     max-width: 1100px;
     padding-top: 1.25rem;
     border-top: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.78);
+    color: #fff;
     font-size: 0.9rem;
     line-height: 1.7;
 }
@@ -1896,6 +1895,10 @@ footer::before {
     transition: var(--transition);
 }
 
+.footer-section--quick-links {
+    max-width: 360px;
+}
+
 .footer-section:hover {
     background: rgba(255, 255, 255, 0.08);
     transform: translateY(-2px);
@@ -1935,6 +1938,17 @@ footer::before {
     list-style: none;
     padding-left: 0;
     margin: 0;
+}
+
+.footer-quick-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1.25rem;
+    row-gap: 0.75rem;
+}
+
+.footer-quick-links li {
+    margin-bottom: 0;
 }
 
 .footer-section ul li {
@@ -2188,6 +2202,11 @@ footer::before {
         max-width: none;
         text-align: left;
     }
+    .footer-section--quick-links {
+        width: 100%;
+        max-width: 360px;
+        justify-self: center;
+    }
     .footer-section h4 { text-align: left; }
     footer .social-links { justify-content: flex-start; }
 }
@@ -2242,6 +2261,12 @@ footer::before {
     
     .footer-section h4 {
         text-align: center;
+    }
+
+    .footer-quick-links {
+        max-width: 320px;
+        margin: 0 auto;
+        text-align: left;
     }
     
     nav ul {
@@ -2316,9 +2341,9 @@ footer::before {
 /* Ensure contact content stays side by side on larger screens */
 @media (min-width: 769px) {
     .contact-content {
-        grid-template-columns: 1fr 1fr;
-        gap: 3rem;
-        align-items: center;
+        grid-template-columns: minmax(0, 720px);
+        gap: 0;
+        align-items: start;
     }
 }
 
