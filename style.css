@@ -207,10 +207,9 @@ nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    /* Standardize to home page width/margins */
-    max-width: 1200px; /* previously var(--max-width) making other pages wider */
+    max-width: var(--max-width);
     margin: 0 auto;
-    padding: 0 1rem; /* match home inline critical CSS */
+    padding: 0 1rem;
     position: relative; /* anchor mobile dropdown */
 }
 
