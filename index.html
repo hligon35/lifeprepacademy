@@ -50,6 +50,266 @@
 		<link rel="stylesheet" href="style.min.css?v=ec81978a16" />
 		<link rel="preload" href="script.min.js?v=761c52840a" as="script" />
 		<noscript><link rel="stylesheet" href="style.min.css?v=ec81978a16" /></noscript>
+		<style>
+			.home-hero-clinic-countdown {
+				position: relative;
+				margin: 2.25rem auto 0;
+				max-width: min(100%, 1200px);
+				padding: 0;
+				border-radius: 24px;
+				background:
+					radial-gradient(circle at top right, rgba(249, 181, 21, 0.28), transparent 35%),
+					linear-gradient(135deg, #1b0b3d 0%, #281156 48%, #4a90e2 100%);
+				box-shadow: 0 22px 60px rgba(20, 12, 46, 0.24);
+				overflow: hidden;
+				color: #ffffff;
+				text-align: left;
+				border: 1px solid rgba(255, 255, 255, 0.14);
+			}
+
+			.home-hero-clinic-countdown::before,
+			.home-hero-clinic-countdown::after {
+				content: "";
+				position: absolute;
+				border-radius: 999px;
+				pointer-events: none;
+			}
+
+			.home-hero-clinic-countdown::before {
+				width: 220px;
+				height: 220px;
+				top: -110px;
+				right: -45px;
+				background: rgba(255, 255, 255, 0.08);
+			}
+
+			.home-hero-clinic-countdown::after {
+				width: 160px;
+				height: 160px;
+				bottom: -90px;
+				left: -30px;
+				background: rgba(249, 181, 21, 0.16);
+			}
+
+			.home-hero-clinic-countdown .clinic-countdown-inner {
+				position: relative;
+				z-index: 1;
+				display: grid;
+				grid-template-columns: auto minmax(0, 1.1fr) auto;
+				gap: 1.25rem;
+				align-items: center;
+				padding: 1rem 1.2rem 1rem 1rem;
+			}
+
+			.home-hero-clinic-countdown .clinic-countdown-copy {
+				min-width: 0;
+			}
+
+			.home-hero-clinic-countdown .clinic-kicker {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.55rem;
+				padding: 0.35rem 0.8rem;
+				margin-bottom: 0.55rem;
+				border-radius: 999px;
+				background: rgba(255, 255, 255, 0.12);
+				color: #f9d56a;
+				font-size: 0.76rem;
+				font-weight: 700;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+			}
+
+			.home-hero-clinic-countdown h2 {
+				margin-bottom: 0.35rem;
+				color: #ffffff;
+				text-align: left;
+				font-size: clamp(1.25rem, 2.2vw, 2rem);
+			}
+
+			.home-hero-clinic-countdown h2::after {
+				left: 0;
+				transform: none;
+				background: linear-gradient(90deg, #f9b515, rgba(255, 255, 255, 0.7));
+			}
+
+			.home-hero-clinic-countdown p,
+			.home-hero-clinic-countdown .clinic-event-meta,
+			.home-hero-clinic-countdown .clinic-countdown-status {
+				color: rgba(255, 255, 255, 0.9);
+			}
+
+			.home-hero-clinic-countdown .clinic-event-meta {
+				margin: 0;
+				font-size: 0.95rem;
+				font-weight: 600;
+			}
+
+			.home-hero-clinic-countdown .clinic-countdown-panel {
+				padding: 0.8rem 0.85rem;
+				border: 1px solid rgba(255, 255, 255, 0.15);
+				border-radius: 20px;
+				background: rgba(255, 255, 255, 0.08);
+				-webkit-backdrop-filter: blur(10px);
+				backdrop-filter: blur(10px);
+			}
+
+			.home-hero-clinic-countdown .clinic-logo-wrap {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				flex: 0 0 auto;
+			}
+
+			.home-hero-clinic-countdown .clinic-logo-wrap img {
+				max-width: 300px;
+				height: 300px;
+				filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.22));
+			}
+
+			.home-hero-clinic-countdown .clinic-marquee {
+				position: relative;
+				overflow: hidden;
+				margin-top: 0.75rem;
+				padding-top: 0.7rem;
+				border-top: 1px solid rgba(255, 255, 255, 0.14);
+			}
+
+			.home-hero-clinic-countdown .clinic-marquee-track {
+				display: inline-flex;
+				align-items: center;
+				gap: 2rem;
+				min-width: max-content;
+				white-space: nowrap;
+				animation: home-clinic-marquee-scroll 22s linear infinite;
+			}
+
+			.home-hero-clinic-countdown .clinic-marquee-item {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.85rem;
+				font-size: 0.88rem;
+				font-weight: 700;
+				letter-spacing: 0.04em;
+				text-transform: uppercase;
+				color: rgba(255, 255, 255, 0.86);
+			}
+
+			.home-hero-clinic-countdown .clinic-marquee-item::before {
+				content: "";
+				width: 0.45rem;
+				height: 0.45rem;
+				border-radius: 50%;
+				background: #f9b515;
+				box-shadow: 0 0 12px rgba(249, 181, 21, 0.65);
+			}
+
+			.home-hero-clinic-countdown .clinic-countdown-grid {
+				display: grid;
+				grid-template-columns: repeat(4, minmax(0, 1fr));
+				gap: 0.55rem;
+			}
+
+			.home-hero-clinic-countdown .clinic-time-unit {
+				padding: 0.55rem 0.5rem;
+				border-radius: 16px;
+				background: rgba(10, 7, 28, 0.34);
+				text-align: center;
+				min-width: 72px;
+			}
+
+			.home-hero-clinic-countdown .clinic-time-value {
+				display: block;
+				font-size: clamp(1.2rem, 2.6vw, 2rem);
+				font-weight: 800;
+				line-height: 1;
+				color: #ffffff;
+			}
+
+			.home-hero-clinic-countdown .clinic-time-label {
+				display: block;
+				margin-top: 0.3rem;
+				font-size: 0.68rem;
+				font-weight: 700;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				color: rgba(255, 255, 255, 0.72);
+			}
+
+			.home-hero-clinic-countdown .clinic-countdown-status {
+				margin-top: 0.55rem;
+				text-align: center;
+				font-size: 0.8rem;
+				font-weight: 600;
+				letter-spacing: 0.04em;
+				text-transform: uppercase;
+			}
+
+			@keyframes home-clinic-marquee-scroll {
+				from {
+					transform: translateX(0);
+				}
+
+				to {
+					transform: translateX(-50%);
+				}
+			}
+
+			@media (max-width: 920px) {
+				.home-hero-clinic-countdown {
+					max-width: calc(100% - 3rem);
+					border-radius: 22px;
+				}
+
+				.home-hero-clinic-countdown .clinic-countdown-inner {
+					grid-template-columns: 1fr;
+					padding: 1rem;
+					gap: 0.9rem;
+				}
+
+				.home-hero-clinic-countdown h2,
+				.home-hero-clinic-countdown .clinic-countdown-copy {
+					text-align: center;
+				}
+
+				.home-hero-clinic-countdown h2::after {
+					left: 50%;
+					transform: translateX(-50%);
+				}
+
+				.home-hero-clinic-countdown .clinic-logo-wrap img {
+					max-width: 110px;
+					height: auto;
+				}
+
+				.home-hero-clinic-countdown .clinic-countdown-panel {
+					border-radius: 22px;
+				}
+
+				.home-hero-clinic-countdown .clinic-countdown-status {
+					text-align: center;
+				}
+			}
+
+			@media (max-width: 640px) {
+				.home-hero-clinic-countdown {
+					max-width: calc(100% - 1.5rem);
+					border-radius: 22px;
+				}
+
+				.home-hero-clinic-countdown .clinic-countdown-grid {
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+				}
+
+				.home-hero-clinic-countdown .clinic-time-unit {
+					min-width: 0;
+				}
+
+				.home-hero-clinic-countdown .clinic-marquee-item {
+					font-size: 0.78rem;
+				}
+			}
+		</style>
 		<script type="application/ld+json">
 			{
 				"@context": "https://schema.org",
@@ -179,6 +439,61 @@
 							<a href="programs.html" class="btn btn-hero">Explore Programs</a>
 							<a href="contact.html" class="btn btn-hero">Get Involved</a>
 						</div>
+						<section
+							class="home-hero-clinic-countdown"
+							aria-labelledby="home-clinic-countdown-heading"
+							data-target-time="2026-07-18T09:00:00-05:00"
+						>
+							<div class="clinic-countdown-inner">
+								<div class="clinic-logo-wrap">
+									<img
+										src="pffLogo.png"
+										alt="Paducah Flag Football clinic logo"
+										width="240"
+										height="240"
+										decoding="async"
+									/>
+								</div>
+								<div class="clinic-countdown-copy">
+									<p class="clinic-kicker">Flag Football Clinic 2026</p>
+									<h2 id="home-clinic-countdown-heading">Countdown to kickoff in Paducah</h2>
+									<p class="clinic-event-meta"><strong>When:</strong> Saturday, July 18, 2026 from <strong>9:00 AM</strong> to <strong>3:00 PM</strong></p>
+									<p class="clinic-event-meta"><strong>Where:</strong> Paducah Tilghman High School, Paducah, KY</p>
+									<div class="clinic-marquee" aria-hidden="true">
+										<div class="clinic-marquee-track">
+											<span class="clinic-marquee-item">Free Registration</span>
+											<span class="clinic-marquee-item">Grades 3-12</span>
+											<span class="clinic-marquee-item">Free Lunch</span>
+											<span class="clinic-marquee-item">Special Guests Coaches</span>
+											<span class="clinic-marquee-item">Family energy all morning</span>
+										</div>
+									</div>
+								</div>
+								<div class="clinic-countdown-panel">
+									<div class="clinic-countdown-grid" aria-label="Time remaining until the clinic starts">
+										<div class="clinic-time-unit">
+											<span class="clinic-time-value" data-time-part="days">000</span>
+											<span class="clinic-time-label">Days</span>
+										</div>
+										<div class="clinic-time-unit">
+											<span class="clinic-time-value" data-time-part="hours">00</span>
+											<span class="clinic-time-label">Hours</span>
+										</div>
+										<div class="clinic-time-unit">
+											<span class="clinic-time-value" data-time-part="minutes">00</span>
+											<span class="clinic-time-label">Minutes</span>
+										</div>
+										<div class="clinic-time-unit">
+											<span class="clinic-time-value" data-time-part="seconds">00</span>
+											<span class="clinic-time-label">Seconds</span>
+										</div>
+									</div>
+									<p class="clinic-countdown-status" data-countdown-status aria-live="polite">
+										The countdown has begun!
+									</p>
+								</div>
+							</div>
+						</section>
 					</div>
 				</section>
 				<section id="founder" class="founder-section" aria-labelledby="founder-heading">
@@ -403,6 +718,56 @@
 							tax-deductible to the fullest extent of the law.
 						</p>
 			</footer>
+			<script>
+				(function () {
+					const countdownRoot = document.querySelector(".home-hero-clinic-countdown[data-target-time]");
+					if (!countdownRoot) return;
+
+					const targetTime = countdownRoot.getAttribute("data-target-time") || "";
+					const targetMillis = Date.parse(targetTime);
+					if (Number.isNaN(targetMillis)) return;
+
+					const parts = {
+						days: countdownRoot.querySelector('[data-time-part="days"]'),
+						hours: countdownRoot.querySelector('[data-time-part="hours"]'),
+						minutes: countdownRoot.querySelector('[data-time-part="minutes"]'),
+						seconds: countdownRoot.querySelector('[data-time-part="seconds"]'),
+					};
+					const status = countdownRoot.querySelector("[data-countdown-status]");
+					if (Object.values(parts).some(function (node) { return !node; })) return;
+
+					function pad(value, minDigits) {
+						return String(value).padStart(minDigits, "0");
+					}
+
+					function render(diffMillis) {
+						const safeDiff = Math.max(diffMillis, 0);
+						const totalSeconds = Math.floor(safeDiff / 1000);
+						const days = Math.floor(totalSeconds / 86400);
+						const hours = Math.floor((totalSeconds % 86400) / 3600);
+						const minutes = Math.floor((totalSeconds % 3600) / 60);
+						const seconds = totalSeconds % 60;
+
+						parts.days.textContent = pad(days, 3);
+						parts.hours.textContent = pad(hours, 2);
+						parts.minutes.textContent = pad(minutes, 2);
+						parts.seconds.textContent = pad(seconds, 2);
+
+						if (!status) return;
+						if (safeDiff === 0) {
+							status.textContent = "The Paducah flag football clinic is live now.";
+							return;
+						}
+
+						status.textContent = "Time remaining until 9:00 AM on July 18 in Paducah, KY.";
+					}
+
+					render(targetMillis - Date.now());
+					window.setInterval(function () {
+						render(targetMillis - Date.now());
+					}, 1000);
+				})();
+			</script>
 			<script src="script.min.js?v=761c52840a" defer></script>
 		</div>
 	</body>
