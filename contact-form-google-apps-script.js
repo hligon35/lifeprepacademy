@@ -78,31 +78,61 @@ var YOUTH_CONFIRM_TEXT = function(name){
 var NFL_FLAG_CONFIRM_SUBJECT = 'Paducah NFL Flag Football Clinic — Registration';
 var NFL_FLAG_CONFIRM_HTML = function(name){
   var n = escapeHtml_(name || 'there');
-  var intro = ''
-    + '<p style="margin:0 0 12px">Hi ' + n + ',</p>'
-    + '<p style="margin:0 0 12px">Thank you so much for registering your child for the Paducah NFL Flag Football Clinic! We\'re thrilled to help start them on an exciting journey in football.</p>'
-    + '<p style="margin:0 0 12px">To complete the registration and ensure we have all the information needed for camp, please fill out this form:</p>'
-    + '<p style="margin:0 0 12px"><a href="https://form.jotform.com/261490871776065" style="color:' + EMAIL_PRIMARY + ';font-weight:700;text-decoration:none">https://form.jotform.com/261490871776065</a></p>'
-    + '<p style="margin:0 0 12px">Note: If you are registering more than one child for camp, please fill out a separate form for each child.</p>'
-    + '<p style="margin:0">This information is important for us to provide the best experience for your child during the camp.</p>';
-  return buildEmailShell_({
-    preheader: 'Paducah NFL Flag Football Clinic — Registration',
-    eyebrow: 'NFL FLAG',
-    title: 'Paducah NFL Flag Football Clinic',
-    introHtml: intro,
-    accentLabel: 'Best regards,',
-    footerNote: BRAND_NAME
-  });
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Paducah NFL Flag Football Clinic</title>
+</head>
+<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:#292929;background:#f8f9fa;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all">Paducah NFL Flag Football Clinic — Registration</div>
+  <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#f8f9fa;padding:24px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" cellpadding="0" cellspacing="0" style="width:720px;max-width:720px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid rgba(40,17,86,0.08);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#281156 0%,#3d1a78 58%,#522b9d 100%);padding:22px;color:#ffffff;">
+              <a href="https://www.lifeprepacademyfoundation.com/" style="text-decoration:none;color:#ffffff;display:inline-block;vertical-align:middle">
+                <img src="` + BRAND_LOGO_URL + `" alt="logo" width="92" style="display:inline-block;vertical-align:middle;border-radius:8px;background:rgba(255,255,255,0.12);padding:8px;border:1px solid rgba(255,255,255,0.12)">
+              </a>
+              <h1 style="display:inline-block;margin:0 0 0 14px;font-size:22px;vertical-align:middle;font-weight:800">Paducah NFL Flag Football Clinic</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:22px;font-size:15px;line-height:1.6;color:#292929;">
+              <p style="margin:0 0 12px">Hi ${n},</p>
+              <p style="margin:0 0 12px">Thank you so much for registering your child for the Paducah NFL Flag Football Clinic! We're thrilled to help start them on an exciting journey in football.</p>
+              <p style="margin:0 0 12px">To complete the registration and ensure we have all the information needed for camp, please fill out this form:</p>
+              <p style="margin:0 0 18px"><a href="https://form.jotform.com/261490871776065" style="display:inline-block;padding:10px 14px;background:#281156;color:#ffffff;border-radius:8px;text-decoration:none;font-weight:700">Complete registration form</a></p>
+              <p style="margin:0 0 12px"><strong>Note:</strong> If you are registering more than one child for camp, please fill out a separate form for each child.</p>
+              <p style="margin:0 0 8px">This information is important for us to provide the best experience for your child during the camp.</p>
+              <p style="margin:8px 0 0">
+  Best regards,<br>
+  <span style="font-family:'Brush Script MT','Segoe Script','Lucida Handwriting',cursive; font-size:20px;display:inline-block;margin-top:6px;">Bryan Hall</span><br>
+  <strong>Founder</strong>
+</p>
+</tr>
+<tr>
+            <td style="padding:16px 22px;background:#281156;text-align:center;">
+  <a href="https://www.lifeprepacademyfoundation.com/" style="color:#ffffff;font-weight:700;text-decoration:none;font-size:13px;">www.lifeprepacademyfoundation.com</a>
+</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 };
 var NFL_FLAG_CONFIRM_TEXT = function(name){
   return 'Hi ' + (name || 'there') + '\n\n'
-    + "Thank you so much for registering your child for the Paducah NFL Flag Football Clinic! We're thrilled to help start them on an exciting journey in football." + '\n\n'
+    + 'Thank you so much for registering your child for the Paducah NFL Flag Football Clinic! We\'re thrilled to help start them on an exciting journey in football.\n\n'
     + 'To complete the registration and ensure we have all the information needed for camp, please fill out this form:\n'
     + 'https://form.jotform.com/261490871776065\n\n'
     + 'Note: If you are registering more than one child for camp, please fill out a separate form for each child.\n\n'
     + 'This information is important for us to provide the best experience for your child during the camp.\n\n'
-    + 'Best regards,\n'
-    + BRAND_NAME;
+    + 'Best regards,\nBryan Hall\nFounder\n' + BRAND_NAME;
 };
 
 // Basic rate limit (per IP) configuration (very lightweight / optional)
@@ -315,12 +345,14 @@ function doPost(e) {
       from: sender.email // SendGrid: From email; Gmail fallback: uses alias if available
     });
 
-    // Youth Programs: submitter confirmation + PDF copy
+    // Youth Programs: send confirmation only for NFL Clinic; otherwise send the generic ACK
     if (formType === 'youth' && SEND_YOUTH_CONFIRMATION && isValidEmail_(email)) {
       try {
-        // Only send NFL FLAG clinic confirmation when the submitted subject indicates a clinic
-        var isNflClinic = subjectField && String(subjectField).toLowerCase().indexOf('clinic') !== -1;
-        if (isNflClinic) {
+        var subj = String(subjectField || '').toLowerCase();
+        var isNfl = subj.indexOf('nfl') !== -1;
+        var isClinic = subj.indexOf('clinic') !== -1;
+        if (isNfl && isClinic) {
+          // Send NFL clinic template when both 'nfl' and 'clinic' present in subject
           sendMail_({
             to: email,
             subject: NFL_FLAG_CONFIRM_SUBJECT,
@@ -328,17 +360,16 @@ function doPost(e) {
             htmlBody: NFL_FLAG_CONFIRM_HTML(name),
             name: sender.name || 'LPAF Youth Programs',
             from: sender.email,
-            attachments: youthRegistrantPdfBlob ? [youthRegistrantPdfBlob] : undefined
+            // No attachments to the registrant per request
           });
         } else {
+          // For all other program types, use the generic acknowledgement template
           sendMail_({
             to: email,
-            subject: YOUTH_CONFIRM_SUBJECT,
-            body: YOUTH_CONFIRM_TEXT(name),
-            htmlBody: YOUTH_CONFIRM_HTML(name),
-            name: sender.name || 'LPAF Youth Programs',
-            from: sender.email,
-            attachments: youthRegistrantPdfBlob ? [youthRegistrantPdfBlob] : undefined
+            subject: ACK_SUBJECT,
+            body: ACK_TEXT(name),
+            htmlBody: ACK_HTML(name),
+            name: 'LifePrep Academy Foundation'
           });
         }
       } catch (yAckErr) {
