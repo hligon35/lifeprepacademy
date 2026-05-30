@@ -1,0 +1,71 @@
+# Make (Integromat) email template for Paducah NFL Flag Football Clinic
+
+# Map these keys in your Make scenario: to, subject, text_body, html_body
+# Placeholders available: {{name}} | {{first_name}} | {{last_name}} | {{logo_url}} | {{brand_name}}
+
+Subject:
+Paducah NFL Flag Football Clinic — Registration
+
+
+Plain text body:
+Hi {{first_name}}
+
+Thank you so much for registering your child for the Paducah NFL Flag Football Clinic! We're thrilled to help start them on an exciting journey in football.
+
+To complete the registration and ensure we have all the information needed for camp, please fill out this form:
+https://form.jotform.com/261490871776065
+
+Note: If you are registering more than one child for camp, please fill out a separate form for each child.
+
+This information is important for us to provide the best experience for your child during the camp.
+
+Best regards,
+{{brand_name}}
+
+{{logo_url}}
+
+
+HTML body (paste into the `html_body` field in Make):
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Paducah NFL Flag Football Clinic</title>
+</head>
+<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:#292929;background:#f8f9fa;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all">Paducah NFL Flag Football Clinic — Registration</div>
+  <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#f8f9fa;padding:24px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" cellpadding="0" cellspacing="0" style="width:720px;max-width:720px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid rgba(40,17,86,0.08);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#281156 0%,#3d1a78 58%,#522b9d 100%);padding:22px;color:#ffffff;">
+              <a href="https://www.lifeprepacademyfoundation.com/" style="text-decoration:none;color:#ffffff;display:inline-block;vertical-align:middle">
+                <img src="{{logo_url}}" alt="{{brand_name}} logo" width="92" style="display:inline-block;vertical-align:middle;border-radius:8px;background:rgba(255,255,255,0.12);padding:8px;border:1px solid rgba(255,255,255,0.12)">
+              </a>
+              <h1 style="display:inline-block;margin:0 0 0 14px;font-size:22px;vertical-align:middle;font-weight:800">Paducah NFL Flag Football Clinic</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:22px;font-size:15px;line-height:1.6;color:#292929;">
+              <p style="margin:0 0 12px">Hi {{first_name}},</p>
+              <p style="margin:0 0 12px">Thank you so much for registering your child for the Paducah NFL Flag Football Clinic! We're thrilled to help start them on an exciting journey in football.</p>
+              <p style="margin:0 0 12px">To complete the registration and ensure we have all the information needed for camp, please fill out this form:</p>
+              <p style="margin:0 0 18px"><a href="https://form.jotform.com/261490871776065" style="display:inline-block;padding:10px 14px;background:#281156;color:#ffffff;border-radius:8px;text-decoration:none;font-weight:700">Complete registration form</a></p>
+              <p style="margin:0 0 12px"><strong>Note:</strong> If you are registering more than one child for camp, please fill out a separate form for each child.</p>
+              <p style="margin:0 0 12px">This information is important for us to provide the best experience for your child during the camp.</p>
+              <p style="margin:18px 0 0">Best regards,<br>{{brand_name}}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:12px 22px 22px;font-size:12px;color:#6b7280;text-align:center;">
+              <a href="https://www.lifeprepacademyfoundation.com/" style="color:#281156;font-weight:700;text-decoration:none">lifeprepacademyfoundation.com</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

@@ -1451,6 +1451,13 @@ footer .social-links {
     transform: translateX(14px);
 }
 
+.page-youth-programs .program-card > p {
+    min-height: 3rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
+
 @media (min-width: 900px) {
     .page-youth-programs .programs-grid {
         flex-wrap: nowrap;

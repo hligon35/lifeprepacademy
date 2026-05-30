@@ -74,6 +74,37 @@ var YOUTH_CONFIRM_TEXT = function(name){
     + '(This is an automated confirmation.)';
 };
 
+// NFL FLAG specific confirmation (Paducah NFL Flag Football Clinic)
+var NFL_FLAG_CONFIRM_SUBJECT = 'Paducah NFL Flag Football Clinic — Registration';
+var NFL_FLAG_CONFIRM_HTML = function(name){
+  var n = escapeHtml_(name || 'there');
+  var intro = ''
+    + '<p style="margin:0 0 12px">Hi ' + n + ',</p>'
+    + '<p style="margin:0 0 12px">Thank you so much for registering your child for the Paducah NFL Flag Football Clinic! We\'re thrilled to help start them on an exciting journey in football.</p>'
+    + '<p style="margin:0 0 12px">To complete the registration and ensure we have all the information needed for camp, please fill out this form:</p>'
+    + '<p style="margin:0 0 12px"><a href="https://form.jotform.com/261490871776065" style="color:' + EMAIL_PRIMARY + ';font-weight:700;text-decoration:none">https://form.jotform.com/261490871776065</a></p>'
+    + '<p style="margin:0 0 12px">Note: If you are registering more than one child for camp, please fill out a separate form for each child.</p>'
+    + '<p style="margin:0">This information is important for us to provide the best experience for your child during the camp.</p>';
+  return buildEmailShell_({
+    preheader: 'Paducah NFL Flag Football Clinic — Registration',
+    eyebrow: 'NFL FLAG',
+    title: 'Paducah NFL Flag Football Clinic',
+    introHtml: intro,
+    accentLabel: 'Best regards,',
+    footerNote: BRAND_NAME
+  });
+};
+var NFL_FLAG_CONFIRM_TEXT = function(name){
+  return 'Hi ' + (name || 'there') + '\n\n'
+    + "Thank you so much for registering your child for the Paducah NFL Flag Football Clinic! We're thrilled to help start them on an exciting journey in football." + '\n\n'
+    + 'To complete the registration and ensure we have all the information needed for camp, please fill out this form:\n'
+    + 'https://form.jotform.com/261490871776065\n\n'
+    + 'Note: If you are registering more than one child for camp, please fill out a separate form for each child.\n\n'
+    + 'This information is important for us to provide the best experience for your child during the camp.\n\n'
+    + 'Best regards,\n'
+    + BRAND_NAME;
+};
+
 // Basic rate limit (per IP) configuration (very lightweight / optional)
 var RATE_LIMIT_PER_MIN = 15; // max submissions per IP per rolling minute window
 // Anti-spam thresholds and options
@@ -287,15 +318,29 @@ function doPost(e) {
     // Youth Programs: submitter confirmation + PDF copy
     if (formType === 'youth' && SEND_YOUTH_CONFIRMATION && isValidEmail_(email)) {
       try {
-        sendMail_({
-          to: email,
-          subject: YOUTH_CONFIRM_SUBJECT,
-          body: YOUTH_CONFIRM_TEXT(name),
-          htmlBody: YOUTH_CONFIRM_HTML(name),
-          name: sender.name || 'LPAF Youth Programs',
-          from: sender.email,
-          attachments: youthRegistrantPdfBlob ? [youthRegistrantPdfBlob] : undefined
-        });
+        // Only send NFL FLAG clinic confirmation when the submitted subject indicates a clinic
+        var isNflClinic = subjectField && String(subjectField).toLowerCase().indexOf('clinic') !== -1;
+        if (isNflClinic) {
+          sendMail_({
+            to: email,
+            subject: NFL_FLAG_CONFIRM_SUBJECT,
+            body: NFL_FLAG_CONFIRM_TEXT(name),
+            htmlBody: NFL_FLAG_CONFIRM_HTML(name),
+            name: sender.name || 'LPAF Youth Programs',
+            from: sender.email,
+            attachments: youthRegistrantPdfBlob ? [youthRegistrantPdfBlob] : undefined
+          });
+        } else {
+          sendMail_({
+            to: email,
+            subject: YOUTH_CONFIRM_SUBJECT,
+            body: YOUTH_CONFIRM_TEXT(name),
+            htmlBody: YOUTH_CONFIRM_HTML(name),
+            name: sender.name || 'LPAF Youth Programs',
+            from: sender.email,
+            attachments: youthRegistrantPdfBlob ? [youthRegistrantPdfBlob] : undefined
+          });
+        }
       } catch (yAckErr) {
         // Do not fail overall if youth confirmation fails
       }
@@ -1200,6 +1245,27 @@ function adminCreateDailyPurgeTrigger() {
 
 // Test harness you can run inside the Apps Script editor without an HTTP request
 function testDoPost_() {
-  var fakeEvent = { parameter: { name: 'Test User', email: 'test@example.com', subject: 'Test', message: 'Hello world!', page: 'https://example.com/contact', userAgent: 'UnitTest', submittedAt: new Date().toISOString() } };
-  var result = doPost(fakeEvent); Logger.log(result.getContent());
+  // Test sender: replace with any address to actually send when running in Apps Script
+  var fakeEvent = {
+    parameter: {
+      name: 'Test Parent',
+      email: 'hligon@getsparqd.com',
+      subject: 'NFL FLAG / Youth Programs - Clinic',
+      message: 'Test send: NFL Clinic confirmation email',
+      page: 'https://lifeprepacademyfoundation.com/youth-programs',
+      userAgent: 'UnitTest',
+      submittedAt: new Date().toISOString()
+    }
+  };
+  var result = doPost(fakeEvent);
+  Logger.log(result.getContent());
+}
+
+// Preview the NFL Clinic email HTML and plain text without sending
+function previewNflClinicEmail_() {
+  var name = 'Test Parent';
+  Logger.log('--- Plain Text ---');
+  Logger.log(NFL_FLAG_CONFIRM_TEXT(name));
+  Logger.log('--- HTML ---');
+  Logger.log(NFL_FLAG_CONFIRM_HTML(name));
 }

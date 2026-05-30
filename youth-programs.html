@@ -11,10 +11,12 @@
 		<meta name="robots" content="index, follow" />
 		<meta name="referrer" content="strict-origin-when-cross-origin" />
 
-		<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
-		<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png" />
-		<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png" />
-		<link rel="canonical" href="https://www.lifeprepacademyfoundation.com/youth-programs.html" />
+		
+		
+		
+		<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png"><link rel="canonical" href="https://www.lifeprepacademyfoundation.com/youth-programs.html" />
 
 		<meta property="og:type" content="website" />
 		<meta property="og:title" content="Youth Programs | LifePrep Academy Foundation" />
@@ -37,9 +39,9 @@
 
 		<meta name="theme-color" content="#281156" />
 
-		<link rel="preload" href="style.min.css?v=5e394c4663" as="style" />
-		<link rel="stylesheet" href="style.min.css?v=5e394c4663" />
-		<noscript><link rel="stylesheet" href="style.min.css?v=5e394c4663" /></noscript>
+		<link rel="preload" href="style.min.css?v=b59c62fc16" as="style" />
+		<link rel="stylesheet" href="style.min.css?v=b59c62fc16" />
+		<noscript><link rel="stylesheet" href="style.min.css?v=b59c62fc16" /></noscript>
 		<style>
 			.page-youth-programs .program-card .program-logo {
 				display: block;
@@ -267,8 +269,11 @@
 										<option value="MLS GO / Youth Programs Information">
 											MLS GO / Youth Programs Information
 										</option>
-										<option value="NFL FLAG / Youth Programs Information">
-											NFL FLAG / Youth Programs Information
+										<option value="NFL FLAG / Youth Programs - League">
+											NFL FLAG / Youth Programs — League
+										</option>
+										<option value="NFL FLAG / Youth Programs - Clinic">
+											NFL FLAG / Youth Programs — Clinic
 										</option>
 										<option value="General Youth Programs">
 											General Youth Programs
@@ -745,8 +750,11 @@
 									<option value="MLS GO / Youth Team Information" selected>
 										MLS GO / Youth Team Information
 									</option>
-									<option value="NFL FLAG / Youth Team Information">
-										NFL FLAG / Youth Team Information
+									<option value="NFL FLAG / Youth Team - League">
+										NFL FLAG / Youth Team — League
+									</option>
+									<option value="NFL FLAG / Youth Team - Clinic">
+										NFL FLAG / Youth Team — Clinic
 									</option>
 									<option value="General Youth Programs">General Youth Programs</option>
 								</select>
@@ -892,7 +900,8 @@
 						title: "More Info: NFL FLAG",
 						helper:
 							"Complete the form below and we&rsquo;ll follow up with NFL FLAG program details and next steps.",
-						subject: "NFL FLAG / Youth Programs Information",
+						// default to Clinic so the form preselects a clinic request
+						subject: "NFL FLAG / Youth Programs - Clinic",
 						placeholder:
 							"Tell us what you want to know about NFL FLAG, your participant age range, and any timing questions.",
 					},
