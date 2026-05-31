@@ -370,6 +370,8 @@ function doPost(e) {
         var subj = String(subjectField || '').toLowerCase();
         var isNfl = subj.indexOf('nfl') !== -1;
         var isClinic = subj.indexOf('clinic') !== -1;
+        // Debug: log detection values to help diagnose routing issues
+        try { Logger.log('[doPost] formType=' + formType + ' subjectField=' + subjectField + ' subj=' + subj + ' isNfl=' + isNfl + ' isClinic=' + isClinic); } catch (e) {}
         if (isNfl && isClinic) {
           // Send NFL clinic template when both 'nfl' and 'clinic' present in subject
           sendMail_({
