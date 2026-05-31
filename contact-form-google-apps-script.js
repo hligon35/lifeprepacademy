@@ -319,34 +319,13 @@ function doPost(e) {
     var plainBody = buildPlainBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
     var htmlBody = buildHtmlBody_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
 
-    // Youth Programs only: attach a full submission export (TXT + PDF)
+
     var attachments = null;
     var youthAdminPdfBlob = null;
     var youthAdminTxtBlob = null;
     var youthRegistrantPdfBlob = null;
     if (formType === 'youth') {
-      var ts = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd_HH-mm-ss');
-      var exportTxt = buildExportText_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
-      var txtBlob = Utilities.newBlob(exportTxt, MimeType.PLAIN_TEXT, 'submission_' + ts + '.txt');
-      var exportHtml = buildExportHtml_(name, email, subjectField, message, pageUrl, userAgent, submittedAt, ip, allFields);
-      var pdfBlob;
-      try {
-        pdfBlob = HtmlService.createHtmlOutput(exportHtml).getBlob().getAs(MimeType.PDF).setName('submission_' + ts + '.pdf');
-      } catch (pdfErr) {
-        // If PDF conversion fails, still send TXT.
-        pdfBlob = null;
-      }
-      youthAdminTxtBlob = txtBlob;
-      youthAdminPdfBlob = pdfBlob;
-      attachments = pdfBlob ? [txtBlob, pdfBlob] : [txtBlob];
-
-      // Privacy-safe PDF for the registrant (no IP/User-Agent/page URL).
-      try {
-        var registrantHtml = buildRegistrantExportHtml_(name, email, subjectField, message, submittedAt, allFields);
-        youthRegistrantPdfBlob = HtmlService.createHtmlOutput(registrantHtml).getBlob().getAs(MimeType.PDF).setName('your_submission_' + ts + '.pdf');
-      } catch (registrantPdfErr) {
-        youthRegistrantPdfBlob = null;
-      }
+      attachments = null;
     }
 
     // Send email to primary to ensure INBOX delivery; BCC alias for record (avoid Gmail self-send suppression)
