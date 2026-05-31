@@ -579,6 +579,9 @@ function buildEmailShell_(options) {
   var preheader = escapeHtml_(options.preheader || BRAND_NAME);
   var eyebrow = options.eyebrow ? '<div style="font-size:11px;line-height:1.2;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:' + EMAIL_GOLD + ';margin:0 0 12px">' + escapeHtml_(options.eyebrow) + '</div>' : '';
   var title = options.title ? '<h1 style="margin:0 0 12px;font-family:Arial,sans-serif;font-size:28px;line-height:1.1;font-weight:800;color:#ffffff">' + escapeHtml_(options.title) + '</h1>' : '';
+  // Defensive: strip accidental numeric NaN fragments that may appear from bad concatenation
+  eyebrow = String(eyebrow || '').replace(/NaN/g, '');
+  title = String(title || '').replace(/NaN/g, '');
   var introHtml = String(options.introHtml || '');
   var bodyHtml = String(options.bodyHtml || '');
   var accentLabel = options.accentLabel ? '<div style="margin:18px 0 0;padding:14px 16px;border-left:4px solid ' + EMAIL_GOLD + ';background:rgba(249,181,21,0.12);font-size:14px;line-height:1.5;color:' + EMAIL_TEXT + ';font-weight:600">' + escapeHtml_(options.accentLabel) + '</div>' : '';
