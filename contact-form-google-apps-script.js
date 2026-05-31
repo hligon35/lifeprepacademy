@@ -34,7 +34,7 @@ var ACK_SUBJECT = 'We received your message';
 var ACK_HTML = function(name){
   var intro = ''
     + '<p style="margin:0 0 12px">Hi ' + escapeHtml_(name || 'there') + ',</p>'
-    + '<p style="margin:0 0 12px">Thank you for contacting ' + BRAND_NAME + '. We received your message and will respond soon.</p>'
+    + '<p style="margin:0 0 12px">Thank you for contacting LifePrep Academy Foundation. We received your message and will respond soon.</p>'
     + '<p style="margin:0">This is an automated confirmation for your records.</p>';
   return buildEmailShell_({
     preheader: 'We received your message.',
@@ -42,40 +42,39 @@ var ACK_HTML = function(name){
     title: 'Your Message Was Received',
     introHtml: intro,
     accentLabel: 'We appreciate your interest and will follow up as soon as possible.',
-    footerNote: 'This is an automated confirmation from ' + BRAND_NAME + '.'
+    footerNote: 'This is an automated confirmation from  LifePrep Academy Foundation.'
   });
 };
 var ACK_TEXT = function(name){return 'Hi '+(name||'there')+'\n\nThank you for contacting LifePrep Academy Foundation. We\'ve received your message and will respond soon.\n\n(This is an automated confirmation.)';};
 
-// Youth Programs: send a confirmation email + PDF copy to the submitter.
+// Youth Programs: send a confirmation email to the submitter.
 var SEND_YOUTH_CONFIRMATION = true;
-var YOUTH_CONFIRM_SUBJECT = 'Youth Program Registration Request Received';
+var YOUTH_CONFIRM_SUBJECT = 'Information Request Received';
 var YOUTH_CONFIRM_HTML = function(name){
   var n = escapeHtml_(name || 'there');
   var intro = ''
     + '<p style="margin:0 0 12px">Hi ' + n + ',</p>'
-    + '<p style="margin:0 0 12px">Thank you for your interest in ' + BRAND_NAME + ' Youth Programs. We\'ve received your registration request.</p>'
-    + '<p style="margin:0 0 12px"><strong>A PDF copy of your submission is attached</strong> for your records.</p>'
+    + '<p style="margin:0 0 12px">Thank you for your interest in LifePrep Academy Foundation\'s Youth Programs. We\'ve received your information request.</p>'
     + '<p style="margin:0">If you have questions, reply to this email or contact <a href="mailto:info@lifeprepacademyfoundation.com" style="color:' + EMAIL_PRIMARY + ';font-weight:700;text-decoration:none">info@lifeprepacademyfoundation.com</a>.</p>';
   return buildEmailShell_({
-    preheader: 'Your youth program request has been received.',
+    preheader: 'Your youth program information request has been received.',
     eyebrow: 'Youth Programs',
-    title: 'Registration Request Received',
+    title: 'Information Request Received',
     introHtml: intro,
     accentLabel: 'We will follow up with next steps, timing, and any requested details.',
-    footerNote: 'This is an automated confirmation from ' + BRAND_NAME + ' Youth Programs.'
+    footerNote: 'This is an automated confirmation from  LifePrep Academy Foundation Youth Programs.'
   });
 };
 var YOUTH_CONFIRM_TEXT = function(name){
   return 'Hi ' + (name || 'there') + '\n\n'
-    + 'Thank you for your interest in LifePrep Academy Foundation Youth Programs. We\'ve received your registration request.\n\n'
-    + 'A PDF copy of your submission is attached for your records.\n\n'
+    + 'Thank you for your interest in LifePrep Academy Foundation\'s Youth Programs. We\'ve received your information request.\n\n'
     + 'Questions? Reply to this email or contact info@lifeprepacademyfoundation.com\n\n'
     + '(This is an automated confirmation.)';
 };
 
 // NFL FLAG specific confirmation (Paducah NFL Flag Football Clinic)
-var NFL_FLAG_CONFIRM_SUBJECT = 'Paducah NFL Flag Football Clinic — Registration';
+var NFL_FLAG_CONFIRM_SUBJECT = 'Paducah NFL Flag Football Clinic — Next steps';
+
 var NFL_FLAG_CONFIRM_HTML = function(name){
   var n = escapeHtml_(name || 'there');
   return `<!doctype html>
@@ -86,7 +85,7 @@ var NFL_FLAG_CONFIRM_HTML = function(name){
   <title>Paducah NFL Flag Football Clinic</title>
 </head>
 <body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:#292929;background:#f8f9fa;">
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all">Paducah NFL Flag Football Clinic — Registration</div>
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all">Paducah NFL Flag Football Clinic — Sign-up</div>
   <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#f8f9fa;padding:24px;">
     <tr>
       <td align="center">
@@ -94,7 +93,7 @@ var NFL_FLAG_CONFIRM_HTML = function(name){
           <tr>
             <td style="background:linear-gradient(135deg,#281156 0%,#3d1a78 58%,#522b9d 100%);padding:22px;color:#ffffff;">
               <a href="https://www.lifeprepacademyfoundation.com/" style="text-decoration:none;color:#ffffff;display:inline-block;vertical-align:middle">
-                <img src="` + BRAND_LOGO_URL + `" alt="logo" width="92" style="display:inline-block;vertical-align:middle;border-radius:8px;background:rgba(255,255,255,0.12);padding:8px;border:1px solid rgba(255,255,255,0.12)">
+                <img src="https://www.lifeprepacademyfoundation.com/logo.png" alt="logo" width="92" style="display:inline-block;vertical-align:middle;border-radius:8px;background:rgba(255,255,255,0.12);padding:8px;border:1px solid rgba(255,255,255,0.12)">
               </a>
               <h1 style="display:inline-block;margin:0 0 0 14px;font-size:22px;vertical-align:middle;font-weight:800">Paducah NFL Flag Football Clinic</h1>
             </td>
@@ -102,21 +101,42 @@ var NFL_FLAG_CONFIRM_HTML = function(name){
           <tr>
             <td style="padding:22px;font-size:15px;line-height:1.6;color:#292929;">
               <p style="margin:0 0 12px">Hi ${n},</p>
-              <p style="margin:0 0 12px">Thank you so much for registering your child for the Paducah NFL Flag Football Clinic! We're thrilled to help start them on an exciting journey in football.</p>
-              <p style="margin:0 0 12px">To complete the registration and ensure we have all the information needed for camp, please fill out this form:</p>
-              <p style="margin:0 0 18px"><a href="https://form.jotform.com/261490871776065" style="display:inline-block;padding:10px 14px;background:#281156;color:#ffffff;border-radius:8px;text-decoration:none;font-weight:700">Complete registration form</a></p>
-              <p style="margin:0 0 12px"><strong>Note:</strong> If you are registering more than one child for camp, please fill out a separate form for each child.</p>
-              <p style="margin:0 0 8px">This information is important for us to provide the best experience for your child during the camp.</p>
+
+              <p style="margin:0 0 12px">
+                Thank you so much for reaching out! We\’re excited that you\’re interested in the Paducah NFL Flag Football Clinic — it\ information’s going to be an awesome experience for young athletes who are ready to learn, grow, and have a blast on the field.
+              </p>
+
+              <p style="margin:0 0 12px">
+                To officially reserve your child\’s spot and begin their flag football journey, please sign up through Eventbrite using the link below. Once you complete registration, you\’ll automatically receive the player form with all the details you need before camp day.
+              </p>
+
+              <p style="margin:0 0 18px">
+                <a href="https://www.eventbrite.com/e/paducah-nfl-flag-football-clinic-tickets-1989860543451?aff=oddtdtcreator&keep_tld=true"
+    + 'Best regards,\nBryan Hall\nFounder\nLifePrep Academy Foundation';
+
+              <p style="margin:0 0 12px">
+                We can\’t wait to welcome your child and help them take their first steps into the world of flag football. It\’s going to be fun, energetic, and full of great memories!
+              </p>
+
               <p style="margin:8px 0 0">
-  Best regards,<br>
-  <span style="font-family:'Brush Script MT','Segoe Script','Lucida Handwriting',cursive; font-size:20px;display:inline-block;margin-top:6px;">Bryan Hall</span><br>
-  <strong>Founder</strong>
-</p>
-</tr>
-<tr>
+ information                Best regards,<br>
+                <span style="font-family:'Brush Script MT','Segoe Script','Lucida Handwriting',cursive;
+                             font-size:20px;display:inline-block;margin-top:6px;">
+                  Bryan Hall
+                </span><br>
+                <strong>Founder</strong><br>
+                LifePrep Academy Foundation
+              </p>
+            </td>
+    + 'Best regards,\nBryan Hall\nFounder\nLifePrep Academy Foundation';
+          </tr>
+          <tr>
             <td style="padding:16px 22px;background:#281156;text-align:center;">
-  <a href="https://www.lifeprepacademyfoundation.com/" style="color:#ffffff;font-weight:700;text-decoration:none;font-size:13px;">www.lifeprepacademyfoundation.com</a>
-</td>
+              <a href="https://www.lifeprepacademyfoundation.com/" 
+                 style="color:#ffffff;font-weight:700;text-decoration:none;font-size:13px;">
+                 www.lifeprepacademyfoundation.com
+              </a>
+            </td>
           </tr>
         </table>
       </td>
@@ -127,12 +147,11 @@ var NFL_FLAG_CONFIRM_HTML = function(name){
 };
 var NFL_FLAG_CONFIRM_TEXT = function(name){
   return 'Hi ' + (name || 'there') + '\n\n'
-    + 'Thank you so much for registering your child for the Paducah NFL Flag Football Clinic! We\'re thrilled to help start them on an exciting journey in football.\n\n'
-    + 'To complete the registration and ensure we have all the information needed for camp, please fill out this form:\n'
-    + 'https://form.jotform.com/261490871776065\n\n'
-    + 'Note: If you are registering more than one child for camp, please fill out a separate form for each child.\n\n'
-    + 'This information is important for us to provide the best experience for your child during the camp.\n\n'
-    + 'Best regards,\nBryan Hall\nFounder\n' + BRAND_NAME;
+    + 'Thank you so much for reaching out! We\’re excited that you\’re interested in the Paducah NFL Flag Football Clinic — it\’s going to be an awesome experience for young athletes who are ready to learn, grow, and have a blast on the field.\n\n'
+    + 'To officially reserve your child\’s spot and begin their flag football journey, please sign up through Eventbrite using the link below. Once you complete registration, you\’ll automatically receive the player form with all the details you need.\n\n'
+    + 'Sign up here: https://www.eventbrite.com/e/paducah-nfl-flag-football-clinic-tickets-1989860543451?aff=oddtdtcreator&keep_tld=true\n\n'
+    + 'We can\’t wait to welcome your child and help them take their first steps into the world of flag football. It\’s going to be fun, energetic, and full of great memories!\n\n'
+    + 'Best regards,\nBryan Hall\nFounder\nLifePrep Academy Foundation';
 };
 
 // Basic rate limit (per IP) configuration (very lightweight / optional)
@@ -425,7 +444,7 @@ function doPost(e) {
 function successMessage_(formType) {
   var type = String(formType || '').trim().toLowerCase();
   if (type === 'youth') {
-    return 'Thanks! We received your registration request. Please check your email for a PDF copy of your submission.';
+    return 'Thanks! We received your information request. Please check your email for confirmation.';
   }
   return 'Thank you! Your message has been sent.';
 }
@@ -579,7 +598,7 @@ function buildEmailShell_(options) {
     +                 '<tr>'
     +                   '<td style="vertical-align:top;padding-right:16px">'
     +                     '<a href="' + BRAND_URL + '" style="text-decoration:none;color:#ffffff">'
-    +                       '<img src="' + BRAND_LOGO_URL + '" alt="' + BRAND_NAME + ' logo" width="92" height="92" style="display:block;width:92px;height:auto;background:rgba(255,255,255,0.22);padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,0.22)">'
+    +                       '<img src="' + BRAND_LOGO_URL + '" alt="LifePrep Academy Foundation logo" width="92" height="92" style="display:block;width:92px;height:auto;background:rgba(255,255,255,0.22);padding:10px 12px;border-radius:14px;border:1px solid rgba(255,255,255,0.22)">'
     +                     '</a>'
     +                   '</td>'
     +                   '<td style="vertical-align:middle">'
@@ -662,8 +681,8 @@ function buildHtmlBody_(name, email, subjectField, message, pageUrl, userAgent, 
     title: title,
     introHtml: intro,
     bodyHtml: body,
-    accentLabel: 'This message was submitted through the ' + BRAND_NAME + ' website.',
-    footerNote: 'Administrative notification for ' + BRAND_NAME + '.'
+    accentLabel: 'This message was submitted through the LifePrep Academy Foundation website.',
+    footerNote: 'Administrative notification for LifePrep Academy Foundation.'
   });
 }
 
@@ -791,7 +810,7 @@ function buildExportHtml_(name, email, subjectField, message, pageUrl, userAgent
     introHtml: '<p style="margin:0 0 16px">This export contains the full details submitted through the website form.</p>',
     bodyHtml: body,
     accentLabel: 'Generated automatically for recordkeeping and follow-up.',
-    footerNote: 'Prepared by ' + BRAND_NAME + '.'
+    footerNote: 'Prepared by LifePrep Academy Foundation.'
   });
 }
 
@@ -811,7 +830,7 @@ function buildRegistrantExportHtml_(name, email, subjectField, message, submitte
     introHtml: intro,
     bodyHtml: body,
     accentLabel: 'Keep this copy for your records.',
-    footerNote: 'Thank you for connecting with ' + BRAND_NAME + '.'
+    footerNote: 'Thank you for connecting with LifePrep Academy Foundation.'
   });
 }
 
