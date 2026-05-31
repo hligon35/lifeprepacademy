@@ -111,7 +111,10 @@ var NFL_FLAG_CONFIRM_HTML = function(name){
 
               <p style="margin:0 0 18px">
                 <a href="https://www.eventbrite.com/e/paducah-nfl-flag-football-clinic-tickets-1989860543451?aff=oddtdtcreator&keep_tld=true"
-    + 'Best regards,\nBryan Hall\nFounder\nLifePrep Academy Foundation';
+                   style="display:inline-block;padding:10px 14px;background:#281156;color:#ffffff;border-radius:8px;text-decoration:none;font-weight:700">
+                  Sign Up for the Clinic
+                </a>
+              </p>
 
               <p style="margin:0 0 12px">
                 We can\’t wait to welcome your child and help them take their first steps into the world of flag football. It\’s going to be fun, energetic, and full of great memories!
