@@ -42,7 +42,7 @@ var ACK_HTML = function(name){
     title: 'Your Message Was Received',
     introHtml: intro,
     accentLabel: 'We appreciate your interest and will follow up as soon as possible.',
-    footerNote: 'This is an automated confirmation from  LifePrep Academy Foundation.'
+    footerNote: 'This is an automated confirmation from LifePrep Academy Foundation.'
   });
 };
 var ACK_TEXT = function(name){return 'Hi '+(name||'there')+'\n\nThank you for contacting LifePrep Academy Foundation. We\'ve received your message and will respond soon.\n\n(This is an automated confirmation.)';};
@@ -62,7 +62,7 @@ var YOUTH_CONFIRM_HTML = function(name){
     title: 'Information Request Received',
     introHtml: intro,
     accentLabel: 'We will follow up with next steps, timing, and any requested details.',
-    footerNote: 'This is an automated confirmation from  LifePrep Academy Foundation Youth Programs.'
+    footerNote: 'This is an automated confirmation from LifePrep Academy Foundation Youth Programs.'
   });
 };
 var YOUTH_CONFIRM_TEXT = function(name){
@@ -74,7 +74,6 @@ var YOUTH_CONFIRM_TEXT = function(name){
 
 // NFL FLAG specific confirmation (Paducah NFL Flag Football Clinic)
 var NFL_FLAG_CONFIRM_SUBJECT = 'Paducah NFL Flag Football Clinic — Next steps';
-
 var NFL_FLAG_CONFIRM_HTML = function(name){
   var n = escapeHtml_(name || 'there');
   return `<!doctype html>
@@ -103,11 +102,11 @@ var NFL_FLAG_CONFIRM_HTML = function(name){
               <p style="margin:0 0 12px">Hi ${n},</p>
 
               <p style="margin:0 0 12px">
-                Thank you so much for reaching out! We\’re excited that you\’re interested in the Paducah NFL Flag Football Clinic — it\ information’s going to be an awesome experience for young athletes who are ready to learn, grow, and have a blast on the field.
+                Thank you so much for reaching out! We\’re excited that you\’re interested in the Paducah NFL Flag Football Clinic — it\’s going to be an awesome experience for young athletes who are ready to learn, grow, and have a blast on the field.
               </p>
 
               <p style="margin:0 0 12px">
-                To officially reserve your child\’s spot and begin their flag football journey, please sign up through Eventbrite using the link below. Once you complete registration, you\’ll automatically receive the player form with all the details you need before camp day.
+                To officially reserve your child\’s spot and begin their flag football journey, please sign up through Eventbrite using the link below. Once you complete sign-up, you\’ll automatically receive the electronic player registration form with all the details needed before camp day.
               </p>
 
               <p style="margin:0 0 18px">
@@ -119,7 +118,7 @@ var NFL_FLAG_CONFIRM_HTML = function(name){
               </p>
 
               <p style="margin:8px 0 0">
- information                Best regards,<br>
+                Best regards,<br>
                 <span style="font-family:'Brush Script MT','Segoe Script','Lucida Handwriting',cursive;
                              font-size:20px;display:inline-block;margin-top:6px;">
                   Bryan Hall
@@ -128,7 +127,6 @@ var NFL_FLAG_CONFIRM_HTML = function(name){
                 LifePrep Academy Foundation
               </p>
             </td>
-    + 'Best regards,\nBryan Hall\nFounder\nLifePrep Academy Foundation';
           </tr>
           <tr>
             <td style="padding:16px 22px;background:#281156;text-align:center;">
@@ -148,7 +146,7 @@ var NFL_FLAG_CONFIRM_HTML = function(name){
 var NFL_FLAG_CONFIRM_TEXT = function(name){
   return 'Hi ' + (name || 'there') + '\n\n'
     + 'Thank you so much for reaching out! We\’re excited that you\’re interested in the Paducah NFL Flag Football Clinic — it\’s going to be an awesome experience for young athletes who are ready to learn, grow, and have a blast on the field.\n\n'
-    + 'To officially reserve your child\’s spot and begin their flag football journey, please sign up through Eventbrite using the link below. Once you complete registration, you\’ll automatically receive the player form with all the details you need.\n\n'
+    + 'To officially reserve your child\’s spot and begin their flag football journey, please sign up through Eventbrite using the link below. Once you complete sign-up, you\’ll automatically receive the electronic player registration form with all the details needed before camp day.\n\n'
     + 'Sign up here: https://www.eventbrite.com/e/paducah-nfl-flag-football-clinic-tickets-1989860543451?aff=oddtdtcreator&keep_tld=true\n\n'
     + 'We can\’t wait to welcome your child and help them take their first steps into the world of flag football. It\’s going to be fun, energetic, and full of great memories!\n\n'
     + 'Best regards,\nBryan Hall\nFounder\nLifePrep Academy Foundation';
