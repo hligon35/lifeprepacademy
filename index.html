@@ -98,7 +98,7 @@
 				grid-template-columns: auto minmax(0, 1.1fr) auto;
 				gap: 1.25rem;
 				align-items: center;
-				padding: 1rem 1.2rem 1rem 1rem;
+				padding: 1rem 1.2rem 0.25rem 1rem;
 			}
 
 			.home-hero-clinic-countdown .clinic-countdown-copy {
@@ -232,6 +232,28 @@
 				text-transform: uppercase;
 			}
 
+			.home-hero-clinic-countdown .clinic-cta {
+				padding: 0 0 1rem;
+				text-align: center;
+			}
+
+			.home-hero-clinic-countdown .clinic-signup-button {
+				display: inline-block;
+				padding: 0.6rem 1rem;
+				border-color: #f9b515;
+				border-radius: 8px;
+				background: #f9b515;
+				color: #281156;
+				font-weight: 700;
+			}
+
+			.home-hero-clinic-countdown .clinic-signup-button:hover,
+			.home-hero-clinic-countdown .clinic-signup-button:focus-visible {
+				border-color: #ffd65e;
+				background: #ffd65e;
+				color: #281156;
+			}
+
 			@keyframes home-clinic-marquee-scroll {
 				from {
 					transform: translateX(0);
@@ -250,7 +272,7 @@
 
 				.home-hero-clinic-countdown .clinic-countdown-inner {
 					grid-template-columns: 1fr;
-					padding: 1rem;
+					padding: 1rem 1rem 0.25rem;
 					gap: 0.9rem;
 				}
 
@@ -442,7 +464,7 @@
 									/>
 								</div>
 								<div class="clinic-countdown-copy">
-									<h2 id="home-clinic-countdown-heading">Countdown to kickoff in Paducah</h2>
+									<h2 id="home-clinic-countdown-heading">Countdown to Flag Football Clinic kickoff in Paducah, KY!</h2>
 									<p class="clinic-event-meta"><strong>When:</strong> Saturday, July 18, 2026 from <strong>9:00 AM</strong> to <strong>3:00 PM</strong></p>
 									<p class="clinic-event-meta"><strong>Where:</strong> Paducah Tilghman High School, Paducah, KY</p>
 									<div class="clinic-marquee" aria-hidden="true">
@@ -478,6 +500,9 @@
 										The countdown has begun!
 									</p>
 								</div>
+							</div>
+							<div class="clinic-cta">
+								<a href="https://www.eventbrite.com/e/paducah-nfl-flag-football-clinic-tickets-1989860543451?aff=oddtdtcreator" target="_blank" rel="noopener noreferrer" class="btn clinic-signup-button">Sign-Up Here!</a>
 							</div>
 						</section>
 					</div>
