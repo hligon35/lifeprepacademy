@@ -11,10 +11,12 @@
 		<meta name="robots" content="index, follow" />
 		<meta name="referrer" content="strict-origin-when-cross-origin" />
 
-		
-		
-		
-		<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+
+
+
+
+
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png"><link rel="canonical" href="https://www.lifeprepacademyfoundation.com/youth-programs.html" />
 
@@ -39,20 +41,295 @@
 
 		<meta name="theme-color" content="#281156" />
 
-		<link rel="preload" href="style.min.css?v=b59c62fc16" as="style" />
-		<link rel="stylesheet" href="style.min.css?v=b59c62fc16" />
-		<noscript><link rel="stylesheet" href="style.min.css?v=b59c62fc16" /></noscript>
+		<link rel="preload" href="style.min.css?v=9e84f9012f" as="style" />
+		<link rel="stylesheet" href="style.min.css?v=9e84f9012f" />
+		<noscript><link rel="stylesheet" href="style.min.css?v=9e84f9012f" /></noscript>
 		<style>
 			.page-youth-programs .program-card .program-logo {
 				display: block;
 				margin-inline: auto;
 			}
 
-				.page-youth-programs .program-card .program-logo--nfl {
-					/* Match MLS card spacing: remove horizontal offset and add modest bottom gap */
-					transform: none;
-					margin-bottom: 12px;
+			.page-youth-programs .program-card .program-logo--nfl {
+				transform: translateX(14px);
+			}
+
+			.page-youth-programs .clinic-countdown {
+				position: relative;
+				margin: 3rem auto 3.5rem;
+				max-width: calc(100% - 7rem);
+				padding: 0;
+				border-radius: 24px;
+				background:
+					radial-gradient(circle at top right, rgba(249, 181, 21, 0.28), transparent 35%),
+					linear-gradient(135deg, #1b0b3d 0%, #281156 48%, #4a90e2 100%);
+				box-shadow: 0 22px 60px rgba(20, 12, 46, 0.24);
+				overflow: hidden;
+				color: #ffffff;
+				text-align: left;
+				border: 1px solid rgba(255, 255, 255, 0.14);
+			}
+
+			.page-youth-programs .clinic-countdown::before,
+			.page-youth-programs .clinic-countdown::after {
+				content: "";
+				position: absolute;
+				border-radius: 999px;
+				pointer-events: none;
+			}
+
+			.page-youth-programs .clinic-countdown::before {
+				width: 220px;
+				height: 220px;
+				top: -110px;
+				right: -45px;
+				background: rgba(255, 255, 255, 0.08);
+			}
+
+			.page-youth-programs .clinic-countdown::after {
+				width: 160px;
+				height: 160px;
+				bottom: -90px;
+				left: -30px;
+				background: rgba(249, 181, 21, 0.16);
+			}
+
+			.page-youth-programs .clinic-countdown-inner {
+				position: relative;
+				z-index: 1;
+				display: grid;
+				grid-template-columns: auto minmax(0, 1.1fr) auto;
+				gap: 1.25rem;
+				align-items: center;
+				padding: 1rem 1.2rem 0.25rem 1rem;
+			}
+
+			.page-youth-programs .clinic-countdown-copy {
+				min-width: 0;
+			}
+
+
+
+			.page-youth-programs .clinic-countdown h2 {
+				margin-bottom: 0.35rem;
+				color: #ffffff;
+				text-align: left;
+				font-size: clamp(1.25rem, 2.2vw, 2rem);
+			}
+
+			.page-youth-programs .clinic-countdown h2::after {
+				left: 0;
+				transform: none;
+				background: linear-gradient(90deg, #f9b515, rgba(255, 255, 255, 0.7));
+			}
+
+			.page-youth-programs .clinic-countdown p,
+			.page-youth-programs .clinic-timezone,
+			.page-youth-programs .clinic-event-meta,
+			.page-youth-programs .clinic-countdown-status {
+				color: rgba(255, 255, 255, 0.9);
+			}
+
+			.page-youth-programs .clinic-event-meta {
+				margin: 0.9rem 0 0 0; /* add space below event meta before divider */
+				font-size: 0.95rem;
+				font-weight: 600;
+			}
+
+			.page-youth-programs .clinic-timezone {
+				margin-top: 0.35rem;
+				font-size: 0.86rem;
+			}
+
+			.page-youth-programs .clinic-countdown-panel {
+				padding: 0.8rem 0.85rem;
+				border: 1px solid rgba(255, 255, 255, 0.15);
+				border-radius: 20px;
+				background: rgba(255, 255, 255, 0.08);
+				-webkit-backdrop-filter: blur(10px);
+				backdrop-filter: blur(10px);
+			}
+
+			.page-youth-programs .clinic-logo-wrap {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				flex: 0 0 auto;
+			}
+
+			.page-youth-programs .clinic-logo-wrap img {
+				max-width: 300px;
+				height: 300px;
+				filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.22));
+			}
+
+			.page-youth-programs .clinic-marquee {
+				position: relative;
+				overflow: hidden;
+				margin-top: 0.75rem;
+				padding-top: 0.7rem;
+				border-top: 1px solid rgba(255, 255, 255, 0.14);
+			}
+
+			.page-youth-programs .clinic-marquee-track {
+				display: inline-flex;
+				align-items: center;
+				gap: 2rem;
+				min-width: max-content;
+				white-space: nowrap;
+				animation: clinic-marquee-scroll 22s linear infinite;
+			}
+
+			.page-youth-programs .clinic-marquee-item {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.85rem;
+				font-size: 0.88rem;
+				font-weight: 700;
+				letter-spacing: 0.04em;
+				text-transform: uppercase;
+				color: rgba(255, 255, 255, 0.86);
+			}
+
+			.page-youth-programs .clinic-marquee-item::before {
+				content: "";
+				width: 0.45rem;
+				height: 0.45rem;
+				border-radius: 50%;
+				background: #f9b515;
+				box-shadow: 0 0 12px rgba(249, 181, 21, 0.65);
+			}
+
+			.page-youth-programs .clinic-countdown-grid {
+				display: grid;
+				grid-template-columns: repeat(4, minmax(0, 1fr));
+				gap: 0.55rem;
+			}
+
+			.page-youth-programs .clinic-time-unit {
+				padding: 0.55rem 0.5rem;
+				border-radius: 16px;
+				background: rgba(10, 7, 28, 0.34);
+				text-align: center;
+				min-width: 72px;
+			}
+
+			.page-youth-programs .clinic-time-value {
+				display: block;
+				font-size: clamp(1.2rem, 2.6vw, 2rem);
+				font-weight: 800;
+				line-height: 1;
+				color: #ffffff;
+			}
+
+			.page-youth-programs .clinic-time-label {
+				display: block;
+				margin-top: 0.3rem;
+				font-size: 0.68rem;
+				font-weight: 700;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				color: rgba(255, 255, 255, 0.72);
+			}
+
+			.page-youth-programs .clinic-countdown-status {
+				margin-top: 0.55rem;
+				text-align: center;
+				font-size: 0.8rem;
+				font-weight: 600;
+				letter-spacing: 0.04em;
+				text-transform: uppercase;
+			}
+
+			.page-youth-programs .clinic-cta {
+				padding: 0 0 1rem;
+				text-align: center;
+			}
+
+			.page-youth-programs .clinic-signup-button {
+				display: inline-block;
+				padding: 0.6rem 1rem;
+				border-color: #f9b515;
+				border-radius: 8px;
+				background: #f9b515;
+				color: #281156;
+				font-weight: 700;
+			}
+
+			.page-youth-programs .clinic-signup-button:hover,
+			.page-youth-programs .clinic-signup-button:focus-visible {
+				border-color: #ffd65e;
+				background: #ffd65e;
+				color: #281156;
+			}
+
+			@keyframes clinic-marquee-scroll {
+				from {
+					transform: translateX(0);
 				}
+
+				to {
+					transform: translateX(-50%);
+				}
+			}
+
+			@media (max-width: 920px) {
+				.page-youth-programs .clinic-countdown {
+					max-width: calc(100% - 3rem);
+					border-radius: 22px;
+				}
+
+				.page-youth-programs .clinic-countdown-inner {
+					grid-template-columns: 1fr;
+					padding: 1rem 1rem 0.25rem;
+					gap: 0.9rem;
+				}
+
+				.page-youth-programs .clinic-countdown h2,
+				.page-youth-programs .clinic-countdown-copy {
+					text-align: center;
+				}
+
+				.page-youth-programs .clinic-countdown h2::after {
+					left: 50%;
+					transform: translateX(-50%);
+				}
+
+				.page-youth-programs .clinic-logo-wrap img {
+					max-width: 110px;
+				}
+
+				.page-youth-programs .clinic-countdown-panel {
+					border-radius: 22px;
+				}
+
+				.page-youth-programs .clinic-marquee {
+					margin-top: 0.9rem;
+				}
+
+				.page-youth-programs .clinic-countdown-status {
+					text-align: center;
+				}
+			}
+
+			@media (max-width: 640px) {
+				.page-youth-programs .clinic-countdown {
+					max-width: calc(100% - 1.5rem);
+					border-radius: 22px;
+				}
+
+				.page-youth-programs .clinic-countdown-grid {
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+				}
+
+				.page-youth-programs .clinic-time-unit {
+					min-width: 0;
+				}
+
+				.page-youth-programs .clinic-marquee-item {
+					font-size: 0.78rem;
+				}
+			}
 		</style>
 
 		<link rel="preconnect" href="https://give.cornerstone.cc" crossorigin />
@@ -121,6 +398,64 @@
 						<h1>Youth Programs</h1>
 						<p class="muted">Stay connected. More youth programs are coming soon.</p>
 
+						<section
+							class="clinic-countdown"
+							aria-labelledby="clinic-countdown-heading"
+							data-target-time="2026-07-18T09:00:00-05:00"
+						>
+							<div class="clinic-countdown-inner">
+								<div class="clinic-logo-wrap">
+									<img
+										src="pffLogo.png"
+										alt="Paducah Flag Football clinic logo"
+										width="240"
+										height="240"
+										decoding="async"
+									/>
+								</div>
+								<div class="clinic-countdown-copy">
+									<h2 id="clinic-countdown-heading">Countdown to Flag Football Clinic kickoff in Paducah, KY!</h2>
+									<p class="clinic-event-meta"><strong>When:</strong> Saturday, July 18, 2026</strong> from <strong>9:00 AM</strong> to <strong>3:00 PM</strong></p>
+									<p class="clinic-event-meta"><strong>Where:</strong> Paducah Tilghman High School, Paducah, KY</p>
+									<div class="clinic-marquee" aria-hidden="true">
+										<div class="clinic-marquee-track">
+											<span class="clinic-marquee-item">Free Registration</span>
+											<span class="clinic-marquee-item">Grades 3-12</span>
+											<span class="clinic-marquee-item">Free Lunch</span>
+											<span class="clinic-marquee-item">Special Guests Coaches</span>
+											<span class="clinic-marquee-item">Family energy all morning</span>
+										</div>
+									</div>
+								</div>
+								<div class="clinic-countdown-panel">
+									<div class="clinic-countdown-grid" aria-label="Time remaining until the clinic starts">
+										<div class="clinic-time-unit">
+											<span class="clinic-time-value" data-time-part="days">000</span>
+											<span class="clinic-time-label">Days</span>
+										</div>
+										<div class="clinic-time-unit">
+											<span class="clinic-time-value" data-time-part="hours">00</span>
+											<span class="clinic-time-label">Hours</span>
+										</div>
+										<div class="clinic-time-unit">
+											<span class="clinic-time-value" data-time-part="minutes">00</span>
+											<span class="clinic-time-label">Minutes</span>
+										</div>
+										<div class="clinic-time-unit">
+											<span class="clinic-time-value" data-time-part="seconds">00</span>
+											<span class="clinic-time-label">Seconds</span>
+										</div>
+									</div>
+									<p class="clinic-countdown-status" data-countdown-status aria-live="polite">
+										The countdown has begun!
+									</p>
+								</div>
+							</div>
+							<div class="clinic-cta">
+								<a href="https://www.eventbrite.com/e/paducah-nfl-flag-football-clinic-tickets-1989860543451?aff=oddtdtcreator" target="_blank" rel="noopener noreferrer" class="btn clinic-signup-button">Sign-Up Here!</a>
+							</div>
+						</section>
+
 						<div class="programs-grid">
 							<article class="program-card program-card--nfl">
 								<img
@@ -131,7 +466,7 @@
 									decoding="async"
 									class="program-logo program-logo--nfl"
 								/>
-								<p><strong>Coming soon to Paducah, KY!</strong></p>
+								<p><strong>Coming soon to<br/>Paducah, KY.<br/>Stay tuned!</strong></p>
 								<button
 									type="button"
 									class="btn btn-primary"
@@ -271,11 +606,8 @@
 										<option value="MLS GO / Youth Programs Information">
 											MLS GO / Youth Programs Information
 										</option>
-										<option value="NFL FLAG / Youth Programs - League">
-											NFL FLAG / Youth Programs — League
-										</option>
-										<option value="NFL FLAG / Youth Programs - Clinic">
-											NFL FLAG / Youth Programs — Clinic
+										<option value="NFL FLAG / Youth Programs Information">
+											NFL FLAG / Youth Programs Information
 										</option>
 										<option value="General Youth Programs">
 											General Youth Programs
@@ -752,11 +1084,8 @@
 									<option value="MLS GO / Youth Team Information" selected>
 										MLS GO / Youth Team Information
 									</option>
-									<option value="NFL FLAG / Youth Team - League">
-										NFL FLAG / Youth Team — League
-									</option>
-									<option value="NFL FLAG / Youth Team - Clinic">
-										NFL FLAG / Youth Team — Clinic
+									<option value="NFL FLAG / Youth Team Information">
+										NFL FLAG / Youth Team Information
 									</option>
 									<option value="General Youth Programs">General Youth Programs</option>
 								</select>
@@ -889,11 +1218,63 @@
 		<script>
 			(function () {
 				const toggleButtons = Array.from(document.querySelectorAll("[data-program-trigger]"));
+				const countdownRoot = document.querySelector(".clinic-countdown[data-target-time]");
 				const contactSection = document.getElementById("youth-contact");
 				const contactTitle = document.getElementById("youth-contact-title");
 				const contactHelper = document.getElementById("youth-contact-helper");
 				const subjectField = document.getElementById("subject");
 				const messageField = document.getElementById("message");
+
+				function initClinicCountdown() {
+					if (!countdownRoot) return;
+
+					const targetTime = countdownRoot.getAttribute("data-target-time") || "";
+					const targetMillis = Date.parse(targetTime);
+					if (Number.isNaN(targetMillis)) return;
+
+					const parts = {
+						days: countdownRoot.querySelector('[data-time-part="days"]'),
+						hours: countdownRoot.querySelector('[data-time-part="hours"]'),
+						minutes: countdownRoot.querySelector('[data-time-part="minutes"]'),
+						seconds: countdownRoot.querySelector('[data-time-part="seconds"]'),
+					};
+					const status = countdownRoot.querySelector("[data-countdown-status]");
+					if (Object.values(parts).some(function (node) { return !node; })) return;
+
+					function pad(value, minDigits) {
+						return String(value).padStart(minDigits, "0");
+					}
+
+					function render(diffMillis) {
+						const safeDiff = Math.max(diffMillis, 0);
+						const totalSeconds = Math.floor(safeDiff / 1000);
+						const days = Math.floor(totalSeconds / 86400);
+						const hours = Math.floor((totalSeconds % 86400) / 3600);
+						const minutes = Math.floor((totalSeconds % 3600) / 60);
+						const seconds = totalSeconds % 60;
+
+						parts.days.textContent = pad(days, 3);
+						parts.hours.textContent = pad(hours, 2);
+						parts.minutes.textContent = pad(minutes, 2);
+						parts.seconds.textContent = pad(seconds, 2);
+
+						if (!status) return;
+						if (safeDiff === 0) {
+							status.textContent = "The Paducah flag football clinic is live now.";
+							return;
+						}
+
+						status.textContent = "The countdown has begun!";
+					}
+
+					render(targetMillis - Date.now());
+					window.setInterval(function () {
+						render(targetMillis - Date.now());
+					}, 1000);
+				}
+
+				initClinicCountdown();
+
 				if (!toggleButtons.length || !contactSection || !contactTitle || !contactHelper || !subjectField) return;
 
 				const CAPTCHA_CONTAINER_ID = "captchaContainer";
@@ -902,8 +1283,7 @@
 						title: "More Info: NFL FLAG",
 						helper:
 							"Complete the form below and we&rsquo;ll follow up with NFL FLAG program details and next steps.",
-						// default to Clinic so the form preselects a clinic request
-						subject: "NFL FLAG / Youth Programs - Clinic",
+						subject: "NFL FLAG / Youth Programs Information",
 						placeholder:
 							"Tell us what you want to know about NFL FLAG, your participant age range, and any timing questions.",
 					},
