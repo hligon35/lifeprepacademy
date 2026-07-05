@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>At The Gate | Paducah Flag Football</title>
+  <meta name="theme-color" content="#06204a" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js" defer></script>
+  <script src="https://unpkg.com/html5-qrcode" defer></script>
+  <script src="config.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero-card">
+      <div class="brand-lockup" aria-label="Paducah Flag Football">
+        <div class="ky-mark">★</div>
+        <div>
+          <div class="brand-script">Paducah</div>
+          <div class="brand-sub">Flag Football</div>
+        </div>
+      </div>
+      <div class="tag">At The Gate</div>
+      <h1 id="screenTitle">Fast Pass Check-In</h1>
+      <p id="screenIntro">Confirm your registered children before arrival and show your QR pass at the gate.</p>
+    </section>
+
+    <section class="panel" id="loadingPanel">
+      <div class="loader"></div>
+      <p>Loading your check-in pass...</p>
+    </section>
+
+    <section class="panel hidden" id="parentPanel">
+      <div class="eyebrow">Parent Fast Pass</div>
+      <h2 id="parentName">Welcome</h2>
+      <p class="muted">We have these children recorded under your registration:</p>
+      <ul class="child-list" id="childList"></ul>
+      <div class="action-grid">
+        <button class="btn primary" id="verifyBtn">Yes, everything is correct</button>
+        <a class="btn secondary" id="addChildBtn" href="#">Add another child</a>
+        <button class="btn ghost" id="helpBtn">I need help</button>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="passPanel">
+      <div class="pass-card">
+        <div class="pass-top">
+          <span>Fast Pass Ready</span>
+          <strong id="passStatus">Verified</strong>
+        </div>
+        <div id="qrCode" class="qr-box"></div>
+        <h2 id="passParent">Parent Name</h2>
+        <p id="passChildren" class="muted"></p>
+        <p class="instruction">Show this QR code at the gate. Screenshot it now in case service is slow.</p>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="staffPanel">
+      <div class="eyebrow">Staff Gate Mode</div>
+      <h2>Scan a Fast Pass</h2>
+      <p class="muted">Camera scan updates the Google Sheet and records a scan log.</p>
+      <div id="reader" class="reader"></div>
+      <div class="manual-lookup">
+        <label for="manualCode">Manual code lookup</label>
+        <div class="inline-form">
+          <input id="manualCode" placeholder="Enter QR code ID or parent key" />
+          <button class="btn primary" id="manualLookupBtn">Lookup</button>
+        </div>
+      </div>
+      <div id="staffResult" class="scan-result hidden"></div>
+    </section>
+
+    <section class="panel hidden" id="walkupPanel">
+      <div class="eyebrow">Walk-Up / Missing Registration</div>
+      <h2>Finish registration first</h2>
+      <p class="muted">Use the correct route so the sheet records whether this is a ticket holder completion or a walk-up.</p>
+      <div class="action-grid">
+        <a class="btn primary" id="ticketHolderLink" href="#">I already have a ticket</a>
+        <a class="btn secondary" id="walkupLink" href="#">I am a walk-up</a>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="messagePanel">
+      <h2 id="messageTitle">Message</h2>
+      <p id="messageBody" class="muted"></p>
+    </section>
+  </main>
+</body>
+</html>
