@@ -2,12 +2,13 @@
   const $ = (id) => document.getElementById(id);
   const cfg = window.AT_THE_GATE_CONFIG || {};
   const params = new URLSearchParams(window.location.search);
-  const state = { parent: null, qrValue: null, scanner: null, busy: false };
+  const state = { parent: null, children: [], qrValue: null, scanner: null, busy: false };
 
   const panels = ["loadingPanel", "parentPanel", "passPanel", "staffPanel", "walkupPanel", "messagePanel"];
   const show = (id) => panels.forEach((p) => $(p).classList.toggle("hidden", p !== id));
   const setHero = (title, intro) => { $("screenTitle").textContent = title; $("screenIntro").textContent = intro; };
   const message = (title, body) => { $("messageTitle").textContent = title; $("messageBody").textContent = body; show("messagePanel"); };
+  const escapeHtml = (value = "") => String(value).replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c]));
 
   function api(action, payload = {}) {
     const base = cfg.googleAppsScriptUrl;
@@ -38,22 +39,33 @@
     });
   }
 
+  function childName(child = {}) {
+    return child.name || [child.firstName, child.lastName].filter(Boolean).join(" ") || "Registered child";
+  }
+
   function childrenText(children = []) {
-    return children.map((c) => [c.firstName, c.lastName].filter(Boolean).join(" ") || c.name).filter(Boolean).join(", ");
+    return children.map(childName).filter(Boolean).join(", ");
+  }
+
+  function renderChildCards(children = [], { staff = false } = {}) {
+    if (!children.length) return "<li>No child registration is connected yet.</li>";
+    return children.map((child) => {
+      const shirt = child.shirtSize || child.shirt || "Not listed";
+      const medical = child.medicalInfo || child.medical || child.medicalNotes || "None listed";
+      return `
+        <li class="child-card">
+          <strong>${escapeHtml(childName(child))}</strong>
+          ${staff ? `<span>Shirt: ${escapeHtml(shirt)}</span><span class="medical ${medical === "None listed" ? "" : "has-medical"}">Medical: ${escapeHtml(medical)}</span>` : ""}
+        </li>
+      `;
+    }).join("");
   }
 
   function renderParent(data) {
     state.parent = data.parent;
+    state.children = data.children || [];
     $("parentName").textContent = `Welcome, ${data.parent.parentName || "Parent"}`;
-    $("childList").innerHTML = "";
-    (data.children || []).forEach((child) => {
-      const li = document.createElement("li");
-      li.textContent = child.name || [child.firstName, child.lastName].filter(Boolean).join(" ") || "Registered child";
-      $("childList").appendChild(li);
-    });
-    if (!(data.children || []).length) {
-      $("childList").innerHTML = "<li>No child registration is connected yet.</li>";
-    }
+    $("childList").innerHTML = renderChildCards(state.children);
     $("addChildBtn").href = buildRegistrationUrl("add_child", data.parent.parentKey);
     show("parentPanel");
   }
@@ -64,6 +76,13 @@
     const url = new URL(base, window.location.href);
     url.searchParams.set("registration_type", type);
     if (parentKey) url.searchParams.set("parent_key", parentKey);
+    const returnUrl = new URL(window.location.href);
+    returnUrl.searchParams.delete("staff");
+    returnUrl.searchParams.delete("register");
+    returnUrl.searchParams.delete("walkup");
+    if (parentKey) returnUrl.searchParams.set("k", parentKey);
+    returnUrl.searchParams.set("returning", "1");
+    url.searchParams.set("return_url", returnUrl.toString());
     return url.toString();
   }
 
@@ -80,7 +99,7 @@
 
   function renderPass(data) {
     const parent = data.parent || state.parent || {};
-    const children = data.children || [];
+    const children = data.children || state.children || [];
     const qrId = data.qrId || parent.qrId || parent.parentKey;
     state.qrValue = `${window.location.origin}${window.location.pathname}?staff=1&code=${encodeURIComponent(qrId)}`;
     $("passParent").textContent = parent.parentName || "Parent";
@@ -111,14 +130,13 @@
       const already = String(parent.checkedIn || "").toLowerCase() === "yes";
       $("staffResult").innerHTML = `
         <p class="${already ? "warn" : "ok"}">${already ? "Already checked in" : "Ready to check in"}</p>
-        <h2>${parent.parentName || "Parent"}</h2>
-        <p><strong>Children:</strong> ${childrenText(children) || parent.childNames || "Not listed"}</p>
-        <p><strong>Shirts:</strong> ${data.shirts || "Check registration sheet"}</p>
-        <p><strong>Medical flag:</strong> ${data.medicalFlag ? "Yes - check private notes" : "No"}</p>
-        <button class="btn primary" data-complete="${code}">${already ? "Record another scan" : "Complete Check-In"}</button>
+        <h2>${escapeHtml(parent.parentName || "Parent")}</h2>
+        <p class="muted">Review each child before pressing confirm.</p>
+        <ul class="child-list staff-child-list">${renderChildCards(children, { staff: true })}</ul>
+        <button class="btn primary" data-complete="${escapeHtml(code)}">${already ? "Record another scan" : "Confirm Check-In"}</button>
       `;
     } catch (err) {
-      $("staffResult").innerHTML = `<p class="danger">${err.message}</p>`;
+      $("staffResult").innerHTML = `<p class="danger">${escapeHtml(err.message)}</p>`;
     } finally { state.busy = false; }
   }
 
@@ -130,13 +148,21 @@
       const parent = data.parent || {};
       $("staffResult").innerHTML = `
         <p class="ok">✅ Check-in complete</p>
-        <h2>${parent.parentName || "Parent"}</h2>
-        <p>${parent.childNames || childrenText(data.children || []) || "Participant(s) recorded"}</p>
-        <p class="muted">Time: ${data.checkedInAt || "Recorded in Google Sheets"}</p>
+        <h2>${escapeHtml(parent.parentName || "Parent")}</h2>
+        <p>${escapeHtml(parent.childNames || childrenText(data.children || []) || "Participant(s) recorded")}</p>
+        <p class="muted">Marked checked in and ready for the next scan. Time: ${escapeHtml(data.checkedInAt || "Recorded in Google Sheets")}</p>
+        <button class="btn secondary" id="nextScanBtn">Ready for next scan</button>
       `;
     } catch (err) {
-      $("staffResult").innerHTML = `<p class="danger">${err.message}</p>`;
+      $("staffResult").innerHTML = `<p class="danger">${escapeHtml(err.message)}</p>`;
     } finally { state.busy = false; }
+  }
+
+  function resetScannerResult() {
+    $("staffResult").classList.add("hidden");
+    $("staffResult").innerHTML = "";
+    $("manualCode").value = "";
+    state.scanner?.resume?.();
   }
 
   function startScanner() {
@@ -146,7 +172,6 @@
       const code = new URL(decoded, window.location.href).searchParams.get("code") || decoded;
       state.scanner.pause(true);
       staffLookup(code);
-      setTimeout(() => state.scanner?.resume(), 2500);
     }).catch(() => {
       $("reader").innerHTML = "Camera unavailable. Use manual lookup below.";
     });
@@ -160,7 +185,7 @@
   }
 
   function setupStaff() {
-    setHero("Staff Gate Mode", "Scan Fast Pass QR codes, verify details, and record attendance.");
+    setHero("Staff Gate Mode", "Scan a Fast Pass, review children, then confirm check-in.");
     show("staffPanel");
     startScanner();
     const code = params.get("code");
@@ -181,6 +206,7 @@
   document.addEventListener("click", (event) => {
     const complete = event.target?.dataset?.complete;
     if (complete) completeCheckin(complete);
+    if (event.target?.id === "nextScanBtn") resetScannerResult();
   });
   $("verifyBtn").addEventListener("click", verifyParent);
   $("helpBtn").addEventListener("click", () => message("We can help at the table", "Please keep your Fast Pass screen open and stop at the help station when you arrive."));

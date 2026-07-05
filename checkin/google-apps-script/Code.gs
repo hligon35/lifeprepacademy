@@ -1,5 +1,6 @@
 const SHEET_ID = '16xbM_ZXe4mEdfjABwPVfc6HqWhn-iW9DumoFfaQ9JTQ';
 const PARENTS_TAB = 'Parents';
+const CHILDREN_TAB = 'Children';
 const PASSES_TAB = 'Check-In Passes';
 const SCAN_LOG_TAB = 'Scan Log';
 
@@ -28,15 +29,16 @@ function handleAction_(action, p) {
 }
 
 function ss_() { return SpreadsheetApp.openById(SHEET_ID); }
-function sheet_(name) {
+function sheet_(name, createIfMissing) {
   const ss = ss_();
   let sh = ss.getSheetByName(name);
-  if (!sh) sh = ss.insertSheet(name);
+  if (!sh && createIfMissing !== false) sh = ss.insertSheet(name);
   return sh;
 }
 
-function readTable_(name) {
-  const sh = sheet_(name);
+function readTable_(name, createIfMissing) {
+  const sh = sheet_(name, createIfMissing);
+  if (!sh) return { sheet: null, headers: [], rows: [] };
   const values = sh.getDataRange().getValues();
   if (!values.length || values[0].every(v => !v)) return { sheet: sh, headers: [], rows: [] };
   const headers = values[0].map(h => String(h).trim());
@@ -94,15 +96,40 @@ function normalizeParent_(row) {
   };
 }
 
-function childrenFromParent_(parent) {
+function childrenForParent_(parent) {
+  const childTable = readTable_(CHILDREN_TAB, false);
+  if (childTable.rows.length) {
+    const rows = childTable.rows.filter(r => String(getVal_(r.obj, ['parent_key', 'Parent Key', 'ParentKey'])).trim() === String(parent.parentKey).trim());
+    if (rows.length) return rows.map(r => normalizeChild_(r.obj));
+  }
+  return childrenFromParentFallback_(parent);
+}
+
+function normalizeChild_(o) {
+  const first = String(getVal_(o, ['first_name', 'Child First Name', "Child's Full Name - First Name"]));
+  const last = String(getVal_(o, ['last_name', 'Child Last Name', "Child's Full Name - Last Name"]));
+  const name = String(getVal_(o, ['child_name', 'Child Name', 'Child Full Name', "Child's Full Name"])) || [first, last].filter(Boolean).join(' ');
+  return {
+    childKey: String(getVal_(o, ['child_key', 'Child Key', 'submission_id', 'Submission ID'])),
+    name: name,
+    firstName: first,
+    lastName: last,
+    shirtSize: String(getVal_(o, ['shirt_size', 'T-Shirt Size', 'Shirt Size'])),
+    medicalInfo: String(getVal_(o, ['medical_info', 'Medical Conditions, Allergies, or Special Needs', 'Medical Conditions', 'Medical Notes'])),
+    medications: String(getVal_(o, ['medications', 'Current Medications'])),
+    checkedIn: String(getVal_(o, ['checked_in', 'Checked In']))
+  };
+}
+
+function childrenFromParentFallback_(parent) {
   if (!parent.childNames) return [];
-  return parent.childNames.split(/,|\n|;/).map(s => s.trim()).filter(Boolean).map(name => ({ name }));
+  return parent.childNames.split(/,|\n|;/).map(s => s.trim()).filter(Boolean).map(name => ({ name, shirtSize: '', medicalInfo: '' }));
 }
 
 function lookupPass_(parentKey) {
   const found = findParent_(parentKey);
   const parent = normalizeParent_(found.row);
-  return { ok: true, parent, children: childrenFromParent_(parent) };
+  return { ok: true, parent, children: childrenForParent_(parent) };
 }
 
 function verify_(parentKey) {
@@ -116,29 +143,43 @@ function verify_(parentKey) {
   upsertPass_(parent.parentKey, qrId, 'Verified');
   const fresh = findParent_(parent.parentKey);
   const normalized = normalizeParent_(fresh.row);
-  return { ok: true, qrId, parent: normalized, children: childrenFromParent_(normalized) };
+  return { ok: true, qrId, parent: normalized, children: childrenForParent_(normalized) };
 }
 
 function staffLookup_(code) {
   const found = findParent_(code);
   const parent = normalizeParent_(found.row);
-  const medicalFlag = /yes|allergy|asthma|medical|special|condition|medication/i.test(JSON.stringify(found.row.obj));
-  const shirts = String(getVal_(found.row.obj, ['shirt_sizes', 'Shirt Sizes', 'T-Shirt Size']));
-  return { ok: true, parent, children: childrenFromParent_(parent), shirts, medicalFlag };
+  const children = childrenForParent_(parent);
+  return { ok: true, parent, children };
 }
 
 function completeCheckin_(code, device) {
   const found = findParent_(code);
   const parent = normalizeParent_(found.row);
   const now = new Date();
-  const headers = ensureHeaders_(PARENTS_TAB, ['checked_in', 'checked_in_at', 'checked_in_by']);
-  updateCell_(found.table.sheet, headers, found.row.rowNumber, 'checked_in', 'Yes');
-  updateCell_(found.table.sheet, headers, found.row.rowNumber, 'checked_in_at', now);
-  updateCell_(found.table.sheet, headers, found.row.rowNumber, 'checked_in_by', device || 'At The Gate');
+  const parentHeaders = ensureHeaders_(PARENTS_TAB, ['checked_in', 'checked_in_at', 'checked_in_by', 'checkin_status']);
+  updateCell_(found.table.sheet, parentHeaders, found.row.rowNumber, 'checked_in', 'Yes');
+  updateCell_(found.table.sheet, parentHeaders, found.row.rowNumber, 'checked_in_at', now);
+  updateCell_(found.table.sheet, parentHeaders, found.row.rowNumber, 'checked_in_by', device || 'At The Gate');
+  updateCell_(found.table.sheet, parentHeaders, found.row.rowNumber, 'checkin_status', 'Complete');
+  markChildrenCheckedIn_(parent.parentKey, now, device);
   logScan_(parent.parentKey, parent.qrId || code, parent.parentName, now, device);
   const fresh = findParent_(parent.parentKey || code);
   const normalized = normalizeParent_(fresh.row);
-  return { ok: true, parent: normalized, children: childrenFromParent_(normalized), checkedInAt: now.toLocaleString() };
+  return { ok: true, parent: normalized, children: childrenForParent_(normalized), checkedInAt: now.toLocaleString() };
+}
+
+function markChildrenCheckedIn_(parentKey, when, device) {
+  const table = readTable_(CHILDREN_TAB, false);
+  if (!table.sheet || !table.rows.length) return;
+  const headers = ensureHeaders_(CHILDREN_TAB, ['checked_in', 'checked_in_at', 'checked_in_by']);
+  table.rows.forEach(r => {
+    if (String(getVal_(r.obj, ['parent_key', 'Parent Key', 'ParentKey'])).trim() === String(parentKey).trim()) {
+      updateCell_(table.sheet, headers, r.rowNumber, 'checked_in', 'Yes');
+      updateCell_(table.sheet, headers, r.rowNumber, 'checked_in_at', when);
+      updateCell_(table.sheet, headers, r.rowNumber, 'checked_in_by', device || 'At The Gate');
+    }
+  });
 }
 
 function updateCell_(sh, headers, rowNumber, header, value) {
