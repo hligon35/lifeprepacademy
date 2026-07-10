@@ -3,11 +3,11 @@ window.AT_THE_GATE_CONFIG = {
   eventName: "Paducah Flag Football Clinic",
   eventDate: "July 18, 2026",
   eventTimeZone: "America/Chicago",
-  smsSendLocalTime: "2026-07-18T09:00:00-05:00",
+  smsSendLocalTime: "2026-07-18T07:30:00-05:00",
   supportPhone: "",
-  registrationUrl: "",
-  missingRegistrationUrl: "",
-  googleAppsScriptUrl: "PASTE_DEPLOYED_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE",
-  fastPassLogoUrl: "https://i.postimg.cc/0yvQYBxL/Paducah-Flag-Clinic-Collab.png",
+  registrationUrl: "https://form.jotform.com/261490871776065",
+  missingRegistrationUrl: "https://form.jotform.com/261490871776065",
+  googleAppsScriptUrl: "https://script.google.com/macros/s/AKfycbyk77xPgpCKWE9RSHAGVZST5otElWrABqM9h0Hg3ZWN5dJOtCN74MpDbYrxHwx8Lj4_aw/exec",
+  fastPassLogoUrl: "fastpasslogo.png",
   sheetIdHint: "16xbM_ZXe4mEdfjABwPVfc6HqWhn-iW9DumoFfaQ9JTQ"
 };
