@@ -1,207 +1,176 @@
 const SHEET_ID = '16xbM_ZXe4mEdfjABwPVfc6HqWhn-iW9DumoFfaQ9JTQ';
-const PARENTS_TAB = 'Parents';
-const CHILDREN_TAB = 'Children';
-const PASSES_TAB = 'Check-In Passes';
+const CHILDREN_TAB = 'Child Registrations';
+const TICKETS_TAB = 'Event Tickets';
+const PARENTS_TAB = 'Parent Check-In';
 const SCAN_LOG_TAB = 'Scan Log';
+
+const PARENT_HEADERS = [
+  'parent_token','parent_phone','parent_email','parent_name','ticket_count',
+  'registered_child_count','available_ticket_count','registered_child_names',
+  'registration_status','qr_id','precheck_status','precheck_time','checked_in',
+  'checked_in_at','checked_in_by','sms_status','twilio_message_sid','last_synced_at'
+];
 
 function doGet(e) {
   const p = e.parameter || {};
-  const callback = p.callback || 'callback';
+  const callback = String(p.callback || 'callback').replace(/[^a-zA-Z0-9_$]/g, '');
   let payload;
-  try {
-    payload = handleAction_(p.action, p);
-  } catch (err) {
-    payload = { ok: false, error: err.message || String(err) };
-  }
-  return ContentService
-    .createTextOutput(callback + '(' + JSON.stringify(payload) + ')')
+  try { payload = handleAction_(p.action, p); }
+  catch (err) { payload = { ok:false, error:err.message || String(err) }; }
+  return ContentService.createTextOutput(callback + '(' + JSON.stringify(payload) + ')')
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
 
 function handleAction_(action, p) {
-  switch (action) {
-    case 'lookupPass': return lookupPass_(p.parentKey);
-    case 'verify': return verify_(p.parentKey);
-    case 'staffLookup': return staffLookup_(p.code);
-    case 'completeCheckin': return completeCheckin_(p.code, p.device);
-    default: throw new Error('Unknown action: ' + action);
-  }
+  if (action === 'lookupPass') return lookupPass_(p.parentKey);
+  if (action === 'verify') return verify_(p.parentKey);
+  if (action === 'staffLookup') return staffLookup_(p.code);
+  if (action === 'completeCheckin') return completeCheckin_(p.code, p.device);
+  if (action === 'syncParents') return syncParentCheckIn_();
+  throw new Error('Unknown action: ' + action);
 }
 
-function ss_() { return SpreadsheetApp.openById(SHEET_ID); }
-function sheet_(name, createIfMissing) {
-  const ss = ss_();
-  let sh = ss.getSheetByName(name);
-  if (!sh && createIfMissing !== false) sh = ss.insertSheet(name);
-  return sh;
+function ss_(){ return SpreadsheetApp.openById(SHEET_ID); }
+function sh_(name, create){ let s=ss_().getSheetByName(name); if(!s && create!==false) s=ss_().insertSheet(name); return s; }
+function normEmail_(v){ return String(v||'').trim().toLowerCase(); }
+function normPhone_(v){ const d=String(v||'').replace(/\D/g,''); return d.length===11&&d[0]==='1'?d.slice(1):d; }
+function obj_(headers,row){ const o={}; headers.forEach((h,i)=>{if(h)o[String(h).trim()]=row[i];}); return o; }
+function table_(name,create){ const s=sh_(name,create); if(!s)return {sheet:null,headers:[],rows:[]}; const v=s.getDataRange().getValues(); if(!v.length)return {sheet:s,headers:[],rows:[]}; const h=v[0].map(x=>String(x).trim()); return {sheet:s,headers:h,rows:v.slice(1).map((r,i)=>({rowNumber:i+2,obj:obj_(h,r),values:r}))}; }
+function val_(o,names){ for(const n of names) if(o[n]!==undefined && o[n]!==null && o[n]!=='') return o[n]; return ''; }
+function token_(){ return Utilities.getUuid().replace(/-/g,''); }
+function qr_(){ return 'LPAF-' + Utilities.getUuid().slice(0,8).toUpperCase(); }
+
+function ensureParentSheet_(){
+  const s=sh_(PARENTS_TAB,true);
+  if(s.getMaxColumns()<PARENT_HEADERS.length) s.insertColumnsAfter(s.getMaxColumns(),PARENT_HEADERS.length-s.getMaxColumns());
+  s.getRange(1,1,1,PARENT_HEADERS.length).setValues([PARENT_HEADERS]);
+  s.setFrozenRows(1);
+  return s;
 }
 
-function readTable_(name, createIfMissing) {
-  const sh = sheet_(name, createIfMissing);
-  if (!sh) return { sheet: null, headers: [], rows: [] };
-  const values = sh.getDataRange().getValues();
-  if (!values.length || values[0].every(v => !v)) return { sheet: sh, headers: [], rows: [] };
-  const headers = values[0].map(h => String(h).trim());
-  const rows = values.slice(1).map((r, i) => ({ rowNumber: i + 2, values: r, obj: objectFromRow_(headers, r) }));
-  return { sheet: sh, headers, rows };
-}
+function syncParentCheckIn_(){
+  const children=table_(CHILDREN_TAB,false);
+  const tickets=table_(TICKETS_TAB,false);
+  if(!children.sheet) throw new Error('Child Registrations tab was not found.');
+  if(!tickets.sheet) throw new Error('Event Tickets tab was not found.');
 
-function objectFromRow_(headers, row) {
-  const o = {};
-  headers.forEach((h, i) => { if (h) o[h] = row[i]; });
-  return o;
-}
+  const existing=table_(PARENTS_TAB,false);
+  const prior={};
+  existing.rows.forEach(r=>{ const p=normPhone_(r.obj.parent_phone); if(p) prior[p]=r.obj; });
 
-function getVal_(obj, names) {
-  for (const n of names) if (obj[n] !== undefined && obj[n] !== '') return obj[n];
-  return '';
-}
-
-function ensureHeaders_(sheetName, headers) {
-  const sh = sheet_(sheetName);
-  const existing = sh.getLastRow() ? sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0].map(String) : [];
-  const merged = existing.filter(Boolean);
-  headers.forEach(h => { if (!merged.includes(h)) merged.push(h); });
-  sh.getRange(1, 1, 1, merged.length).setValues([merged]);
-  return merged;
-}
-
-function findParent_(parentKeyOrQr) {
-  const parents = readTable_(PARENTS_TAB);
-  const needle = String(parentKeyOrQr || '').trim();
-  if (!needle) throw new Error('Missing parent key or QR code.');
-  const found = parents.rows.find(r => {
-    const o = r.obj;
-    return String(getVal_(o, ['parent_key', 'Parent Key', 'ParentKey'])).trim() === needle ||
-      String(getVal_(o, ['qr_id', 'QR Code ID', 'QRCodeID'])).trim() === needle;
+  const ticketCounts={};
+  tickets.rows.forEach(r=>{
+    const email=normEmail_(val_(r.obj,['Buyer email','Attendee email']));
+    if(email) ticketCounts[email]=(ticketCounts[email]||0)+1;
   });
-  if (!found) throw new Error('No matching registration was found.');
-  return { table: parents, row: found };
+
+  const groups={};
+  children.rows.forEach(r=>{
+    const phone=normPhone_(val_(r.obj,['Primary Phone Number']));
+    if(!phone) return;
+    const email=normEmail_(val_(r.obj,['Email Address']));
+    const name=String(val_(r.obj,['Parent/Guardian Full Name'])).trim();
+    const child=String(val_(r.obj,["Child's Full Name"])).trim();
+    if(!groups[phone]) groups[phone]={phone,email,name,children:[]};
+    if(child && !groups[phone].children.includes(child)) groups[phone].children.push(child);
+  });
+
+  const rows=Object.values(groups).map(g=>{
+    const old=prior[g.phone]||{};
+    const count=ticketCounts[g.email]||0;
+    const registered=g.children.length;
+    const available=Math.max(0,count-registered);
+    let status='Confirmed';
+    if(count===0) status='Waitlist Review';
+    else if(registered>count) status='Partially Waitlisted';
+    return {
+      parent_token: old.parent_token || token_(), parent_phone:g.phone,
+      parent_email:g.email, parent_name:g.name, ticket_count:count,
+      registered_child_count:registered, available_ticket_count:available,
+      registered_child_names:g.children.join(', '), registration_status:status,
+      qr_id:old.qr_id || '', precheck_status:old.precheck_status || '',
+      precheck_time:old.precheck_time || '', checked_in:old.checked_in || '',
+      checked_in_at:old.checked_in_at || '', checked_in_by:old.checked_in_by || '',
+      sms_status:old.sms_status || 'Not Scheduled',
+      twilio_message_sid:old.twilio_message_sid || '', last_synced_at:new Date()
+    };
+  });
+
+  const s=ensureParentSheet_();
+  if(s.getLastRow()>1) s.getRange(2,1,s.getLastRow()-1,PARENT_HEADERS.length).clearContent();
+  if(rows.length) s.getRange(2,1,rows.length,PARENT_HEADERS.length).setValues(rows.map(o=>PARENT_HEADERS.map(h=>o[h]||'')));
+  return {ok:true,parentCount:rows.length};
 }
 
-function normalizeParent_(row) {
-  const o = row.obj;
-  const key = String(getVal_(o, ['parent_key', 'Parent Key', 'ParentKey']));
+function findParent_(key){
+  if(!key) throw new Error('Missing parent token or QR code.');
+  let t=table_(PARENTS_TAB,false);
+  if(!t.sheet || !t.rows.length){ syncParentCheckIn_(); t=table_(PARENTS_TAB,false); }
+  const needle=String(key).trim();
+  const row=t.rows.find(r=>String(r.obj.parent_token).trim()===needle || String(r.obj.qr_id).trim()===needle);
+  if(!row) throw new Error('No matching family registration was found.');
+  return {table:t,row};
+}
+
+function parentDto_(o){
   return {
-    parentKey: key,
-    qrId: String(getVal_(o, ['qr_id', 'QR Code ID', 'QRCodeID']) || key),
-    parentName: String(getVal_(o, ['parent_name', 'Parent Name', 'Parent/Guardian Full Name', 'Parent/Guardian Full Name - First Name'])),
-    email: String(getVal_(o, ['parent_email', 'Email Address', 'Email'])),
-    phone: String(getVal_(o, ['parent_phone', 'Primary Phone Number', 'Phone'])),
-    ticketCount: String(getVal_(o, ['ticket_count', 'Ticket Count'])),
-    childNames: String(getVal_(o, ['registered_child_names', 'Registered Children', 'Child Names'])),
-    preCheckStatus: String(getVal_(o, ['precheck_status', 'Pre-Check Status'])),
-    checkedIn: String(getVal_(o, ['checked_in', 'Checked In'])),
-    checkedInAt: String(getVal_(o, ['checked_in_at', 'Check-In Time']))
+    parentKey:String(o.parent_token||''), qrId:String(o.qr_id||''),
+    parentName:String(o.parent_name||''), email:String(o.parent_email||''),
+    phone:String(o.parent_phone||''), ticketCount:Number(o.ticket_count||0),
+    registeredChildCount:Number(o.registered_child_count||0),
+    availableTicketCount:Number(o.available_ticket_count||0),
+    childNames:String(o.registered_child_names||''),
+    registrationStatus:String(o.registration_status||''),
+    addChildEligible:Number(o.available_ticket_count||0)>0,
+    preCheckStatus:String(o.precheck_status||''), checkedIn:String(o.checked_in||''),
+    checkedInAt:String(o.checked_in_at||'')
   };
 }
 
-function childrenForParent_(parent) {
-  const childTable = readTable_(CHILDREN_TAB, false);
-  if (childTable.rows.length) {
-    const rows = childTable.rows.filter(r => String(getVal_(r.obj, ['parent_key', 'Parent Key', 'ParentKey'])).trim() === String(parent.parentKey).trim());
-    if (rows.length) return rows.map(r => normalizeChild_(r.obj));
-  }
-  return childrenFromParentFallback_(parent);
+function childrenForParent_(p){
+  const t=table_(CHILDREN_TAB,false);
+  return t.rows.filter(r=>{
+    const phone=normPhone_(val_(r.obj,['Primary Phone Number']));
+    const email=normEmail_(val_(r.obj,['Email Address']));
+    return phone===normPhone_(p.phone) || (p.email && email===normEmail_(p.email));
+  }).map(r=>({
+    childKey:String(val_(r.obj,['child_key'])||r.rowNumber),
+    name:String(val_(r.obj,["Child's Full Name"])),
+    shirtSize:String(val_(r.obj,['T-Shirt Size'])),
+    medicalInfo:String(val_(r.obj,['Medical Conditions, Allergies, or Special Needs'])),
+    medications:String(val_(r.obj,['Current Medications']))
+  }));
 }
 
-function normalizeChild_(o) {
-  const first = String(getVal_(o, ['first_name', 'Child First Name', "Child's Full Name - First Name"]));
-  const last = String(getVal_(o, ['last_name', 'Child Last Name', "Child's Full Name - Last Name"]));
-  const name = String(getVal_(o, ['child_name', 'Child Name', 'Child Full Name', "Child's Full Name"])) || [first, last].filter(Boolean).join(' ');
-  return {
-    childKey: String(getVal_(o, ['child_key', 'Child Key', 'submission_id', 'Submission ID'])),
-    name: name,
-    firstName: first,
-    lastName: last,
-    shirtSize: String(getVal_(o, ['shirt_size', 'T-Shirt Size', 'Shirt Size'])),
-    medicalInfo: String(getVal_(o, ['medical_info', 'Medical Conditions, Allergies, or Special Needs', 'Medical Conditions', 'Medical Notes'])),
-    medications: String(getVal_(o, ['medications', 'Current Medications'])),
-    checkedIn: String(getVal_(o, ['checked_in', 'Checked In']))
-  };
+function lookupPass_(key){ const f=findParent_(key); const p=parentDto_(f.row.obj); return {ok:true,parent:p,children:childrenForParent_(p)}; }
+
+function setParent_(found,values){
+  const h=found.table.headers;
+  Object.keys(values).forEach(name=>{ const i=h.indexOf(name); if(i<0) throw new Error('Missing Parent Check-In column: '+name); found.table.sheet.getRange(found.row.rowNumber,i+1).setValue(values[name]); });
 }
 
-function childrenFromParentFallback_(parent) {
-  if (!parent.childNames) return [];
-  return parent.childNames.split(/,|\n|;/).map(s => s.trim()).filter(Boolean).map(name => ({ name, shirtSize: '', medicalInfo: '' }));
+function verify_(key){
+  const f=findParent_(key); const p=parentDto_(f.row.obj);
+  const id=p.qrId||qr_();
+  setParent_(f,{qr_id:id,precheck_status:'Verified',precheck_time:new Date()});
+  const fresh=findParent_(key); const dto=parentDto_(fresh.row.obj);
+  return {ok:true,qrId:id,parent:dto,children:childrenForParent_(dto)};
 }
 
-function lookupPass_(parentKey) {
-  const found = findParent_(parentKey);
-  const parent = normalizeParent_(found.row);
-  return { ok: true, parent, children: childrenForParent_(parent) };
+function staffLookup_(code){ const f=findParent_(code); const p=parentDto_(f.row.obj); return {ok:true,parent:p,children:childrenForParent_(p)}; }
+
+function completeCheckin_(code,device){
+  const f=findParent_(code); const p=parentDto_(f.row.obj); const now=new Date();
+  setParent_(f,{checked_in:'Yes',checked_in_at:now,checked_in_by:device||'At The Gate'});
+  const log=sh_(SCAN_LOG_TAB,true);
+  if(log.getLastRow()===0) log.appendRow(['timestamp','parent_token','qr_id','parent_name','child_names','device']);
+  log.appendRow([now,p.parentKey,p.qrId||code,p.parentName,p.childNames,device||'']);
+  const fresh=findParent_(p.parentKey); const dto=parentDto_(fresh.row.obj);
+  return {ok:true,parent:dto,children:childrenForParent_(dto),checkedInAt:now.toLocaleString('en-US',{timeZone:'America/Chicago'})};
 }
 
-function verify_(parentKey) {
-  const found = findParent_(parentKey);
-  const parent = normalizeParent_(found.row);
-  const headers = ensureHeaders_(PARENTS_TAB, ['parent_key', 'qr_id', 'precheck_status', 'precheck_time']);
-  const qrId = parent.qrId || parent.parentKey || Utilities.getUuid().slice(0, 8).toUpperCase();
-  updateCell_(found.table.sheet, headers, found.row.rowNumber, 'qr_id', qrId);
-  updateCell_(found.table.sheet, headers, found.row.rowNumber, 'precheck_status', 'Verified');
-  updateCell_(found.table.sheet, headers, found.row.rowNumber, 'precheck_time', new Date());
-  upsertPass_(parent.parentKey, qrId, 'Verified');
-  const fresh = findParent_(parent.parentKey);
-  const normalized = normalizeParent_(fresh.row);
-  return { ok: true, qrId, parent: normalized, children: childrenForParent_(normalized) };
-}
-
-function staffLookup_(code) {
-  const found = findParent_(code);
-  const parent = normalizeParent_(found.row);
-  const children = childrenForParent_(parent);
-  return { ok: true, parent, children };
-}
-
-function completeCheckin_(code, device) {
-  const found = findParent_(code);
-  const parent = normalizeParent_(found.row);
-  const now = new Date();
-  const parentHeaders = ensureHeaders_(PARENTS_TAB, ['checked_in', 'checked_in_at', 'checked_in_by', 'checkin_status']);
-  updateCell_(found.table.sheet, parentHeaders, found.row.rowNumber, 'checked_in', 'Yes');
-  updateCell_(found.table.sheet, parentHeaders, found.row.rowNumber, 'checked_in_at', now);
-  updateCell_(found.table.sheet, parentHeaders, found.row.rowNumber, 'checked_in_by', device || 'At The Gate');
-  updateCell_(found.table.sheet, parentHeaders, found.row.rowNumber, 'checkin_status', 'Complete');
-  markChildrenCheckedIn_(parent.parentKey, now, device);
-  logScan_(parent.parentKey, parent.qrId || code, parent.parentName, now, device);
-  const fresh = findParent_(parent.parentKey || code);
-  const normalized = normalizeParent_(fresh.row);
-  return { ok: true, parent: normalized, children: childrenForParent_(normalized), checkedInAt: now.toLocaleString() };
-}
-
-function markChildrenCheckedIn_(parentKey, when, device) {
-  const table = readTable_(CHILDREN_TAB, false);
-  if (!table.sheet || !table.rows.length) return;
-  const headers = ensureHeaders_(CHILDREN_TAB, ['checked_in', 'checked_in_at', 'checked_in_by']);
-  table.rows.forEach(r => {
-    if (String(getVal_(r.obj, ['parent_key', 'Parent Key', 'ParentKey'])).trim() === String(parentKey).trim()) {
-      updateCell_(table.sheet, headers, r.rowNumber, 'checked_in', 'Yes');
-      updateCell_(table.sheet, headers, r.rowNumber, 'checked_in_at', when);
-      updateCell_(table.sheet, headers, r.rowNumber, 'checked_in_by', device || 'At The Gate');
-    }
-  });
-}
-
-function updateCell_(sh, headers, rowNumber, header, value) {
-  let idx = headers.indexOf(header);
-  if (idx === -1) {
-    headers.push(header);
-    sh.getRange(1, headers.length).setValue(header);
-    idx = headers.length - 1;
-  }
-  sh.getRange(rowNumber, idx + 1).setValue(value);
-}
-
-function upsertPass_(parentKey, qrId, status) {
-  const headers = ensureHeaders_(PASSES_TAB, ['parent_key', 'qr_id', 'status', 'updated_at']);
-  const table = readTable_(PASSES_TAB);
-  const row = table.rows.find(r => String(r.obj.parent_key) === String(parentKey));
-  const values = headers.map(h => ({ parent_key: parentKey, qr_id: qrId, status, updated_at: new Date() })[h] || '');
-  if (row) table.sheet.getRange(row.rowNumber, 1, 1, headers.length).setValues([values]);
-  else table.sheet.appendRow(values);
-}
-
-function logScan_(parentKey, qrId, parentName, when, device) {
-  ensureHeaders_(SCAN_LOG_TAB, ['timestamp', 'parent_key', 'qr_id', 'parent_name', 'device']);
-  sheet_(SCAN_LOG_TAB).appendRow([when, parentKey, qrId, parentName, device || '']);
+function setupCheckInSystem(){
+  const result=syncParentCheckIn_();
+  ss_().setSpreadsheetTimeZone('America/Chicago');
+  return result;
 }
