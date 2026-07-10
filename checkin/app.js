@@ -52,10 +52,11 @@
     return children.map((child) => {
       const shirt = child.shirtSize || child.shirt || "Not listed";
       const medical = child.medicalInfo || child.medical || child.medicalNotes || "None listed";
+      const medications = child.medications || "None listed";
       return `
         <li class="child-card">
           <strong>${escapeHtml(childName(child))}</strong>
-          ${staff ? `<span>Shirt: ${escapeHtml(shirt)}</span><span class="medical ${medical === "None listed" ? "" : "has-medical"}">Medical: ${escapeHtml(medical)}</span>` : ""}
+          ${staff ? `<span>Shirt: ${escapeHtml(shirt)}</span><span class="medical ${medical === "None listed" ? "" : "has-medical"}">Medical: ${escapeHtml(medical)}</span><span>Medications: ${escapeHtml(medications)}</span>` : ""}
         </li>
       `;
     }).join("");
@@ -64,14 +65,24 @@
   function renderParent(data) {
     state.parent = data.parent;
     state.children = data.children || [];
-    $("parentName").textContent = `Welcome, ${data.parent.parentName || "Parent"}`;
+    const parent = data.parent || {};
+    $("parentName").textContent = `Welcome, ${parent.parentName || "Parent"}`;
     $("childList").innerHTML = renderChildCards(state.children);
-    $("addChildBtn").href = buildRegistrationUrl("add_child", data.parent.parentKey);
+
+    const addChildBtn = $("addChildBtn");
+    const hasUnusedTicket = Boolean(parent.addChildEligible);
+    addChildBtn.textContent = hasUnusedTicket ? "Add another child" : "Register another child (waitlist)";
+    addChildBtn.href = buildRegistrationUrl(hasUnusedTicket ? "add_child" : "waitlist", parent.parentKey);
+
+    if (!hasUnusedTicket) {
+      addChildBtn.title = "No unused Eventbrite ticket was found. A new child may be placed on the waitlist.";
+    }
     show("parentPanel");
   }
 
   function buildRegistrationUrl(type, parentKey = "") {
-    const base = type === "missing" ? cfg.missingRegistrationUrl : cfg.registrationUrl;
+    const waitlistRoute = type === "missing" || type === "waitlist" || type === "walkup";
+    const base = waitlistRoute ? (cfg.missingRegistrationUrl || cfg.registrationUrl) : cfg.registrationUrl;
     if (!base) return "#";
     const url = new URL(base, window.location.href);
     url.searchParams.set("registration_type", type);
@@ -97,6 +108,42 @@
     } finally { state.busy = false; }
   }
 
+  function roundedRect(ctx, x, y, width, height, radius) {
+    const r = Math.min(radius, width / 2, height / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + width, y, x + width, y + height, r);
+    ctx.arcTo(x + width, y + height, x, y + height, r);
+    ctx.arcTo(x, y + height, x, y, r);
+    ctx.arcTo(x, y, x + width, y, r);
+    ctx.closePath();
+  }
+
+  function drawLogoOnQr(canvas) {
+    return new Promise((resolve) => {
+      const logoUrl = cfg.fastPassLogoUrl;
+      if (!logoUrl) return resolve(canvas);
+      const img = new Image();
+      img.onload = () => {
+        const ctx = canvas.getContext("2d");
+        const size = Math.round(canvas.width * 0.22);
+        const padding = Math.round(size * 0.12);
+        const box = size + padding * 2;
+        const x = Math.round((canvas.width - box) / 2);
+        const y = Math.round((canvas.height - box) / 2);
+        ctx.save();
+        ctx.fillStyle = "#ffffff";
+        roundedRect(ctx, x, y, box, box, Math.round(box * 0.12));
+        ctx.fill();
+        ctx.drawImage(img, x + padding, y + padding, size, size);
+        ctx.restore();
+        resolve(canvas);
+      };
+      img.onerror = () => resolve(canvas);
+      img.src = new URL(logoUrl, window.location.href).toString();
+    });
+  }
+
   function renderPass(data) {
     const parent = data.parent || state.parent || {};
     const children = data.children || state.children || [];
@@ -106,10 +153,16 @@
     $("passChildren").textContent = childrenText(children) || parent.childNames || "Children verified";
     $("passStatus").textContent = parent.checkedIn === "Yes" ? "Checked In" : "Verified";
     $("qrCode").innerHTML = "";
+
     if (window.QRCode) {
-      QRCode.toCanvas(state.qrValue, { width: 238, margin: 1 }, (err, canvas) => {
-        if (err) $("qrCode").textContent = qrId;
-        else $("qrCode").appendChild(canvas);
+      QRCode.toCanvas(state.qrValue, { width: 280, margin: 2, errorCorrectionLevel: "H" }, async (err, canvas) => {
+        if (err) {
+          $("qrCode").textContent = qrId;
+          return;
+        }
+        await drawLogoOnQr(canvas);
+        canvas.setAttribute("aria-label", "Family Fast Pass QR code");
+        $("qrCode").appendChild(canvas);
       });
     } else {
       $("qrCode").textContent = qrId;
@@ -131,6 +184,7 @@
       $("staffResult").innerHTML = `
         <p class="${already ? "warn" : "ok"}">${already ? "Already checked in" : "Ready to check in"}</p>
         <h2>${escapeHtml(parent.parentName || "Parent")}</h2>
+        <p class="muted">Status: ${escapeHtml(parent.registrationStatus || "Review required")}</p>
         <p class="muted">Review each child before pressing confirm.</p>
         <ul class="child-list staff-child-list">${renderChildCards(children, { staff: true })}</ul>
         <button class="btn primary" data-complete="${escapeHtml(code)}">${already ? "Record another scan" : "Confirm Check-In"}</button>
