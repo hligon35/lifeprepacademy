@@ -71,7 +71,7 @@
 
     const addChildBtn = $("addChildBtn");
     const hasUnusedTicket = Boolean(parent.addChildEligible);
-    addChildBtn.textContent = hasUnusedTicket ? "Add another child" : "Register another child (waitlist)";
+    addChildBtn.textContent = hasUnusedTicket ? "Add another child" : "Register another child";
     addChildBtn.href = buildRegistrationUrl(hasUnusedTicket ? "add_child" : "waitlist", parent.parentKey);
 
     if (!hasUnusedTicket) {
@@ -167,7 +167,7 @@
     } else {
       $("qrCode").textContent = qrId;
     }
-    setHero("Your Fast Pass Is Ready", "Show this QR code at the gate for a quicker check-in.");
+    setHero("Your Fast Pass Is Ready", "Show this QR code at the gate for a quick check-in.");
     show("passPanel");
   }
 
