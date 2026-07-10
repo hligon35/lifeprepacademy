@@ -8,15 +8,22 @@ const PARENT_HEADERS = [
   'parent_token','parent_phone','parent_email','parent_name','ticket_count',
   'registered_child_count','available_ticket_count','registered_child_names',
   'registration_status','qr_id','precheck_status','precheck_time','checked_in',
-  'checked_in_at','checked_in_by','sms_status','twilio_message_sid','last_synced_at'
+  'checked_in_at','checked_in_by','sms_status','twilio_message_sid','last_synced_at',
+  'branded_qr_code'
 ];
 
 function doGet(e) {
-  const p = e.parameter || {};
+  const p = (e && e.parameter) ? e.parameter : {};
   const callback = String(p.callback || 'callback').replace(/[^a-zA-Z0-9_$]/g, '');
   let payload;
-  try { payload = handleAction_(p.action, p); }
-  catch (err) { payload = { ok:false, error:err.message || String(err) }; }
+  try {
+    payload = p.action ? handleAction_(p.action, p) : {
+      ok: true,
+      message: 'Check-in web app is running. Use an action parameter from the website.'
+    };
+  } catch (err) {
+    payload = { ok:false, error:err.message || String(err) };
+  }
   return ContentService.createTextOutput(callback + '(' + JSON.stringify(payload) + ')')
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
@@ -88,18 +95,19 @@ function syncParentCheckIn_(){
       parent_email:g.email, parent_name:g.name, ticket_count:count,
       registered_child_count:registered, available_ticket_count:available,
       registered_child_names:g.children.join(', '), registration_status:status,
-      qr_id:old.qr_id || '', precheck_status:old.precheck_status || '',
+      qr_id:old.qr_id || qr_(), precheck_status:old.precheck_status || '',
       precheck_time:old.precheck_time || '', checked_in:old.checked_in || '',
       checked_in_at:old.checked_in_at || '', checked_in_by:old.checked_in_by || '',
       sms_status:old.sms_status || 'Not Scheduled',
-      twilio_message_sid:old.twilio_message_sid || '', last_synced_at:new Date()
+      twilio_message_sid:old.twilio_message_sid || '', last_synced_at:new Date(),
+      branded_qr_code:''
     };
   });
 
   const s=ensureParentSheet_();
   if(s.getLastRow()>1) s.getRange(2,1,s.getLastRow()-1,PARENT_HEADERS.length).clearContent();
   if(rows.length) s.getRange(2,1,rows.length,PARENT_HEADERS.length).setValues(rows.map(o=>PARENT_HEADERS.map(h=>o[h]||'')));
-  return {ok:true,parentCount:rows.length};
+  return {ok:true,parentCount:rows.length,qrIdsGenerated:rows.filter(r=>r.qr_id).length};
 }
 
 function findParent_(key){
