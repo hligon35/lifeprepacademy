@@ -7,7 +7,7 @@ window.AT_THE_GATE_CONFIG = {
   supportPhone: "",
   registrationUrl: "",
   missingRegistrationUrl: "",
-  googleAppsScriptUrl: "PASTE_DEPLOYED_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE",
+  googleAppsScriptUrl: "https://script.google.com/macros/s/AKfycbwq8X2CeQeE3rtcODy6wv7MwGxlmiYauvqTi6SRFaARUSzWyRBnG384iaFBdm99NPzCxw/exec",
   fastPassLogoUrl: "fastpasslogo.png",
   sheetIdHint: "16xbM_ZXe4mEdfjABwPVfc6HqWhn-iW9DumoFfaQ9JTQ"
 };
