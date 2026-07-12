@@ -26,6 +26,7 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   font-family: "Aptos", "Segoe UI", Arial, Helvetica, sans-serif;
   color: var(--white);
   background:
@@ -43,29 +44,33 @@ body::before {
 }
 
 .page-shell {
-  width: min(100%, 1080px);
+  width: min(100%, 1180px);
   margin: 0 auto;
-  padding: 20px 14px 48px;
+  padding: clamp(16px, 4vw, 32px) clamp(14px, 3vw, 24px) 56px;
 }
 
 .hero-card {
   display: grid;
-  gap: 18px;
+  gap: clamp(16px, 3vw, 28px);
   align-items: center;
-  padding: 22px;
+  padding: clamp(18px, 4vw, 34px);
   border: 1px solid var(--line);
-  border-radius: 28px;
+  border-radius: clamp(22px, 3vw, 32px);
   background: linear-gradient(155deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.06));
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.28);
 }
 
 .hero-logo {
   width: min(100%, 460px);
+  max-height: min(48vw, 360px);
   justify-self: center;
+  object-fit: contain;
   filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 0.35));
 }
 
 .hero-copy {
+  max-width: 34rem;
+  margin: 0 auto;
   text-align: center;
 }
 
@@ -106,17 +111,22 @@ h3 {
   font-size: 1.35rem;
 }
 
-.hero-intro,
-.lead {
+.hero-intro {
   color: #dce8ff;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.lead {
+  color: var(--ink);
   font-size: 1rem;
   line-height: 1.6;
 }
 
 .panel {
   margin-top: 18px;
-  padding: 22px 18px;
-  border-radius: 26px;
+  padding: clamp(18px, 3vw, 34px);
+  border-radius: clamp(22px, 3vw, 30px);
   background: rgba(255, 255, 255, 0.98);
   color: var(--ink);
   box-shadow: var(--panel-shadow);
@@ -168,8 +178,8 @@ h3 {
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 54px;
-  padding: 14px 18px;
+  min-height: 56px;
+  padding: 15px 18px;
   border: 0;
   border-radius: 18px;
   text-decoration: none;
@@ -249,10 +259,13 @@ h3 {
 }
 
 .canvas-shell {
+  max-width: 780px;
+  margin: 0 auto;
   border-radius: 24px;
   overflow: hidden;
   background: linear-gradient(180deg, #dbe8ff, #f7faff);
   border: 1px solid #d3dff6;
+  box-shadow: 0 18px 40px rgba(17, 40, 79, 0.08);
 }
 
 .fastpass-canvas {
@@ -293,10 +306,11 @@ h3 {
 .screenshot-note {
   margin: 0;
   font-weight: 600;
+  text-align: center;
 }
 
 .scanner-box {
-  min-height: 280px;
+  min-height: clamp(240px, 46vw, 360px);
   display: grid;
   place-items: center;
   padding: 12px;
@@ -372,22 +386,62 @@ input {
   }
 }
 
+@media (max-width: 479px) {
+  .page-shell {
+    padding-inline: 12px;
+    padding-bottom: 40px;
+  }
+
+  .hero-card {
+    border-radius: 22px;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 12vw, 2.9rem);
+  }
+
+  h2 {
+    font-size: clamp(1.55rem, 8vw, 2rem);
+  }
+
+  .hero-kicker,
+  .eyebrow {
+    letter-spacing: 0.12em;
+    font-size: 0.72rem;
+  }
+
+  .panel-header {
+    gap: 10px;
+  }
+
+  .canvas-shell {
+    border-radius: 18px;
+  }
+
+  .fallback-box,
+  .inline-message,
+  .staff-result {
+    padding: 14px;
+  }
+
+  .btn {
+    min-height: 58px;
+    font-size: 0.98rem;
+  }
+}
+
 @media (min-width: 760px) {
   .page-shell {
-    padding: 26px 22px 56px;
+    padding: 26px 22px 64px;
   }
 
   .hero-card {
     grid-template-columns: minmax(280px, 420px) 1fr;
-    padding: 28px;
   }
 
   .hero-copy {
+    margin: 0;
     text-align: left;
-  }
-
-  .panel {
-    padding: 28px;
   }
 
   .button-stack {
@@ -401,5 +455,57 @@ input {
 
   .manual-row {
     grid-template-columns: minmax(0, 1fr) 180px;
+  }
+
+  .panel-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+}
+
+@media (min-width: 980px) {
+  .page-shell {
+    padding-top: 32px;
+  }
+
+  .hero-card {
+    grid-template-columns: minmax(320px, 430px) minmax(0, 1fr);
+  }
+
+  #parentPanel,
+  #staffPanel,
+  #messagePanel,
+  #loadingPanel {
+    max-width: 920px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  #passPanel {
+    max-width: 980px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .child-list {
+    gap: 14px;
+  }
+
+  .scanner-box {
+    min-height: 380px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .page-shell {
+    width: min(100%, 1240px);
+  }
+
+  .hero-card {
+    padding-inline: 40px;
+  }
+
+  .panel {
+    padding: 34px;
   }
 }
