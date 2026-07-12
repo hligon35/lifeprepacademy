@@ -53,13 +53,13 @@
   const PASS_LAYOUT = {
     width: 1024,
     height: 1536,
-    leftX: 88,
-    leftY: 436,
-    leftWidth: 458,
-    leftHeight: 620,
-    qrX: 682,
-    qrY: 1047,
-    qrSize: 240
+    leftX: 90,
+    leftY: 815,
+    leftWidth: 380,
+    leftHeight: 410,
+    qrX: 550,
+    qrY: 795,
+    qrSize: 435
   };
 
   function showPanel(id) {
@@ -332,41 +332,41 @@
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
 
-    ctx.font = "700 26px Arial, Helvetica, sans-serif";
-    ctx.fillText("PARENT / GUARDIAN", leftX, leftY);
+    ctx.font = "700 18px Arial, Helvetica, sans-serif";
+    ctx.fillText("PARENT / GUARDIAN", leftX + 90, leftY);
 
-    let parentFontSize = 52;
+    let parentFontSize = 32;
     const parentName = String(parent.parentName || "Parent / Guardian").trim();
     do {
-      ctx.font = `800 ${parentFontSize}px Arial, Helvetica, sans-serif`;
+      ctx.font = `700 ${parentFontSize}px Arial, Helvetica, sans-serif`;
       if (ctx.measureText(parentName).width <= maxWidth) break;
       parentFontSize -= 2;
-    } while (parentFontSize > 32);
+    } while (parentFontSize > 26);
     const parentNameLines = wrapLines(ctx, parentName, maxWidth).slice(0, 2);
 
-    let currentY = leftY + 46;
+    let currentY = leftY + 35;
     parentNameLines.forEach((line) => {
       ctx.fillText(line, leftX, currentY);
       currentY += parentFontSize + 8;
     });
 
     currentY += 20;
-    ctx.font = "700 26px Arial, Helvetica, sans-serif";
-    ctx.fillText("REGISTERED CHILDREN", leftX, currentY);
+    ctx.font = "700 18px Arial, Helvetica, sans-serif";
+    ctx.fillText("REGISTERED CHILDREN", leftX + 75, currentY);
     currentY += 42;
 
-    let childFontSize = 42;
+    let childFontSize = 28;
     let childLines = [];
-    while (childFontSize >= 26) {
-      ctx.font = `800 ${childFontSize}px Arial, Helvetica, sans-serif`;
+    while (childFontSize >= 18) {
+      ctx.font = `700 ${childFontSize}px Arial, Helvetica, sans-serif`;
       childLines = formatChildBlocks(ctx, names.length ? names : [parent.childNames || "Registration on file"], maxWidth, 8);
       const lineHeight = childFontSize + 10;
       if (childLines.length * lineHeight <= PASS_LAYOUT.leftHeight - (currentY - leftY)) break;
       childFontSize -= 2;
     }
 
-    ctx.font = `800 ${childFontSize}px Arial, Helvetica, sans-serif`;
-    const childLineHeight = childFontSize + 10;
+    ctx.font = `700 ${childFontSize}px Arial, Helvetica, sans-serif`;
+    const childLineHeight = childFontSize + 25;
     childLines.forEach((line) => {
       ctx.fillText(line, leftX, currentY);
       currentY += childLineHeight;
