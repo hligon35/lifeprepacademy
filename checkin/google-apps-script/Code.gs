@@ -3,6 +3,8 @@ const CHILDREN_TAB = 'Child Registrations';
 const TICKETS_TAB = 'Event Tickets';
 const PARENTS_TAB = 'Parent Check-In';
 const SCAN_LOG_TAB = 'Scan Log';
+const WAITLIST_TAB = 'Waitlist';
+const EVENT_TIME_ZONE = 'America/Chicago';
 
 const PARENT_HEADERS = [
   'parent_token','parent_phone','parent_email','parent_name','ticket_count',
@@ -38,6 +40,8 @@ function handleAction_(action, p) {
 }
 
 function ss_(){ return SpreadsheetApp.openById(SHEET_ID); }
+function now_(){ return new Date(); }
+function formatLocalDateTime_(value){ return Utilities.formatDate(value, EVENT_TIME_ZONE, 'M/d/yyyy h:mm:ss a'); }
 function sh_(name, create){ let s=ss_().getSheetByName(name); if(!s && create!==false) s=ss_().insertSheet(name); return s; }
 function normEmail_(v){ return String(v||'').trim().toLowerCase(); }
 function normPhone_(v){ const d=String(v||'').replace(/\D/g,''); return d.length===11&&d[0]==='1'?d.slice(1):d; }
@@ -56,6 +60,7 @@ function ensureParentSheet_(){
 }
 
 function syncParentCheckIn_(){
+  ss_().setSpreadsheetTimeZone(EVENT_TIME_ZONE);
   const children=table_(CHILDREN_TAB,false);
   const tickets=table_(TICKETS_TAB,false);
   if(!children.sheet) throw new Error('Child Registrations tab was not found.');
@@ -99,7 +104,7 @@ function syncParentCheckIn_(){
       precheck_time:old.precheck_time || '', checked_in:old.checked_in || '',
       checked_in_at:old.checked_in_at || '', checked_in_by:old.checked_in_by || '',
       sms_status:old.sms_status || 'Not Scheduled',
-      twilio_message_sid:old.twilio_message_sid || '', last_synced_at:new Date(),
+      twilio_message_sid:old.twilio_message_sid || '', last_synced_at:now_(),
       branded_qr_code:''
     };
   });
@@ -144,9 +149,9 @@ function childrenForParent_(p){
   }).map(r=>({
     childKey:String(val_(r.obj,['child_key'])||r.rowNumber),
     name:String(val_(r.obj,["Child's Full Name"])),
-    shirtSize:String(val_(r.obj,['T-Shirt Size'])),
-    medicalInfo:String(val_(r.obj,['Medical Conditions, Allergies, or Special Needs'])),
-    medications:String(val_(r.obj,['Current Medications']))
+    shirtSize:String(val_(r.obj,['T-Shirt Size','Shirt Size','shirt_size'])),
+    medicalInfo:String(val_(r.obj,['Medical Conditions, Allergies, or Special Needs','Medical Notes','medical_info'])),
+    medications:String(val_(r.obj,['Current Medications','Medications']))
   }));
 }
 
@@ -154,13 +159,15 @@ function lookupPass_(key){ const f=findParent_(key); const p=parentDto_(f.row.ob
 
 function setParent_(found,values){
   const h=found.table.headers;
-  Object.keys(values).forEach(name=>{ const i=h.indexOf(name); if(i<0) throw new Error('Missing Parent Check-In column: '+name); found.table.sheet.getRange(found.row.rowNumber,i+1).setValue(values[name]); });
+  const updates = Object.keys(values);
+  if(!updates.length) return;
+  updates.forEach(name=>{ const i=h.indexOf(name); if(i<0) throw new Error('Missing Parent Check-In column: '+name); found.table.sheet.getRange(found.row.rowNumber,i+1).setValue(values[name]); });
 }
 
 function verify_(key){
   const f=findParent_(key); const p=parentDto_(f.row.obj);
   const id=p.qrId||qr_();
-  setParent_(f,{qr_id:id,precheck_status:'Verified',precheck_time:new Date()});
+  setParent_(f,{qr_id:id,precheck_status:'Verified',precheck_time:now_()});
   const fresh=findParent_(key); const dto=parentDto_(fresh.row.obj);
   return {ok:true,qrId:id,parent:dto,children:childrenForParent_(dto)};
 }
@@ -168,17 +175,18 @@ function verify_(key){
 function staffLookup_(code){ const f=findParent_(code); const p=parentDto_(f.row.obj); return {ok:true,parent:p,children:childrenForParent_(p)}; }
 
 function completeCheckin_(code,device){
-  const f=findParent_(code); const p=parentDto_(f.row.obj); const now=new Date();
+  ss_().setSpreadsheetTimeZone(EVENT_TIME_ZONE);
+  const f=findParent_(code); const p=parentDto_(f.row.obj); const now=now_();
   setParent_(f,{checked_in:'Yes',checked_in_at:now,checked_in_by:device||'At The Gate'});
   const log=sh_(SCAN_LOG_TAB,true);
-  if(log.getLastRow()===0) log.appendRow(['timestamp','parent_token','qr_id','parent_name','child_names','device']);
-  log.appendRow([now,p.parentKey,p.qrId||code,p.parentName,p.childNames,device||'']);
+  if(log.getLastRow()===0) log.appendRow(['timestamp','parent_token','qr_id','parent_name','child_names','device','status_before_scan']);
+  log.appendRow([now,p.parentKey,p.qrId||code,p.parentName,p.childNames,device||'',p.checkedIn||'']);
   const fresh=findParent_(p.parentKey); const dto=parentDto_(fresh.row.obj);
-  return {ok:true,parent:dto,children:childrenForParent_(dto),checkedInAt:now.toLocaleString('en-US',{timeZone:'America/Chicago'})};
+  return {ok:true,parent:dto,children:childrenForParent_(dto),checkedInAt:formatLocalDateTime_(now)};
 }
 
 function setupCheckInSystem(){
   const result=syncParentCheckIn_();
-  ss_().setSpreadsheetTimeZone('America/Chicago');
+  ss_().setSpreadsheetTimeZone(EVENT_TIME_ZONE);
   return result;
 }

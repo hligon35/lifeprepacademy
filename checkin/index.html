@@ -1,10 +1,103 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>At The Gate | Paducah Flag Football</title>
-  <meta name="theme-color" content="#06204a">
-  <link rel="icon" type="image/png" href="fastpasslogo.png">
-  <link rel="stylesheet" href="styles.css">
-  <script src="qr-local.js
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Paducah Flag Football Clinic Fast Pass</title>
+  <meta name="description" content="Parent Fast Pass and staff check-in for the Paducah Flag Football Clinic." />
+  <link rel="icon" type="image/png" href="fastpasslogo.png" />
+  <link rel="apple-touch-icon" href="fastpasslogo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="page-shell">
+    <header class="hero-card">
+      <img class="hero-logo" src="fastpasslogo.png" alt="LifePrep Academy Foundation Paducah Flag Football logo" />
+      <div class="hero-copy">
+        <p class="hero-kicker">Paducah Flag Football Clinic</p>
+        <h1 id="screenTitle">Fast Pass</h1>
+        <p id="screenIntro" class="hero-intro">Loading your family Fast Pass.</p>
+      </div>
+    </header>
+
+    <div id="statusBanner" class="status-banner hidden" role="status" aria-live="polite"></div>
+    <div id="errorBanner" class="status-banner error hidden" role="alert" aria-live="assertive"></div>
+
+    <section id="loadingPanel" class="panel center-panel" aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
+      <p id="loadingMessage">Loading check-in details...</p>
+    </section>
+
+    <section id="parentPanel" class="panel hidden" aria-labelledby="parentHeading">
+      <p class="eyebrow">Parent Fast Pass</p>
+      <h2 id="parentHeading">Confirm your family details</h2>
+      <p id="parentSummary" class="lead"></p>
+      <p id="registrationStatus" class="support-text hidden"></p>
+      <ul id="childList" class="child-list"></ul>
+      <div id="parentActions" class="button-stack">
+        <button id="verifyBtn" class="btn primary" type="button">Yes, everything is correct</button>
+        <a id="addChildBtn" class="btn secondary hidden" href="/">Add another child</a>
+        <a id="registerChildBtn" class="btn secondary hidden" href="/">Register another child</a>
+        <button id="helpBtn" class="btn ghost" type="button">I need help</button>
+      </div>
+      <div id="helpMessage" class="inline-message hidden" aria-live="polite"></div>
+    </section>
+
+    <section id="passPanel" class="panel hidden" aria-labelledby="passHeading">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Fast Pass Ready</p>
+          <h2 id="passHeading">Show this pass at check-in</h2>
+        </div>
+        <p id="passMeta" class="support-text"></p>
+      </div>
+      <div class="canvas-shell">
+        <canvas id="fastPassCanvas" class="fastpass-canvas" aria-label="Personalized Fast Pass"></canvas>
+      </div>
+      <div id="qrFallback" class="fallback-box hidden">
+        <p class="fallback-title">Manual backup code</p>
+        <p class="fallback-text">If the QR does not render, staff can use this code:</p>
+        <p id="qrFallbackCode" class="fallback-code"></p>
+      </div>
+      <div class="button-stack compact-gap">
+        <button id="savePassBtn" class="btn primary" type="button">Save Fast Pass</button>
+        <p class="support-text screenshot-note">Keep this pass visible and screenshot it for backup before you arrive.</p>
+      </div>
+    </section>
+
+    <section id="staffPanel" class="panel hidden" aria-labelledby="staffHeading">
+      <p class="eyebrow">Staff Check-In</p>
+      <h2 id="staffHeading">Scan or enter a family code</h2>
+      <p class="lead">Use the camera when available. Manual lookup remains available if scanning fails.</p>
+
+      <div id="readerStatus" class="inline-message hidden" aria-live="polite"></div>
+      <div id="reader" class="scanner-box" aria-label="QR scanner area"></div>
+
+      <div class="manual-lookup">
+        <label for="manualCode">Family QR ID</label>
+        <div class="manual-row">
+          <input id="manualCode" name="manualCode" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="Enter or paste the QR ID" />
+          <button id="manualLookupBtn" class="btn secondary" type="button">Lookup</button>
+        </div>
+      </div>
+
+      <div id="staffResult" class="staff-result hidden" aria-live="polite"></div>
+    </section>
+
+    <section id="messagePanel" class="panel hidden" aria-labelledby="messageHeading">
+      <p class="eyebrow">Check-In Support</p>
+      <h2 id="messageHeading">We need one more step</h2>
+      <p id="messageBody" class="lead"></p>
+      <div class="button-stack compact-gap">
+        <a id="messagePrimaryLink" class="btn secondary hidden" href="/">Open registration</a>
+        <button id="messageActionBtn" class="btn ghost hidden" type="button">Back</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="qr-local.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

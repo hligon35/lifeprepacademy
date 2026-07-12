@@ -1,114 +1,245 @@
 (() => {
-  const $ = (id) => document.getElementById(id);
   const cfg = window.AT_THE_GATE_CONFIG || {};
   const params = new URLSearchParams(window.location.search);
-  const state = { parent: null, children: [], qrValue: null, scanner: null, busy: false };
+  const panels = ["loadingPanel", "parentPanel", "passPanel", "staffPanel", "messagePanel"];
+  const state = {
+    parent: null,
+    children: [],
+    qrId: "",
+    qrUrl: "",
+    busy: false,
+    scanner: null,
+    passReady: false,
+    qrFailed: false,
+    latestStaffLookup: null
+  };
 
-  const panels = ["loadingPanel", "parentPanel", "passPanel", "staffPanel", "walkupPanel", "messagePanel"];
-  const show = (id) => panels.forEach((p) => $(p).classList.toggle("hidden", p !== id));
-  const setHero = (title, intro) => { $("screenTitle").textContent = title; $("screenIntro").textContent = intro; };
-  const message = (title, body) => { $("messageTitle").textContent = title; $("messageBody").textContent = body; show("messagePanel"); };
-  const escapeHtml = (value = "") => String(value).replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c]));
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    screenTitle: $("screenTitle"),
+    screenIntro: $("screenIntro"),
+    statusBanner: $("statusBanner"),
+    errorBanner: $("errorBanner"),
+    loadingPanel: $("loadingPanel"),
+    loadingMessage: $("loadingMessage"),
+    parentPanel: $("parentPanel"),
+    parentSummary: $("parentSummary"),
+    registrationStatus: $("registrationStatus"),
+    childList: $("childList"),
+    verifyBtn: $("verifyBtn"),
+    addChildBtn: $("addChildBtn"),
+    registerChildBtn: $("registerChildBtn"),
+    helpBtn: $("helpBtn"),
+    helpMessage: $("helpMessage"),
+    passPanel: $("passPanel"),
+    passMeta: $("passMeta"),
+    fastPassCanvas: $("fastPassCanvas"),
+    savePassBtn: $("savePassBtn"),
+    qrFallback: $("qrFallback"),
+    qrFallbackCode: $("qrFallbackCode"),
+    staffPanel: $("staffPanel"),
+    readerStatus: $("readerStatus"),
+    reader: $("reader"),
+    manualCode: $("manualCode"),
+    manualLookupBtn: $("manualLookupBtn"),
+    staffResult: $("staffResult"),
+    messagePanel: $("messagePanel"),
+    messageHeading: $("messageHeading"),
+    messageBody: $("messageBody"),
+    messagePrimaryLink: $("messagePrimaryLink"),
+    messageActionBtn: $("messageActionBtn")
+  };
 
-  function api(action, payload = {}) {
-    const base = cfg.googleAppsScriptUrl;
-    if (!base || base.includes("PASTE_DEPLOYED")) {
-      return Promise.reject(new Error("Google Apps Script URL is not configured yet."));
-    }
-    const callback = `atg_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const url = new URL(base);
-    url.searchParams.set("action", action);
-    url.searchParams.set("callback", callback);
-    Object.entries(payload).forEach(([key, value]) => url.searchParams.set(key, value ?? ""));
+  const PASS_LAYOUT = {
+    width: 1024,
+    height: 1536,
+    leftX: 88,
+    leftY: 436,
+    leftWidth: 458,
+    leftHeight: 620,
+    qrX: 682,
+    qrY: 1047,
+    qrSize: 240
+  };
 
-    return new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      const timer = setTimeout(() => {
-        cleanup();
-        reject(new Error("The check-in system did not respond in time."));
-      }, 15000);
-      function cleanup() {
-        clearTimeout(timer);
-        delete window[callback];
-        script.remove();
-      }
-      window[callback] = (data) => { cleanup(); data?.ok ? resolve(data) : reject(new Error(data?.error || "Request failed.")); };
-      script.onerror = () => { cleanup(); reject(new Error("Could not reach the check-in system.")); };
-      script.src = url.toString();
-      document.body.appendChild(script);
+  function showPanel(id) {
+    panels.forEach((panelId) => {
+      const panel = $(panelId);
+      if (panel) panel.classList.toggle("hidden", panelId !== id);
     });
   }
 
-  function childName(child = {}) {
-    return child.name || [child.firstName, child.lastName].filter(Boolean).join(" ") || "Registered child";
+  function setHero(title, intro) {
+    els.screenTitle.textContent = title;
+    els.screenIntro.textContent = intro;
   }
 
-  function childrenText(children = []) {
-    return children.map(childName).filter(Boolean).join(", ");
-  }
-
-  function renderChildCards(children = [], { staff = false } = {}) {
-    if (!children.length) return "<li>No child registration is connected yet.</li>";
-    return children.map((child) => {
-      const shirt = child.shirtSize || child.shirt || "Not listed";
-      const medical = child.medicalInfo || child.medical || child.medicalNotes || "None listed";
-      const medications = child.medications || "None listed";
-      return `
-        <li class="child-card">
-          <strong>${escapeHtml(childName(child))}</strong>
-          ${staff ? `<span>Shirt: ${escapeHtml(shirt)}</span><span class="medical ${medical === "None listed" ? "" : "has-medical"}">Medical: ${escapeHtml(medical)}</span><span>Medications: ${escapeHtml(medications)}</span>` : ""}
-        </li>
-      `;
-    }).join("");
-  }
-
-  function renderParent(data) {
-    state.parent = data.parent;
-    state.children = data.children || [];
-    const parent = data.parent || {};
-    $("parentName").textContent = `Welcome, ${parent.parentName || "Parent"}`;
-    $("childList").innerHTML = renderChildCards(state.children);
-
-    const addChildBtn = $("addChildBtn");
-    const hasUnusedTicket = Boolean(parent.addChildEligible);
-    addChildBtn.textContent = hasUnusedTicket ? "Add another child" : "Register another child";
-    addChildBtn.href = buildRegistrationUrl(hasUnusedTicket ? "add_child" : "waitlist", parent.parentKey);
-
-    if (!hasUnusedTicket) {
-      addChildBtn.title = "No unused Eventbrite ticket was found. A new child may be placed on the waitlist.";
+  function setStatus(text) {
+    if (!text) {
+      els.statusBanner.textContent = "";
+      els.statusBanner.classList.add("hidden");
+      return;
     }
-    show("parentPanel");
+    els.statusBanner.textContent = text;
+    els.statusBanner.classList.remove("hidden");
   }
 
-  function buildRegistrationUrl(type, parentKey = "") {
-    const waitlistRoute = type === "missing" || type === "waitlist" || type === "walkup";
-    const base = waitlistRoute ? (cfg.missingRegistrationUrl || cfg.registrationUrl) : cfg.registrationUrl;
-    if (!base) return "#";
-    const url = new URL(base, window.location.href);
-    url.searchParams.set("registration_type", type);
-    if (parentKey) url.searchParams.set("parent_key", parentKey);
-    const returnUrl = new URL(window.location.href);
-    returnUrl.searchParams.delete("staff");
-    returnUrl.searchParams.delete("register");
-    returnUrl.searchParams.delete("walkup");
-    if (parentKey) returnUrl.searchParams.set("k", parentKey);
-    returnUrl.searchParams.set("returning", "1");
-    url.searchParams.set("return_url", returnUrl.toString());
-    return url.toString();
+  function setError(text) {
+    if (!text) {
+      els.errorBanner.textContent = "";
+      els.errorBanner.classList.add("hidden");
+      return;
+    }
+    els.errorBanner.textContent = text;
+    els.errorBanner.classList.remove("hidden");
   }
 
-  async function verifyParent() {
-    if (!state.parent || state.busy) return;
-    state.busy = true;
+  function showMessage(title, body, options = {}) {
+    setStatus("");
+    setError(options.error ? body : "");
+    els.messageHeading.textContent = title;
+    els.messageBody.textContent = body;
+
+    if (options.linkText && options.linkHref) {
+      els.messagePrimaryLink.textContent = options.linkText;
+      els.messagePrimaryLink.href = options.linkHref;
+      els.messagePrimaryLink.classList.remove("hidden");
+    } else {
+      els.messagePrimaryLink.classList.add("hidden");
+      els.messagePrimaryLink.removeAttribute("href");
+    }
+
+    if (options.actionText && typeof options.onAction === "function") {
+      els.messageActionBtn.textContent = options.actionText;
+      els.messageActionBtn.onclick = options.onAction;
+      els.messageActionBtn.classList.remove("hidden");
+    } else {
+      els.messageActionBtn.onclick = null;
+      els.messageActionBtn.classList.add("hidden");
+    }
+
+    showPanel("messagePanel");
+  }
+
+  function withTimeout(promise, timeoutMs, timeoutMessage) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        window.setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+      })
+    ]);
+  }
+
+  function normalizeApiPayload(payload) {
+    const clean = {};
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) clean[key] = value;
+    });
+    return clean;
+  }
+
+  function api(action, payload = {}) {
+    const base = String(cfg.googleAppsScriptUrl || "").trim();
+    if (!base) {
+      return Promise.reject(new Error("The check-in service is not configured right now."));
+    }
+
+    let url;
     try {
-      const data = await api("verify", { parentKey: state.parent.parentKey });
-      renderPass(data);
-    } catch (err) {
-      message("Could not verify yet", err.message);
-    } finally { state.busy = false; }
+      url = new URL(base, window.location.href);
+    } catch (_error) {
+      return Promise.reject(new Error("The check-in service URL is invalid."));
+    }
+
+    const callback = `fastpass_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    url.searchParams.set("action", action);
+    url.searchParams.set("callback", callback);
+    Object.entries(normalizeApiPayload(payload)).forEach(([key, value]) => {
+      url.searchParams.set(key, String(value));
+    });
+
+    return withTimeout(new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+
+      function cleanup() {
+        delete window[callback];
+        script.remove();
+      }
+
+      window[callback] = (data) => {
+        cleanup();
+        if (data && data.ok) resolve(data);
+        else reject(new Error((data && data.error) || "The check-in service returned an error."));
+      };
+
+      script.onerror = () => {
+        cleanup();
+        reject(new Error("The check-in service could not be reached."));
+      };
+
+      script.src = url.toString();
+      document.body.appendChild(script);
+    }), 15000, "The check-in service timed out. Please try again in a moment.");
   }
 
-  function roundedRect(ctx, x, y, width, height, radius) {
+  function childName(child = {}) {
+    return String(
+      child.name || [child.firstName, child.lastName].filter(Boolean).join(" ") || "Registered child"
+    ).trim();
+  }
+
+  function childNames(children = []) {
+    return children.map(childName).filter(Boolean);
+  }
+
+  function sanitizeFilename(value) {
+    return String(value || "family")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "family";
+  }
+
+  function wrapLines(ctx, text, maxWidth) {
+    const words = String(text || "").split(/\s+/).filter(Boolean);
+    if (!words.length) return [""];
+    const lines = [];
+    let line = words[0];
+
+    for (let i = 1; i < words.length; i += 1) {
+      const nextLine = `${line} ${words[i]}`;
+      if (ctx.measureText(nextLine).width <= maxWidth) line = nextLine;
+      else {
+        lines.push(line);
+        line = words[i];
+      }
+    }
+
+    lines.push(line);
+    return lines;
+  }
+
+  function formatChildBlocks(ctx, names, maxWidth, maxLines) {
+    const lines = [];
+    names.forEach((name) => {
+      wrapLines(ctx, name, maxWidth).forEach((line) => lines.push(line));
+    });
+    return lines.slice(0, maxLines);
+  }
+
+  function loadImage(url, errorMessage) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(errorMessage));
+      img.src = new URL(url, window.location.href).toString();
+    });
+  }
+
+  function qrTargetUrl(qrId) {
+    return `${window.location.origin}${window.location.pathname}?staff=1&code=${encodeURIComponent(qrId)}`;
+  }
+
+  function drawRoundedRect(ctx, x, y, width, height, radius) {
     const r = Math.min(radius, width / 2, height / 2);
     ctx.beginPath();
     ctx.moveTo(x + r, y);
@@ -119,156 +250,598 @@
     ctx.closePath();
   }
 
-  function drawLogoOnQr(canvas) {
-    return new Promise((resolve) => {
-      const logoUrl = cfg.fastPassLogoUrl;
-      if (!logoUrl) return resolve(canvas);
-      const img = new Image();
-      img.onload = () => {
-        const ctx = canvas.getContext("2d");
-        const size = Math.round(canvas.width * 0.22);
-        const padding = Math.round(size * 0.12);
-        const box = size + padding * 2;
-        const x = Math.round((canvas.width - box) / 2);
-        const y = Math.round((canvas.height - box) / 2);
-        ctx.save();
-        ctx.fillStyle = "#ffffff";
-        roundedRect(ctx, x, y, box, box, Math.round(box * 0.12));
-        ctx.fill();
-        ctx.drawImage(img, x + padding, y + padding, size, size);
-        ctx.restore();
-        resolve(canvas);
+  function generateQrCanvas(value, size) {
+    return new Promise((resolve, reject) => {
+      if (!window.QRCode || typeof window.QRCode.toCanvas !== "function") {
+        reject(new Error("QR generation is unavailable."));
+        return;
+      }
+
+      const canvas = document.createElement("canvas");
+      const options = { errorCorrectionLevel: "H", width: size, margin: 1 };
+      const done = (error, outputCanvas) => {
+        if (error) reject(error);
+        else resolve(outputCanvas || canvas);
       };
-      img.onerror = () => resolve(canvas);
-      img.src = new URL(logoUrl, window.location.href).toString();
+
+      try {
+        const result = window.QRCode.toCanvas(canvas, value, options, done);
+        if (result && typeof result.then === "function") {
+          result.then(() => resolve(canvas)).catch(reject);
+        } else if (window.QRCode.toCanvas.length === 3) {
+          window.QRCode.toCanvas(value, options, done);
+        }
+      } catch (_error) {
+        try {
+          window.QRCode.toCanvas(value, options, done);
+        } catch (innerError) {
+          reject(innerError);
+        }
+      }
     });
   }
 
-  function renderPass(data) {
-    const parent = data.parent || state.parent || {};
-    const children = data.children || state.children || [];
-    const qrId = data.qrId || parent.qrId || parent.parentKey;
-    state.qrValue = `${window.location.origin}${window.location.pathname}?staff=1&code=${encodeURIComponent(qrId)}`;
-    $("passParent").textContent = parent.parentName || "Parent";
-    $("passChildren").textContent = childrenText(children) || parent.childNames || "Children verified";
-    $("passStatus").textContent = parent.checkedIn === "Yes" ? "Checked In" : "Verified";
-    $("qrCode").innerHTML = "";
+  async function addLogoToQr(qrCanvas) {
+    const logoUrl = String(cfg.fastPassLogoUrl || "").trim();
+    if (!logoUrl) return { canvas: qrCanvas, logoApplied: false };
 
-    if (window.QRCode) {
-      QRCode.toCanvas(state.qrValue, { width: 280, margin: 2, errorCorrectionLevel: "H" }, async (err, canvas) => {
-        if (err) {
-          $("qrCode").textContent = qrId;
-          return;
-        }
-        await drawLogoOnQr(canvas);
-        canvas.setAttribute("aria-label", "Family Fast Pass QR code");
-        $("qrCode").appendChild(canvas);
-      });
-    } else {
-      $("qrCode").textContent = qrId;
+    try {
+      const logo = await loadImage(logoUrl, "Logo image could not be loaded.");
+      const ctx = qrCanvas.getContext("2d");
+      const logoSize = Math.round(qrCanvas.width * 0.2);
+      const padding = Math.round(logoSize * 0.18);
+      const boxSize = logoSize + padding * 2;
+      const x = Math.round((qrCanvas.width - boxSize) / 2);
+      const y = Math.round((qrCanvas.height - boxSize) / 2);
+
+      ctx.save();
+      ctx.fillStyle = "#ffffff";
+      drawRoundedRect(ctx, x, y, boxSize, boxSize, Math.round(boxSize * 0.12));
+      ctx.fill();
+      ctx.drawImage(logo, x + padding, y + padding, logoSize, logoSize);
+      ctx.restore();
+      return { canvas: qrCanvas, logoApplied: true };
+    } catch (_error) {
+      return { canvas: qrCanvas, logoApplied: false };
     }
-    setHero("Your Fast Pass Is Ready", "Show this QR code at the gate for a quick check-in.");
-    show("passPanel");
+  }
+
+  async function buildFastPassCanvas(parent, children, qrId) {
+    const templateUrl = String(cfg.fastPassTemplateUrl || "").trim();
+    if (!templateUrl) {
+      throw new Error("The Fast Pass template image is not configured.");
+    }
+
+    const targetCanvas = els.fastPassCanvas;
+    const ctx = targetCanvas.getContext("2d");
+    const template = await loadImage(templateUrl, "The Fast Pass template image could not be loaded.");
+    const names = childNames(children);
+    state.qrFailed = false;
+
+    targetCanvas.width = template.naturalWidth || PASS_LAYOUT.width;
+    targetCanvas.height = template.naturalHeight || PASS_LAYOUT.height;
+
+    ctx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+    ctx.drawImage(template, 0, 0, targetCanvas.width, targetCanvas.height);
+
+    const leftX = PASS_LAYOUT.leftX;
+    const leftY = PASS_LAYOUT.leftY;
+    const maxWidth = PASS_LAYOUT.leftWidth;
+
+    ctx.fillStyle = "#11284f";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+
+    ctx.font = "700 26px Arial, Helvetica, sans-serif";
+    ctx.fillText("PARENT / GUARDIAN", leftX, leftY);
+
+    let parentFontSize = 52;
+    const parentName = String(parent.parentName || "Parent / Guardian").trim();
+    do {
+      ctx.font = `800 ${parentFontSize}px Arial, Helvetica, sans-serif`;
+      if (ctx.measureText(parentName).width <= maxWidth) break;
+      parentFontSize -= 2;
+    } while (parentFontSize > 32);
+    const parentNameLines = wrapLines(ctx, parentName, maxWidth).slice(0, 2);
+
+    let currentY = leftY + 46;
+    parentNameLines.forEach((line) => {
+      ctx.fillText(line, leftX, currentY);
+      currentY += parentFontSize + 8;
+    });
+
+    currentY += 20;
+    ctx.font = "700 26px Arial, Helvetica, sans-serif";
+    ctx.fillText("REGISTERED CHILDREN", leftX, currentY);
+    currentY += 42;
+
+    let childFontSize = 42;
+    let childLines = [];
+    while (childFontSize >= 26) {
+      ctx.font = `800 ${childFontSize}px Arial, Helvetica, sans-serif`;
+      childLines = formatChildBlocks(ctx, names.length ? names : [parent.childNames || "Registration on file"], maxWidth, 8);
+      const lineHeight = childFontSize + 10;
+      if (childLines.length * lineHeight <= PASS_LAYOUT.leftHeight - (currentY - leftY)) break;
+      childFontSize -= 2;
+    }
+
+    ctx.font = `800 ${childFontSize}px Arial, Helvetica, sans-serif`;
+    const childLineHeight = childFontSize + 10;
+    childLines.forEach((line) => {
+      ctx.fillText(line, leftX, currentY);
+      currentY += childLineHeight;
+    });
+
+    const footerY = Math.min(currentY + 20, PASS_LAYOUT.leftY + PASS_LAYOUT.leftHeight - 44);
+    ctx.font = "700 22px Arial, Helvetica, sans-serif";
+    ctx.fillStyle = "#284c83";
+    const statusText = parent.checkedIn === "Yes" ? "Checked In" : (parent.preCheckStatus || "Verified");
+    ctx.fillText(`STATUS: ${statusText}`, leftX, footerY);
+
+    const qrValue = qrTargetUrl(qrId);
+    state.qrUrl = qrValue;
+
+    try {
+      const qrCanvas = await generateQrCanvas(qrValue, PASS_LAYOUT.qrSize - 32);
+      const qrWithLogo = await addLogoToQr(qrCanvas);
+      const qrFrameX = PASS_LAYOUT.qrX;
+      const qrFrameY = PASS_LAYOUT.qrY;
+      const qrFrameSize = PASS_LAYOUT.qrSize;
+      const safetyMargin = 16;
+
+      ctx.fillStyle = "#ffffff";
+      drawRoundedRect(ctx, qrFrameX, qrFrameY, qrFrameSize, qrFrameSize, 24);
+      ctx.fill();
+      ctx.drawImage(
+        qrWithLogo.canvas,
+        qrFrameX + safetyMargin,
+        qrFrameY + safetyMargin,
+        qrFrameSize - safetyMargin * 2,
+        qrFrameSize - safetyMargin * 2
+      );
+      return { qrFailed: false, logoApplied: qrWithLogo.logoApplied };
+    } catch (_error) {
+      state.qrFailed = true;
+      ctx.fillStyle = "#ffffff";
+      drawRoundedRect(ctx, PASS_LAYOUT.qrX, PASS_LAYOUT.qrY, PASS_LAYOUT.qrSize, PASS_LAYOUT.qrSize, 24);
+      ctx.fill();
+      ctx.fillStyle = "#11284f";
+      ctx.font = "700 22px Arial, Helvetica, sans-serif";
+      ctx.fillText("Manual staff code:", PASS_LAYOUT.qrX + 22, PASS_LAYOUT.qrY + 42);
+      ctx.font = "800 26px Arial, Helvetica, sans-serif";
+      wrapLines(ctx, qrId, PASS_LAYOUT.qrSize - 44).slice(0, 6).forEach((line, index) => {
+        ctx.fillText(line, PASS_LAYOUT.qrX + 22, PASS_LAYOUT.qrY + 88 + index * 32);
+      });
+      return { qrFailed: true, logoApplied: false };
+    }
+  }
+
+  function renderChildrenList(children) {
+    els.childList.replaceChildren();
+    if (!children.length) {
+      const li = document.createElement("li");
+      li.textContent = "No child registrations were found yet.";
+      els.childList.appendChild(li);
+      return;
+    }
+
+    children.forEach((child) => {
+      const li = document.createElement("li");
+      li.className = "child-card";
+      const strong = document.createElement("strong");
+      strong.textContent = childName(child);
+      li.appendChild(strong);
+      els.childList.appendChild(li);
+    });
+  }
+
+  function buildRegistrationUrl(baseUrl, type, parentKey) {
+    if (!baseUrl) return "";
+    const url = new URL(baseUrl, window.location.href);
+    url.searchParams.set("registration_type", type);
+    if (parentKey) url.searchParams.set("parent_key", parentKey);
+    const returnUrl = new URL(window.location.href);
+    returnUrl.search = "";
+    returnUrl.searchParams.set("k", parentKey);
+    returnUrl.searchParams.set("returning", "1");
+    url.searchParams.set("return_url", returnUrl.toString());
+    return url.toString();
+  }
+
+  function renderParentPanel(parent, children) {
+    state.parent = parent;
+    state.children = children;
+    state.qrId = parent.qrId || parent.parentKey || "";
+
+    setHero("Review Your Family Registration", "Confirm your family details and bring your Fast Pass to the clinic.");
+    setStatus("");
+    setError("");
+
+    const names = childNames(children);
+    els.parentSummary.textContent = `${parent.parentName || "Parent"}${names.length ? ` is registered with ${names.length} child${names.length === 1 ? "" : "ren"}.` : " has a registration on file."}`;
+    renderChildrenList(children);
+
+    if (parent.registrationStatus) {
+      els.registrationStatus.textContent = `Registration status: ${parent.registrationStatus}`;
+      els.registrationStatus.classList.remove("hidden");
+    } else {
+      els.registrationStatus.classList.add("hidden");
+    }
+
+    const available = Number(parent.availableTicketCount || 0);
+    const addChildHref = buildRegistrationUrl(cfg.registrationUrl, "add_child", parent.parentKey);
+    const registerChildHref = buildRegistrationUrl(cfg.missingRegistrationUrl || cfg.registrationUrl, "waitlist", parent.parentKey);
+
+    if (available > 0 && addChildHref) {
+      els.addChildBtn.href = addChildHref;
+      els.addChildBtn.classList.remove("hidden");
+    } else {
+      els.addChildBtn.classList.add("hidden");
+    }
+
+    if (available <= 0 && registerChildHref) {
+      els.registerChildBtn.href = registerChildHref;
+      els.registerChildBtn.classList.remove("hidden");
+      els.registerChildBtn.textContent = "Register another child";
+    } else {
+      els.registerChildBtn.classList.add("hidden");
+    }
+
+    if (parent.preCheckStatus) {
+      setStatus(`This family is already marked ${parent.preCheckStatus.toLowerCase()}. The Fast Pass can be shown again below after confirmation.`);
+    }
+
+    showPanel("parentPanel");
+  }
+
+  async function renderFastPass(parent, children, meta = {}) {
+    setHero("Your Fast Pass Is Ready", "Keep this pass on screen at the gate and save a backup copy now.");
+    els.passMeta.textContent = parent.checkedIn === "Yes"
+      ? `This family was already checked in${parent.checkedInAt ? ` at ${parent.checkedInAt}` : ""}.`
+      : `${children.length || childNames(children).length} child${children.length === 1 ? "" : "ren"} listed for this family.`;
+    showPanel("loadingPanel");
+    els.loadingMessage.textContent = "Building your Fast Pass...";
+    setError("");
+    setStatus("");
+
+    try {
+      const qrId = meta.qrId || parent.qrId || parent.parentKey;
+      state.qrId = qrId;
+      const result = await buildFastPassCanvas(parent, children, qrId);
+      state.passReady = true;
+      els.qrFallbackCode.textContent = qrId;
+      els.qrFallback.classList.toggle("hidden", !result.qrFailed);
+      if (result.qrFailed) {
+        setStatus("The QR image could not be drawn, but the staff lookup code is still available below.");
+      }
+      showPanel("passPanel");
+    } catch (error) {
+      state.passReady = false;
+      showMessage("Fast Pass could not be created", error.message, {
+        error: true,
+        actionText: "Back",
+        onAction: () => renderParentPanel(parent, children)
+      });
+    }
+  }
+
+  async function loadParentPass(parentKey) {
+    els.loadingMessage.textContent = "Loading your family registration...";
+    showPanel("loadingPanel");
+    setHero("Fast Pass", "Loading your family Fast Pass.");
+    setStatus("");
+    setError("");
+
+    try {
+      const data = await api("lookupPass", { parentKey });
+      renderParentPanel(data.parent || {}, data.children || []);
+      if (String((data.parent || {}).preCheckStatus || "").toLowerCase() === "verified") {
+        await renderFastPass(data.parent || {}, data.children || []);
+      }
+    } catch (error) {
+      showMessage("Could not load this Fast Pass", error.message, { error: true });
+    }
+  }
+
+  async function verifyParent() {
+    if (state.busy || !state.parent) return;
+    state.busy = true;
+    els.verifyBtn.disabled = true;
+    setStatus("Saving your confirmation...");
+
+    try {
+      const data = await api("verify", { parentKey: state.parent.parentKey });
+      const parent = data.parent || state.parent;
+      const children = data.children || state.children;
+      state.parent = parent;
+      state.children = children;
+      await renderFastPass(parent, children, { qrId: data.qrId });
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      state.busy = false;
+      els.verifyBtn.disabled = false;
+    }
+  }
+
+  function renderHelpMessage() {
+    els.helpMessage.textContent = "Please keep this page open and stop at the help table when you arrive. Staff can look up your family manually if needed.";
+    els.helpMessage.classList.remove("hidden");
+  }
+
+  function fillStaffResult(parent, children, code) {
+    state.latestStaffLookup = { parent, children, code };
+    els.staffResult.replaceChildren();
+    els.staffResult.classList.remove("hidden");
+
+    const banner = document.createElement("p");
+    const alreadyCheckedIn = String(parent.checkedIn || "").toLowerCase() === "yes";
+    banner.className = alreadyCheckedIn ? "result-flag warn" : "result-flag ok";
+    banner.textContent = alreadyCheckedIn ? "Already checked in" : "Ready to check in";
+    els.staffResult.appendChild(banner);
+
+    const heading = document.createElement("h3");
+    heading.textContent = parent.parentName || "Parent";
+    els.staffResult.appendChild(heading);
+
+    const summary = document.createElement("p");
+    const statusPieces = [];
+    if (parent.registrationStatus) statusPieces.push(`Registration status: ${parent.registrationStatus}`);
+    if (parent.checkedInAt) statusPieces.push(`Checked in at: ${parent.checkedInAt}`);
+    summary.className = "support-text";
+    summary.textContent = statusPieces.join(" | ") || "Review the family and confirm check-in.";
+    els.staffResult.appendChild(summary);
+
+    const list = document.createElement("ul");
+    list.className = "child-list staff-child-list";
+    (children || []).forEach((child) => {
+      const li = document.createElement("li");
+      li.className = "child-card";
+
+      const name = document.createElement("strong");
+      name.textContent = childName(child);
+      li.appendChild(name);
+
+      const shirt = document.createElement("span");
+      shirt.textContent = `Shirt size: ${child.shirtSize || child.shirt || "Not listed"}`;
+      li.appendChild(shirt);
+
+      const medical = document.createElement("span");
+      medical.textContent = `Medical notes: ${child.medicalInfo || child.medical || child.medicalNotes || "None listed"}`;
+      medical.className = child.medicalInfo || child.medical || child.medicalNotes ? "medical has-medical" : "medical";
+      li.appendChild(medical);
+
+      const medications = document.createElement("span");
+      medications.textContent = `Current medications: ${child.medications || "None listed"}`;
+      li.appendChild(medications);
+
+      list.appendChild(li);
+    });
+
+    if (!children.length) {
+      const li = document.createElement("li");
+      li.textContent = "No child details were returned for this family.";
+      list.appendChild(li);
+    }
+
+    els.staffResult.appendChild(list);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "btn primary";
+    button.dataset.complete = code;
+    button.textContent = alreadyCheckedIn ? "Record another scan" : "Confirm Check-In";
+    els.staffResult.appendChild(button);
   }
 
   async function staffLookup(code) {
-    if (!code || state.busy) return;
+    const trimmed = String(code || "").trim();
+    if (!trimmed || state.busy) return;
+
     state.busy = true;
-    $("staffResult").classList.remove("hidden");
-    $("staffResult").innerHTML = "Looking up pass...";
+    els.manualCode.value = trimmed;
+    els.staffResult.classList.remove("hidden");
+    els.staffResult.textContent = "Looking up family...";
+    setError("");
+    setStatus("");
+
     try {
-      const data = await api("staffLookup", { code });
-      const parent = data.parent || {};
-      const children = data.children || [];
-      const already = String(parent.checkedIn || "").toLowerCase() === "yes";
-      $("staffResult").innerHTML = `
-        <p class="${already ? "warn" : "ok"}">${already ? "Already checked in" : "Ready to check in"}</p>
-        <h2>${escapeHtml(parent.parentName || "Parent")}</h2>
-        <p class="muted">Status: ${escapeHtml(parent.registrationStatus || "Review required")}</p>
-        <p class="muted">Review each child before pressing confirm.</p>
-        <ul class="child-list staff-child-list">${renderChildCards(children, { staff: true })}</ul>
-        <button class="btn primary" data-complete="${escapeHtml(code)}">${already ? "Record another scan" : "Confirm Check-In"}</button>
-      `;
-    } catch (err) {
-      $("staffResult").innerHTML = `<p class="danger">${escapeHtml(err.message)}</p>`;
-    } finally { state.busy = false; }
+      const data = await api("staffLookup", { code: trimmed });
+      renderStaffResult(data.parent || {}, data.children || [], trimmed);
+    } catch (error) {
+      els.staffResult.textContent = "";
+      showMessage("Family not found", error.message, {
+        error: true,
+        actionText: "Back to scanner",
+        onAction: () => {
+          showPanel("staffPanel");
+          els.staffResult.classList.add("hidden");
+        }
+      });
+    } finally {
+      state.busy = false;
+    }
+  }
+
+  function renderStaffResult(parent, children, code) {
+    showPanel("staffPanel");
+    fillStaffResult(parent, children, code);
   }
 
   async function completeCheckin(code) {
-    if (!code || state.busy) return;
+    if (state.busy) return;
     state.busy = true;
+    setStatus("Recording check-in...");
+    setError("");
+
     try {
-      const data = await api("completeCheckin", { code, device: navigator.userAgent.slice(0, 80) });
-      const parent = data.parent || {};
-      $("staffResult").innerHTML = `
-        <p class="ok">✅ Check-in complete</p>
-        <h2>${escapeHtml(parent.parentName || "Parent")}</h2>
-        <p>${escapeHtml(parent.childNames || childrenText(data.children || []) || "Participant(s) recorded")}</p>
-        <p class="muted">Marked checked in and ready for the next scan. Time: ${escapeHtml(data.checkedInAt || "Recorded in Google Sheets")}</p>
-        <button class="btn secondary" id="nextScanBtn">Ready for next scan</button>
-      `;
-    } catch (err) {
-      $("staffResult").innerHTML = `<p class="danger">${escapeHtml(err.message)}</p>`;
-    } finally { state.busy = false; }
+      const data = await api("completeCheckin", {
+        code,
+        device: navigator.userAgent.slice(0, 120)
+      });
+
+      els.staffResult.replaceChildren();
+      const ok = document.createElement("p");
+      ok.className = "result-flag ok";
+      ok.textContent = "Check-in complete";
+      els.staffResult.appendChild(ok);
+
+      const heading = document.createElement("h3");
+      heading.textContent = (data.parent && data.parent.parentName) || "Parent";
+      els.staffResult.appendChild(heading);
+
+      const time = document.createElement("p");
+      time.className = "support-text";
+      time.textContent = `Recorded at ${data.checkedInAt || "the current time"}. Scan Log should now include this family.`;
+      els.staffResult.appendChild(time);
+
+      const next = document.createElement("button");
+      next.type = "button";
+      next.id = "nextScanBtn";
+      next.className = "btn secondary";
+      next.textContent = "Ready for next scan";
+      els.staffResult.appendChild(next);
+      setStatus("");
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      state.busy = false;
+    }
   }
 
-  function resetScannerResult() {
-    $("staffResult").classList.add("hidden");
-    $("staffResult").innerHTML = "";
-    $("manualCode").value = "";
-    state.scanner?.resume?.();
+  function scannerAvailable() {
+    return Boolean(window.Html5Qrcode && typeof window.Html5Qrcode === "function");
   }
 
-  function startScanner() {
-    if (!window.Html5Qrcode) return;
-    state.scanner = new Html5Qrcode("reader");
-    state.scanner.start({ facingMode: "environment" }, { fps: 8, qrbox: 250 }, (decoded) => {
-      const code = new URL(decoded, window.location.href).searchParams.get("code") || decoded;
-      state.scanner.pause(true);
-      staffLookup(code);
-    }).catch(() => {
-      $("reader").innerHTML = "Camera unavailable. Use manual lookup below.";
-    });
-  }
-
-  function setupWalkup() {
-    setHero("Registration Station", "Finish the correct registration route before entering the gate line.");
-    $("ticketHolderLink").href = buildRegistrationUrl("missing");
-    $("walkupLink").href = buildRegistrationUrl("walkup");
-    show("walkupPanel");
-  }
-
-  function setupStaff() {
-    setHero("Staff Gate Mode", "Scan a Fast Pass, review children, then confirm check-in.");
-    show("staffPanel");
-    startScanner();
-    const code = params.get("code");
-    if (code) staffLookup(code);
-  }
-
-  function setupParent() {
-    const parentKey = params.get("k") || params.get("parent_key") || params.get("parentKey");
-    if (!parentKey) {
-      message("Fast Pass link needed", "Open the personalized link from your text message, or see the check-in table for help.");
+  async function startScanner() {
+    if (!scannerAvailable()) {
+      els.reader.textContent = "Staff scanner library is unavailable. Use manual code lookup below.";
+      els.readerStatus.textContent = "Manual lookup is enabled because the camera scanner library did not load.";
+      els.readerStatus.classList.remove("hidden");
       return;
     }
-    api("lookupPass", { parentKey })
-      .then(renderParent)
-      .catch((err) => message("Could not load registration", err.message));
+
+    try {
+      state.scanner = new window.Html5Qrcode("reader");
+      await state.scanner.start(
+        { facingMode: "environment" },
+        { fps: 8, qrbox: { width: 240, height: 240 } },
+        (decodedText) => {
+          const parsed = (() => {
+            try {
+              return new URL(decodedText);
+            } catch (_error) {
+              return null;
+            }
+          })();
+          const code = parsed ? parsed.searchParams.get("code") || decodedText : decodedText;
+          state.scanner.pause(true);
+          staffLookup(code);
+        }
+      );
+      els.readerStatus.textContent = "Camera ready. Scan the family Fast Pass QR code.";
+      els.readerStatus.classList.remove("hidden");
+    } catch (_error) {
+      els.reader.textContent = "Camera access was denied or unavailable. Use manual code lookup below.";
+      els.readerStatus.textContent = "Camera permission was denied or unavailable. Manual code lookup is ready below.";
+      els.readerStatus.classList.remove("hidden");
+    }
+  }
+
+  function resetStaffScreen() {
+    els.staffResult.classList.add("hidden");
+    els.staffResult.textContent = "";
+    els.manualCode.value = "";
+    setStatus("");
+    setError("");
+    if (state.scanner && typeof state.scanner.resume === "function") {
+      state.scanner.resume();
+    }
+  }
+
+  function saveFastPass() {
+    if (!state.passReady) return;
+    const filename = `fast-pass-${sanitizeFilename((state.parent && state.parent.parentName) || "family")}.png`;
+    const canvas = els.fastPassCanvas;
+
+    const saveBlob = (blob) => {
+      if (!blob) {
+        setError("The Fast Pass image could not be downloaded.");
+        return;
+      }
+      const href = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = href;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(href), 1000);
+    };
+
+    if (canvas.toBlob) {
+      canvas.toBlob(saveBlob, "image/png");
+    } else {
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+  }
+
+  function setupStaffMode() {
+    setHero("Staff Check-In", "Scan a Fast Pass, review the family, and confirm the gate check-in.");
+    showPanel("staffPanel");
+    setStatus("");
+    setError("");
+    startScanner();
+    const directCode = params.get("code");
+    if (directCode) {
+      staffLookup(directCode);
+    }
+  }
+
+  function init() {
+    const parentKey = params.get("k");
+    if (params.get("staff") === "1") {
+      setupStaffMode();
+      return;
+    }
+
+    if (!parentKey) {
+      showMessage("Fast Pass link needed", "Use the personalized link from your message. If you cannot find it, the help table can look up your family.", { error: true });
+      return;
+    }
+
+    loadParentPass(parentKey);
   }
 
   document.addEventListener("click", (event) => {
-    const complete = event.target?.dataset?.complete;
-    if (complete) completeCheckin(complete);
-    if (event.target?.id === "nextScanBtn") resetScannerResult();
-  });
-  $("verifyBtn").addEventListener("click", verifyParent);
-  $("helpBtn").addEventListener("click", () => message("We can help at the table", "Please keep your Fast Pass screen open and stop at the help station when you arrive."));
-  $("manualLookupBtn").addEventListener("click", () => staffLookup($("manualCode").value.trim()));
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
 
-  window.addEventListener("load", () => {
-    if (params.has("staff")) setupStaff();
-    else if (params.has("walkup") || params.has("register")) setupWalkup();
-    else setupParent();
+    if (target.dataset.complete) {
+      completeCheckin(target.dataset.complete);
+      return;
+    }
+
+    if (target.id === "nextScanBtn") {
+      resetStaffScreen();
+    }
   });
+
+  els.verifyBtn.addEventListener("click", verifyParent);
+  els.helpBtn.addEventListener("click", renderHelpMessage);
+  els.manualLookupBtn.addEventListener("click", () => staffLookup(els.manualCode.value));
+  els.manualCode.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      staffLookup(els.manualCode.value);
+    }
+  });
+  els.savePassBtn.addEventListener("click", saveFastPass);
+
+  window.addEventListener("load", init);
 })();

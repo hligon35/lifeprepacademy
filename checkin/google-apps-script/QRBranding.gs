@@ -1,5 +1,5 @@
 const FAST_PASS_SITE_URL = 'https://lifeprepacademyfoundation.com/checkin/';
-const FAST_PASS_LOGO_URL = 'https://i.postimg.cc/0yvQYBxL/Paducah-Flag-Clinic-Collab.png';
+const FAST_PASS_LOGO_URL = 'https://lifeprepacademyfoundation.com/checkin/fastpasslogo.png';
 
 /**
  * Adds or refreshes branded family Fast Pass QR codes in Parent Check-In.
