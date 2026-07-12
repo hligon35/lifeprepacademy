@@ -53,12 +53,18 @@
   const PASS_LAYOUT = {
     width: 1024,
     height: 1536,
-    leftX: 90,
-    leftY: 815,
-    leftWidth: 380,
-    leftHeight: 410,
-    qrX: 550,
-    qrY: 795,
+    parentX: 90,
+    parentY: 975,
+    parentWidth: 380,
+    parentHeight: 90,
+    childrenX: 90,
+    childrenY: 1150,
+    childrenWidth: 380,
+    childrenHeight: 230,
+    statusX: 175,
+    statusY: 1425,
+    qrX: 510,
+    qrY: 940,
     qrSize: 435
   };
 
@@ -318,65 +324,122 @@
     const names = childNames(children);
     state.qrFailed = false;
 
-    targetCanvas.width = template.naturalWidth || PASS_LAYOUT.width;
-    targetCanvas.height = template.naturalHeight || PASS_LAYOUT.height;
+    targetCanvas.width = PASS_LAYOUT.width;
+    targetCanvas.height = PASS_LAYOUT.height;
 
-    ctx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
-    ctx.drawImage(template, 0, 0, targetCanvas.width, targetCanvas.height);
-
-    const leftX = PASS_LAYOUT.leftX;
-    const leftY = PASS_LAYOUT.leftY;
-    const maxWidth = PASS_LAYOUT.leftWidth;
+    ctx.clearRect(0, 0, PASS_LAYOUT.width, PASS_LAYOUT.height);
+    ctx.drawImage(template, 0, 0, PASS_LAYOUT.width, PASS_LAYOUT.height);
 
     ctx.fillStyle = "#11284f";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
 
     ctx.font = "700 18px Arial, Helvetica, sans-serif";
-    ctx.fillText("PARENT / GUARDIAN", leftX + 90, leftY);
+    ctx.fillText("PARENT / GUARDIAN", PASS_LAYOUT.parentX + 90, PASS_LAYOUT.parentY - 35);
 
     let parentFontSize = 32;
-    const parentName = String(parent.parentName || "Parent / Guardian").trim();
-    do {
-      ctx.font = `700 ${parentFontSize}px Arial, Helvetica, sans-serif`;
-      if (ctx.measureText(parentName).width <= maxWidth) break;
-      parentFontSize -= 2;
-    } while (parentFontSize > 26);
-    const parentNameLines = wrapLines(ctx, parentName, maxWidth).slice(0, 2);
+    const parentName = String(
+      parent.parentName || "Parent / Guardian"
+    ).trim();
 
-    let currentY = leftY + 35;
-    parentNameLines.forEach((line) => {
-      ctx.fillText(line, leftX, currentY);
-      currentY += parentFontSize + 8;
+    let parentNameLines = [];
+
+    while (parentFontSize >= 24) {
+      ctx.font = `700 ${parentFontSize}px Arial, Helvetica, sans-serif`;
+
+      parentNameLines = wrapLines(
+        ctx,
+        parentName,
+        PASS_LAYOUT.parentWidth
+      ).slice(0, 2);
+
+      const parentLineHeight = parentFontSize + 6;
+      const parentBlockHeight =
+        parentNameLines.length * parentLineHeight;
+
+      if (
+        parentNameLines.length <= 2 &&
+        parentBlockHeight <= PASS_LAYOUT.parentHeight
+      ) {
+        break;
+      }
+
+      parentFontSize -= 2;
+    }
+
+    ctx.font =
+      `700 ${parentFontSize}px Arial, Helvetica, sans-serif`;
+
+    const parentLineHeight = parentFontSize + 6;
+
+    parentNameLines.forEach((line, index) => {
+      ctx.fillText(
+        line,
+        PASS_LAYOUT.parentX,
+        PASS_LAYOUT.parentY +
+          index * parentLineHeight
+      );
     });
 
-    currentY += 20;
     ctx.font = "700 18px Arial, Helvetica, sans-serif";
-    ctx.fillText("REGISTERED CHILDREN", leftX + 75, currentY);
-    currentY += 42;
+    ctx.fillText("REGISTERED CHILDREN", PASS_LAYOUT.childrenX + 75, PASS_LAYOUT.childrenY - 42);
 
     let childFontSize = 28;
     let childLines = [];
+
     while (childFontSize >= 18) {
-      ctx.font = `700 ${childFontSize}px Arial, Helvetica, sans-serif`;
-      childLines = formatChildBlocks(ctx, names.length ? names : [parent.childNames || "Registration on file"], maxWidth, 8);
-      const lineHeight = childFontSize + 10;
-      if (childLines.length * lineHeight <= PASS_LAYOUT.leftHeight - (currentY - leftY)) break;
+      ctx.font =
+        `700 ${childFontSize}px Arial, Helvetica, sans-serif`;
+
+      childLines = formatChildBlocks(
+        ctx,
+        names.length
+          ? names
+          : [parent.childNames || "Registration on file"],
+        PASS_LAYOUT.childrenWidth,
+        8
+      );
+
+      const childLineHeight = childFontSize + 18;
+      const childrenBlockHeight =
+        childLines.length * childLineHeight;
+
+      if (
+        childrenBlockHeight <=
+        PASS_LAYOUT.childrenHeight
+      ) {
+        break;
+      }
+
       childFontSize -= 2;
     }
 
-    ctx.font = `700 ${childFontSize}px Arial, Helvetica, sans-serif`;
-    const childLineHeight = childFontSize + 25;
-    childLines.forEach((line) => {
-      ctx.fillText(line, leftX, currentY);
-      currentY += childLineHeight;
+    ctx.font =
+      `700 ${childFontSize}px Arial, Helvetica, sans-serif`;
+
+    const childLineHeight = childFontSize + 18;
+
+    childLines.forEach((line, index) => {
+      ctx.fillText(
+        line,
+        PASS_LAYOUT.childrenX,
+        PASS_LAYOUT.childrenY +
+          index * childLineHeight
+      );
     });
 
-    const footerY = Math.min(currentY + 20, PASS_LAYOUT.leftY + PASS_LAYOUT.leftHeight - 44);
     ctx.font = "700 22px Arial, Helvetica, sans-serif";
     ctx.fillStyle = "#284c83";
-    const statusText = parent.checkedIn === "Yes" ? "Checked In" : (parent.preCheckStatus || "Verified");
-    ctx.fillText(`STATUS: ${statusText}`, leftX, footerY);
+    const statusText =
+      parent.checkedIn === "Yes"
+        ? "Checked In"
+        : (parent.preCheckStatus || "Verified");
+
+    ctx.fillText(
+      `STATUS: ${statusText}`,
+      PASS_LAYOUT.statusX,
+      PASS_LAYOUT.statusY
+    );
 
     const qrValue = qrTargetUrl(qrId);
     state.qrUrl = qrValue;
@@ -387,7 +450,7 @@
       const qrFrameX = PASS_LAYOUT.qrX;
       const qrFrameY = PASS_LAYOUT.qrY;
       const qrFrameSize = PASS_LAYOUT.qrSize;
-      const safetyMargin = 16;
+      const safetyMargin = 12;
 
       ctx.fillStyle = "#ffffff";
       drawRoundedRect(ctx, qrFrameX, qrFrameY, qrFrameSize, qrFrameSize, 24);
@@ -458,7 +521,7 @@
     setError("");
 
     const names = childNames(children);
-    els.parentSummary.textContent = `${parent.parentName || "Parent"}${names.length ? ` is registered with ${names.length} child${names.length === 1 ? "" : "ren"}.` : " has a registration on file."}`;
+    els.parentSummary.innerHTML = `${parent.parentName || "Parent"}${names.length ? ` has <strong>${names.length} child${names.length === 1 ? "" : "ren"} registered.</strong>` : " has a registration on file."}`;
     renderChildrenList(children);
 
     if (parent.registrationStatus) {
