@@ -8,6 +8,7 @@
   <link rel="icon" type="image/png" href="fastpasslogo.png" />
   <link rel="apple-touch-icon" href="fastpasslogo.png" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="staff.css" />
 </head>
 <body>
   <main class="page-shell">
@@ -65,23 +66,59 @@
       </div>
     </section>
 
-    <section id="staffPanel" class="panel hidden" aria-labelledby="staffHeading">
-      <p class="eyebrow">Staff Check-In</p>
-      <h2 id="staffHeading">Scan or enter a family code</h2>
-      <p class="lead">Use the camera when available. Manual lookup remains available if scanning fails.</p>
+    <section id="staffPanel" class="panel staff-panel hidden" aria-labelledby="staffHeading">
+      <header class="staff-header">
+        <div>
+          <p class="eyebrow">Staff Check-In</p>
+          <h2 id="staffHeading">Scan Family Fast Pass</h2>
+        </div>
+        <p id="readerStatus" class="staff-reader-status" aria-live="polite">Point the camera at the QR code.</p>
+      </header>
 
-      <div id="readerStatus" class="inline-message hidden" aria-live="polite"></div>
-      <div id="reader" class="scanner-box" aria-label="QR scanner area"></div>
+      <div class="staff-workspace">
+        <div id="reader" class="scanner-box" aria-label="QR scanner area"></div>
 
-      <div class="manual-lookup">
-        <label for="manualCode">Family QR ID</label>
-        <div class="manual-row">
-          <input id="manualCode" name="manualCode" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="Enter or paste the QR ID" />
-          <button id="manualLookupBtn" class="btn secondary" type="button">Lookup</button>
+        <div class="manual-lookup">
+          <label for="manualCode">Manual QR ID</label>
+          <div class="manual-row">
+            <input
+              id="manualCode"
+              name="manualCode"
+              type="text"
+              inputmode="text"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="LPAF-XXXXXXXX"
+            />
+            <button id="manualLookupBtn" class="btn secondary" type="button">Lookup</button>
+          </div>
         </div>
       </div>
 
-      <div id="staffResult" class="staff-result hidden" aria-live="polite"></div>
+      <div
+        id="staffResultOverlay"
+        class="staff-result-overlay hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="staffResultTitle"
+      >
+        <div class="staff-result-modal">
+          <button
+            id="closeStaffResultBtn"
+            class="staff-result-close"
+            type="button"
+            aria-label="Close result"
+          >
+            ×
+          </button>
+
+          <div
+            id="staffResult"
+            class="staff-result"
+            aria-live="polite"
+          ></div>
+        </div>
+      </div>
     </section>
 
     <section id="messagePanel" class="panel hidden" aria-labelledby="messageHeading">

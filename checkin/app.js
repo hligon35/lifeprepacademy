@@ -11,7 +11,9 @@
     scanner: null,
     passReady: false,
     qrFailed: false,
-    latestStaffLookup: null
+    latestStaffLookup: null,
+    lastScannedCode: "",
+    lastScannedAt: 0
   };
 
   const $ = (id) => document.getElementById(id);
@@ -42,6 +44,8 @@
     reader: $("reader"),
     manualCode: $("manualCode"),
     manualLookupBtn: $("manualLookupBtn"),
+    staffResultOverlay: $("staffResultOverlay"),
+    closeStaffResultBtn: $("closeStaffResultBtn"),
     staffResult: $("staffResult"),
     messagePanel: $("messagePanel"),
     messageHeading: $("messageHeading"),
@@ -632,10 +636,51 @@
     els.helpMessage.classList.remove("hidden");
   }
 
+  function openStaffResultOverlay() {
+    els.staffResultOverlay.classList.remove("hidden");
+    document.body.classList.add("staff-result-open");
+
+    if (
+      state.scanner &&
+      typeof state.scanner.pause === "function"
+    ) {
+      try {
+        state.scanner.pause(true);
+      } catch (_error) {
+        // Scanner may already be paused.
+      }
+    }
+  }
+
+  function closeStaffResultOverlay(options = {}) {
+    const shouldClear = options.clear !== false;
+
+    els.staffResultOverlay.classList.add("hidden");
+    document.body.classList.remove("staff-result-open");
+
+    if (shouldClear) {
+      els.staffResult.replaceChildren();
+      els.manualCode.value = "";
+    }
+
+    state.lastScannedCode = "";
+    state.lastScannedAt = 0;
+
+    if (
+      state.scanner &&
+      typeof state.scanner.resume === "function"
+    ) {
+      try {
+        state.scanner.resume();
+      } catch (_error) {
+        // Scanner may already be active or unavailable.
+      }
+    }
+  }
+
   function fillStaffResult(parent, children, code) {
     state.latestStaffLookup = { parent, children, code };
     els.staffResult.replaceChildren();
-    els.staffResult.classList.remove("hidden");
 
     const banner = document.createElement("p");
     const alreadyCheckedIn = String(parent.checkedIn || "").toLowerCase() === "yes";
@@ -644,6 +689,7 @@
     els.staffResult.appendChild(banner);
 
     const heading = document.createElement("h3");
+    heading.id = "staffResultTitle";
     heading.textContent = parent.parentName || "Parent";
     els.staffResult.appendChild(heading);
 
@@ -695,6 +741,8 @@
     button.dataset.complete = code;
     button.textContent = alreadyCheckedIn ? "Record another scan" : "Confirm Check-In";
     els.staffResult.appendChild(button);
+
+    openStaffResultOverlay();
   }
 
   async function staffLookup(code) {
@@ -703,8 +751,14 @@
 
     state.busy = true;
     els.manualCode.value = trimmed;
-    els.staffResult.classList.remove("hidden");
-    els.staffResult.textContent = "Looking up family...";
+    els.staffResult.replaceChildren();
+
+    const loading = document.createElement("p");
+    loading.className = "staff-result-loading";
+    loading.textContent = "Looking up family...";
+    els.staffResult.appendChild(loading);
+
+    openStaffResultOverlay();
     setError("");
     setStatus("");
 
@@ -712,15 +766,31 @@
       const data = await api("staffLookup", { code: trimmed });
       renderStaffResult(data.parent || {}, data.children || [], trimmed);
     } catch (error) {
-      els.staffResult.textContent = "";
-      showMessage("Family not found", error.message, {
-        error: true,
-        actionText: "Back to scanner",
-        onAction: () => {
-          showPanel("staffPanel");
-          els.staffResult.classList.add("hidden");
-        }
-      });
+      els.staffResult.replaceChildren();
+
+      const banner = document.createElement("p");
+      banner.className = "result-flag warn";
+      banner.textContent = "Lookup problem";
+      els.staffResult.appendChild(banner);
+
+      const heading = document.createElement("h3");
+      heading.id = "staffResultTitle";
+      heading.textContent = "Family not found";
+      els.staffResult.appendChild(heading);
+
+      const details = document.createElement("p");
+      details.className = "support-text";
+      details.textContent = error.message;
+      els.staffResult.appendChild(details);
+
+      const back = document.createElement("button");
+      back.type = "button";
+      back.id = "closeLookupErrorBtn";
+      back.className = "btn secondary";
+      back.textContent = "Back to Scanner";
+      els.staffResult.appendChild(back);
+
+      openStaffResultOverlay();
     } finally {
       state.busy = false;
     }
@@ -750,12 +820,13 @@
       els.staffResult.appendChild(ok);
 
       const heading = document.createElement("h3");
+      heading.id = "staffResultTitle";
       heading.textContent = (data.parent && data.parent.parentName) || "Parent";
       els.staffResult.appendChild(heading);
 
       const time = document.createElement("p");
       time.className = "support-text";
-      time.textContent = `Recorded at ${data.checkedInAt || "the current time"}. Scan Log should now include this family.`;
+      time.textContent = `Recorded at ${data.checkedInAt || "the current time"}.`;
       els.staffResult.appendChild(time);
 
       const next = document.createElement("button");
@@ -788,7 +859,11 @@
       state.scanner = new window.Html5Qrcode("reader");
       await state.scanner.start(
         { facingMode: "environment" },
-        { fps: 8, qrbox: { width: 240, height: 240 } },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1
+        },
         (decodedText) => {
           const parsed = (() => {
             try {
@@ -798,28 +873,32 @@
             }
           })();
           const code = parsed ? parsed.searchParams.get("code") || decodedText : decodedText;
+          const now = Date.now();
+
+          if (
+            code === state.lastScannedCode &&
+            now - state.lastScannedAt < 3000
+          ) {
+            return;
+          }
+
+          state.lastScannedCode = code;
+          state.lastScannedAt = now;
           state.scanner.pause(true);
           staffLookup(code);
         }
       );
       els.readerStatus.textContent = "Camera ready. Scan the family Fast Pass QR code.";
-      els.readerStatus.classList.remove("hidden");
     } catch (_error) {
       els.reader.textContent = "Camera access was denied or unavailable. Use manual code lookup below.";
       els.readerStatus.textContent = "Camera permission was denied or unavailable. Manual code lookup is ready below.";
-      els.readerStatus.classList.remove("hidden");
     }
   }
 
   function resetStaffScreen() {
-    els.staffResult.classList.add("hidden");
-    els.staffResult.textContent = "";
-    els.manualCode.value = "";
+    closeStaffResultOverlay();
     setStatus("");
     setError("");
-    if (state.scanner && typeof state.scanner.resume === "function") {
-      state.scanner.resume();
-    }
   }
 
   function saveFastPass() {
@@ -855,6 +934,7 @@
   }
 
   function setupStaffMode() {
+    document.body.classList.add("staff-mode");
     setHero("Staff Check-In", "Scan a Fast Pass, review the family, and confirm the gate check-in.");
     showPanel("staffPanel");
     setStatus("");
@@ -891,7 +971,17 @@
     }
 
     if (target.id === "nextScanBtn") {
-      resetStaffScreen();
+      closeStaffResultOverlay();
+      return;
+    }
+
+    if (target.id === "closeLookupErrorBtn") {
+      closeStaffResultOverlay();
+      return;
+    }
+
+    if (target.id === "closeStaffResultBtn") {
+      closeStaffResultOverlay({ clear: false });
     }
   });
 
@@ -905,6 +995,23 @@
     }
   });
   els.savePassBtn.addEventListener("click", saveFastPass);
+  els.closeStaffResultBtn.addEventListener(
+    "click",
+    () => closeStaffResultOverlay({ clear: false })
+  );
+  els.staffResultOverlay.addEventListener("click", (event) => {
+    if (event.target === els.staffResultOverlay) {
+      closeStaffResultOverlay();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (
+      event.key === "Escape" &&
+      !els.staffResultOverlay.classList.contains("hidden")
+    ) {
+      closeStaffResultOverlay();
+    }
+  });
 
   window.addEventListener("load", init);
 })();
