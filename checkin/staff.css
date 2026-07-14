@@ -1,0 +1,23 @@
+/* Staff-only scanner layout. Parent Fast Pass pages are unaffected. */
+
+body.staff-mode {
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+body.staff-mode::before {
+  display: none;
+}
+
+body.staff-mode .page-shell {
+  width: min(100%, 760px);
+  height: 100dvh;
+  margin: 0 auto;
+  padding: 10px;
+  display: flex;
+  align-items: stretch;
+}
+
+body.staff-mode .hero-card,
+body.staff-mode #statusBanner,
+body.staff-mode
