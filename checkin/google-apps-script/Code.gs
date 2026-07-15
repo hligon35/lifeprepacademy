@@ -5,5 +5,7 @@ const PARENTS_TAB = 'Parent Check-In';
 const SCAN_LOG_TAB = 'Scan Log';
 const WAITLIST_TAB = 'Waitlist';
 const EVENT_TIME_ZONE = 'America/Chicago';
-const FAMILY_CACHE_KEY = 'family_directory_v2';
-const FAMILY_CACHE
+const FAMILY_CACHE_KEY = 'family_directory_v3';
+const FAMILY_CACHE_SECONDS = 21600;
+
+const PARENT_HEADERS
