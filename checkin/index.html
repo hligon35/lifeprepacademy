@@ -77,46 +77,19 @@
 
       <div class="staff-workspace">
         <div id="reader" class="scanner-box" aria-label="QR scanner area"></div>
-
         <div class="manual-lookup">
           <label for="manualCode">Manual QR ID</label>
           <div class="manual-row">
-            <input
-              id="manualCode"
-              name="manualCode"
-              type="text"
-              inputmode="text"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="LPAF-XXXXXXXX"
-            />
+            <input id="manualCode" name="manualCode" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="LPAF-XXXXXXXX" />
             <button id="manualLookupBtn" class="btn secondary" type="button">Lookup</button>
           </div>
         </div>
       </div>
 
-      <div
-        id="staffResultOverlay"
-        class="staff-result-overlay hidden"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="staffResultTitle"
-      >
+      <div id="staffResultOverlay" class="staff-result-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="staffResultTitle">
         <div class="staff-result-modal">
-          <button
-            id="closeStaffResultBtn"
-            class="staff-result-close"
-            type="button"
-            aria-label="Close result"
-          >
-            ×
-          </button>
-
-          <div
-            id="staffResult"
-            class="staff-result"
-            aria-live="polite"
-          ></div>
+          <button id="closeStaffResultBtn" class="staff-result-close" type="button" aria-label="Close result">×</button>
+          <div id="staffResult" class="staff-result" aria-live="polite"></div>
         </div>
       </div>
     </section>
@@ -133,6 +106,7 @@
   </main>
 
   <script src="config.js"></script>
+  <script src="warmup.js"></script>
   <script src="qr-local.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="app.js"></script>
