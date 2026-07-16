@@ -76,8 +76,13 @@ function syncParentCheckIn_(){
     let ticketCount = 0;
     emails.forEach(function(value){ ticketCount = Math.max(ticketCount, ticketCounts[value] || 0); });
     ticketCount = Math.max(ticketCount, Number(old.ticket_count || 0), group.children.length);
+
+    const parentToken = old.parent_token || token_();
+    const qrId = old.qr_id || qr_();
+    const fastPassUrl = FAST_PASS_PARENT_URL + '?k=' + encodeURIComponent(parentToken);
+
     return {
-      parent_token: old.parent_token || token_(),
+      parent_token: parentToken,
       parent_phone: phone,
       parent_email: email,
       parent_name: old.parent_name || group.parentName || 'Parent / Guardian',
@@ -86,15 +91,17 @@ function syncParentCheckIn_(){
       available_ticket_count: Math.max(0, ticketCount - group.children.length),
       registered_child_names: group.children.join(', '),
       registration_status: old.registration_status || 'Confirmed',
-      qr_id: old.qr_id || qr_(),
+      qr_id: qrId,
       precheck_status: old.precheck_status || '',
       precheck_time: old.precheck_time || '',
       checked_in: old.checked_in || '',
       checked_in_at: old.checked_in_at || '',
       checked_in_by: old.checked_in_by || '',
-      sms_status: old.sms_status || 'Not Scheduled',
-      twilio_message_sid: old.twilio_message_sid || '',
+      email_status: old.email_status || 'Ready for Make',
+      sendgrid_message_id: old.sendgrid_message_id || '',
+      email_sent_at: old.email_sent_at || '',
       last_synced_at: now_(),
+      fast_pass_url: fastPassUrl,
       branded_qr_code: old.branded_qr_code || ''
     };
   });
@@ -109,7 +116,7 @@ function syncParentCheckIn_(){
   }
   clearFamilyCache_();
   getFamilyDirectory_(true);
-  return { ok: true, parentCount: rows.length, qrIdsGenerated: rows.length };
+  return { ok: true, parentCount: rows.length, qrIdsGenerated: rows.length, emailsReady: rows.filter(function(row){ return row.email_status === 'Ready for Make'; }).length };
 }
 
 function setupCheckInSystem(){
