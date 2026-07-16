@@ -753,6 +753,7 @@
     const shouldClear = options.clear !== false;
 
     els.staffResultOverlay.classList.add("hidden");
+    els.staffResultOverlay.classList.remove("confirmed");
     document.body.classList.remove("staff-result-open");
 
     if (shouldClear) {
@@ -777,6 +778,7 @@
 
   function fillStaffResult(parent, children, code) {
     state.latestStaffLookup = { parent, children, code };
+    els.staffResultOverlay.classList.remove("confirmed");
     els.staffResult.replaceChildren();
 
     const banner = document.createElement("p");
@@ -910,6 +912,7 @@
         device: navigator.userAgent.slice(0, 120)
       });
 
+      els.staffResultOverlay.classList.add("confirmed");
       els.staffResult.replaceChildren();
       const ok = document.createElement("p");
       ok.className = "result-flag ok";
@@ -985,10 +988,10 @@
           staffLookup(code);
         }
       );
-      els.readerStatus.textContent = "Camera ready. Scan the family Fast Pass QR code.";
+      els.readerStatus.textContent = "";
     } catch (_error) {
-      els.reader.textContent = "Camera access was denied or unavailable. Use manual code lookup below.";
-      els.readerStatus.textContent = "Camera permission was denied or unavailable. Manual code lookup is ready below.";
+      els.reader.textContent = "";
+      els.readerStatus.textContent = "";
     }
   }
 
