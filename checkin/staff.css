@@ -1,9 +1,10 @@
 /* Staff-only scanner layout. Parent Fast Pass pages are unaffected. */
 
 body.staff-mode {
-  height: 100dvh;
+  min-height: 100svh;
   min-height: 100dvh;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 body.staff-mode::before {
@@ -12,7 +13,8 @@ body.staff-mode::before {
 
 body.staff-mode .page-shell {
   width: min(100%, 680px);
-  height: 100dvh;
+  min-height: 100svh;
+  min-height: 100dvh;
   margin: 0 auto;
   padding: max(8px, env(safe-area-inset-top)) 10px max(8px, env(safe-area-inset-bottom));
   display: flex;
@@ -86,6 +88,7 @@ body.staff-mode .staff-workspace {
   gap: 14px;
   flex: 1;
   min-height: 0;
+  align-content: start;
 }
 
 body.staff-mode .scanner-box {
@@ -93,7 +96,7 @@ body.staff-mode .scanner-box {
   aspect-ratio: 1;
   min-height: 0;
   height: 340px;
-  margin: 418px auto;
+  margin: 0 auto;
   padding: 2px;
   border-radius: 25px;
   overflow: hidden;
@@ -298,11 +301,15 @@ body.staff-result-open {
     border-radius: 24px;
   }
 
+  body.staff-mode .staff-workspace {
+    padding-top: clamp(220px, 36vh, 320px);
+  }
+
   body.staff-mode .scanner-box {
-    width: min(100%, 350px, calc(100dvh - 175px));
-    height: 325px;
+    width: min(100%, 258px, calc(100svh - 250px));
+    height: auto;
     padding: 2px;
-    margin: 438px auto 0;    
+    margin: 0 auto;
   }
 
   .staff-result-modal {
