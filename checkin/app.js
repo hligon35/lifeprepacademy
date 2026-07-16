@@ -512,12 +512,18 @@
   function buildRegistrationUrl(baseUrl, type, parentKey) {
     if (!baseUrl) return "";
     const url = new URL(baseUrl, window.location.href);
+    const previousChildCount = state.children.length;
+
     url.searchParams.set("registration_type", type);
     if (parentKey) url.searchParams.set("parent_key", parentKey);
+    url.searchParams.set("previous_child_count", String(previousChildCount));
+
     const returnUrl = new URL(window.location.href);
     returnUrl.search = "";
     returnUrl.searchParams.set("k", parentKey);
     returnUrl.searchParams.set("returning", "1");
+    returnUrl.searchParams.set("previous_count", String(previousChildCount));
+
     url.searchParams.set("return_url", returnUrl.toString());
     return url.toString();
   }
@@ -599,16 +605,69 @@
     }
   }
 
+  function waitFor(milliseconds) {
+    return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+  }
+
+  function childCountFromLookup(data) {
+    const children = (data && data.children) || [];
+    const parent = (data && data.parent) || {};
+    return Math.max(children.length, Number(parent.registeredChildCount || 0));
+  }
+
+  async function lookupReturningRegistration(parentKey, previousCount) {
+    const attempts = 12;
+
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const data = await api("lookupPass", { parentKey });
+      if (childCountFromLookup(data) > previousCount) return data;
+      if (attempt < attempts - 1) await waitFor(2500);
+    }
+
+    return null;
+  }
+
   async function loadParentPass(parentKey) {
-    els.loadingMessage.textContent = "Loading your family registration...";
+    const returning = params.get("returning") === "1";
+    const previousCount = Math.max(0, Number(params.get("previous_count") || 0));
+
+    els.loadingMessage.textContent = returning
+      ? "Updating your family registration..."
+      : "Loading your family registration...";
     showPanel("loadingPanel");
-    setHero("Fast Pass", "Loading your family Fast Pass.");
+    setHero(
+      returning ? "Updating Your Fast Pass" : "Fast Pass",
+      returning
+        ? "Waiting for the new child registration to connect to your family."
+        : "Loading your family Fast Pass."
+    );
     setStatus("");
     setError("");
 
     try {
-      const data = await api("lookupPass", { parentKey });
+      const data = returning
+        ? await lookupReturningRegistration(parentKey, previousCount)
+        : await api("lookupPass", { parentKey });
+
+      if (!data) {
+        showMessage(
+          "Registration is still updating",
+          "Your child registration was submitted, but it has not finished syncing yet. Use Check again below, or reopen the updated Fast Pass email when it arrives.",
+          {
+            actionText: "Check again",
+            onAction: () => loadParentPass(parentKey)
+          }
+        );
+        return;
+      }
+
       renderParentPanel(data.parent || {}, data.children || []);
+
+      if (returning) {
+        setStatus("Registration updated. Review every child below, then confirm the family information again.");
+        return;
+      }
+
       if (String((data.parent || {}).preCheckStatus || "").toLowerCase() === "verified") {
         await renderFastPass(data.parent || {}, data.children || []);
       }
