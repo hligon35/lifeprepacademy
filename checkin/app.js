@@ -7,6 +7,8 @@
     children: [],
     qrId: "",
     qrUrl: "",
+    passFile: null,
+    passImageUrl: "",
     busy: false,
     scanner: null,
     passReady: false,
@@ -209,6 +211,14 @@
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || "family";
+  }
+
+  function clearPreparedFastPass() {
+    state.passFile = null;
+    if (state.passImageUrl) {
+      URL.revokeObjectURL(state.passImageUrl);
+      state.passImageUrl = "";
+    }
   }
 
   function wrapLines(ctx, text, maxWidth) {
@@ -587,7 +597,18 @@
     try {
       const qrId = meta.qrId || parent.qrId || parent.parentKey;
       state.qrId = qrId;
+      clearPreparedFastPass();
       const result = await buildFastPassCanvas(parent, children, qrId);
+      const filename = `fast-pass-${sanitizeFilename(
+        (parent && parent.parentName) || "family"
+      )}.png`;
+      const blob = await canvasToPngBlob(els.fastPassCanvas);
+
+      if (blob) {
+        state.passFile = new File([blob], filename, { type: "image/png" });
+        state.passImageUrl = URL.createObjectURL(blob);
+      }
+
       state.passReady = true;
       els.qrFallbackCode.textContent = qrId;
       els.qrFallback.classList.toggle("hidden", !result.qrFailed);
@@ -993,7 +1014,8 @@
 
   function showSaveImageFallback(canvas) {
     try {
-      els.fastPassImage.src = canvas.toDataURL("image/png");
+      const imageSource = state.passImageUrl || canvas.toDataURL("image/png");
+      els.fastPassImage.src = imageSource;
       els.fastPassImage.classList.remove("hidden");
       canvas.classList.add("hidden");
       els.savePassHelp.textContent =
@@ -1009,21 +1031,13 @@
     if (!state.passReady) return;
 
     const canvas = els.fastPassCanvas;
-    const filename = `fast-pass-${sanitizeFilename(
-      (state.parent && state.parent.parentName) || "family"
-    )}.png`;
-    const blob = await canvasToPngBlob(canvas);
-
-    if (!blob) {
-      setError("The Fast Pass image could not be prepared. Please take a screenshot instead.");
-      return;
-    }
-
-    const file = new File([blob], filename, { type: "image/png" });
+    const file = state.passFile;
+    const canAttemptNativeShare = typeof navigator.share === "function" && file;
     const canShareFile =
-      typeof navigator.share === "function" &&
-      typeof navigator.canShare === "function" &&
-      navigator.canShare({ files: [file] });
+      canAttemptNativeShare && (
+        typeof navigator.canShare !== "function" ||
+        navigator.canShare({ files: [file] })
+      );
 
     if (canShareFile) {
       try {
@@ -1032,11 +1046,16 @@
           text: "Save this Fast Pass to your photos for clinic check-in.",
           files: [file]
         });
-        setStatus("Fast Pass shared. Choose Save Image or your Photos app from the phone menu.");
+        setStatus("Fast Pass ready to share. Choose Save Image or your Photos app from the phone menu.");
         return;
       } catch (error) {
         if (error && error.name === "AbortError") return;
       }
+    }
+
+    if (!file) {
+      setError("The Fast Pass image is still being prepared. Please try the button again.");
+      return;
     }
 
     showSaveImageFallback(canvas);
