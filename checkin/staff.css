@@ -94,7 +94,7 @@ body.staff-mode .scanner-box {
   min-height: 0;
   height: 340px;
   margin: 418px auto;
-  padding: 12px;
+  padding: 2px;
   border-radius: 25px;
   overflow: hidden;
   background: #000000;
@@ -299,8 +299,10 @@ body.staff-result-open {
   }
 
   body.staff-mode .scanner-box {
-    width: min(100%, 290px, calc(100dvh - 175px));
-    padding: 10px;
+    width: min(100%, 350px, calc(100dvh - 175px));
+    height: 325px;
+    padding: 2px;
+    margin: 438px auto 0;    
   }
 
   .staff-result-modal {
