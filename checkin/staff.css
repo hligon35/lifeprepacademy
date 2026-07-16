@@ -309,19 +309,19 @@ body.staff-result-open {
     display: block;
     flex: 0 0 auto;
     width: 100%;
-    aspect-ratio: 3 / 4;
+    aspect-ratio: 1012 / 1265;
     min-height: 0;
     padding-top: 0;
-    background: url("fastpassStaff.png") center top / contain no-repeat;
+    background: url("fastpassStaff.png?v=20260716b") center top / contain no-repeat;
   }
 
   body.staff-mode .scanner-box {
     position: absolute;
-    top: 45.5%;
+    top: 46.2%;
     left: 50%;
     transform: translateX(-50%);
-    width: 45.5%;
-    max-width: 272px;
+    width: 49.2%;
+    max-width: 300px;
     height: auto;
     padding: 2px;
     margin: 0;
