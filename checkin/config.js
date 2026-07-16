@@ -3,7 +3,6 @@ window.AT_THE_GATE_CONFIG = {
   eventName: "Paducah Flag Football Clinic",
   eventDate: "July 18, 2026",
   eventTimeZone: "America/Chicago",
-  smsSendLocalTime: "2026-07-18T09:00:00-05:00",
   supportPhone: "",
   registrationUrl: "https://form.jotform.com/261490871776065",
   missingRegistrationUrl: "https://form.jotform.com/261490871776065",
