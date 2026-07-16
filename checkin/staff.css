@@ -317,7 +317,7 @@ body.staff-result-open {
 
   body.staff-mode .scanner-box {
     position: absolute;
-    top: 46.2%;
+    top: 60%;
     left: 50%;
     transform: translateX(-50%);
     width: 49.2%;
