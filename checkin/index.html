@@ -54,6 +54,7 @@
       </div>
       <div class="canvas-shell">
         <canvas id="fastPassCanvas" class="fastpass-canvas" aria-label="Personalized Fast Pass"></canvas>
+        <img id="fastPassImage" class="fastpass-canvas hidden" alt="Personalized Fast Pass ready to save to photos" />
       </div>
       <div id="qrFallback" class="fallback-box hidden">
         <p class="fallback-title">Manual backup code</p>
@@ -61,8 +62,9 @@
         <p id="qrFallbackCode" class="fallback-code"></p>
       </div>
       <div class="button-stack compact-gap">
-        <button id="savePassBtn" class="btn primary" type="button">Save Fast Pass</button>
-        <p class="support-text screenshot-note">Keep this pass visible and screenshot it for backup before you arrive.</p>
+        <button id="savePassBtn" class="btn primary" type="button">Save to Photos</button>
+        <p id="savePassHelp" class="support-text screenshot-note hidden"></p>
+        <p class="support-text screenshot-note">On iPhone, choose Save Image from the share menu. Keep a screenshot as a backup before you arrive.</p>
       </div>
     </section>
 
