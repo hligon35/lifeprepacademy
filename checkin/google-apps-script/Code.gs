@@ -12,8 +12,8 @@ const PARENT_HEADERS = [
   'parent_token','parent_phone','parent_email','parent_name','ticket_count',
   'registered_child_count','available_ticket_count','registered_child_names',
   'registration_status','qr_id','precheck_status','precheck_time','checked_in',
-  'checked_in_at','checked_in_by','sms_status','twilio_message_sid','last_synced_at',
-  'branded_qr_code'
+  'checked_in_at','checked_in_by','email_status','sendgrid_message_id',
+  'email_sent_at','last_synced_at','fast_pass_url','branded_qr_code'
 ];
 
 function doGet(e) {

@@ -42,6 +42,9 @@ function refreshBrandedFamilyQrCodes() {
  */
 function setupAndRefreshFastPasses() {
   const syncResult = setupCheckInSystem();
-  const qrResult = refreshBrandedFamilyQrCodes();
-  return { ok: true, parents: syncResult.parentCount, qrRows: qrResult.updated };
+  return {
+    ok: true,
+    parents: syncResult.parentCount,
+    qrRows: syncResult.brandedQrRows || 0
+  };
 }

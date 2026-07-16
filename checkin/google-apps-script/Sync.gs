@@ -1,10 +1,3 @@
-const EMAIL_PARENT_HEADERS = [
-  'parent_token','parent_phone','parent_email','parent_name','ticket_count',
-  'registered_child_count','available_ticket_count','registered_child_names',
-  'registration_status','qr_id','precheck_status','precheck_time','checked_in',
-  'checked_in_at','checked_in_by','email_status','sendgrid_message_id',
-  'email_sent_at','last_synced_at','fast_pass_url','branded_qr_code'
-];
 const FAST_PASS_PARENT_URL = 'https://lifeprepacademyfoundation.com/checkin/';
 
 function childSignature_(names){
@@ -27,10 +20,10 @@ function joinedName_(obj, combined, first, middle, last){
 
 function ensureParentSheet_(){
   const sheet = sh_(PARENTS_TAB, true);
-  if (sheet.getMaxColumns() < EMAIL_PARENT_HEADERS.length) {
-    sheet.insertColumnsAfter(sheet.getMaxColumns(), EMAIL_PARENT_HEADERS.length - sheet.getMaxColumns());
+  if (sheet.getMaxColumns() < PARENT_HEADERS.length) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), PARENT_HEADERS.length - sheet.getMaxColumns());
   }
-  sheet.getRange(1, 1, 1, EMAIL_PARENT_HEADERS.length).setValues([EMAIL_PARENT_HEADERS]);
+  sheet.getRange(1, 1, 1, PARENT_HEADERS.length).setValues([PARENT_HEADERS]);
   sheet.setFrozenRows(1);
   return sheet;
 }
@@ -198,24 +191,26 @@ function syncParentCheckIn_(){
       email_sent_at: requeueEmail ? '' : (old.email_sent_at || ''),
       last_synced_at: now_(),
       fast_pass_url: FAST_PASS_PARENT_URL + '?k=' + encodeURIComponent(parentToken),
-      branded_qr_code: old.branded_qr_code || ''
+      branded_qr_code: ''
     };
   });
 
   const sheet = ensureParentSheet_();
   if (sheet.getLastRow() > 1) {
-    sheet.getRange(2, 1, sheet.getLastRow() - 1, EMAIL_PARENT_HEADERS.length).clearContent();
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, PARENT_HEADERS.length).clearContent();
   }
   if (rows.length) {
-    sheet.getRange(2, 1, rows.length, EMAIL_PARENT_HEADERS.length)
-      .setValues(rows.map(function(row){ return EMAIL_PARENT_HEADERS.map(function(header){ return row[header] || ''; }); }));
+    sheet.getRange(2, 1, rows.length, PARENT_HEADERS.length)
+      .setValues(rows.map(function(row){ return PARENT_HEADERS.map(function(header){ return row[header] || ''; }); }));
   }
+  const qrRefresh = refreshBrandedFamilyQrCodes();
   clearFamilyCache_();
   getFamilyDirectory_(true);
   return {
     ok: true,
     parentCount: rows.length,
     qrIdsGenerated: rows.length,
+    brandedQrRows: qrRefresh.updated,
     emailsReady: rows.filter(function(row){ return row.email_status === 'Ready for Make'; }).length
   };
 }
