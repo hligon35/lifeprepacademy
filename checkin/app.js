@@ -36,7 +36,9 @@
     passPanel: $("passPanel"),
     passMeta: $("passMeta"),
     fastPassCanvas: $("fastPassCanvas"),
+    fastPassImage: $("fastPassImage"),
     savePassBtn: $("savePassBtn"),
+    savePassHelp: $("savePassHelp"),
     qrFallback: $("qrFallback"),
     qrFallbackCode: $("qrFallbackCode"),
     staffPanel: $("staffPanel"),
@@ -324,6 +326,11 @@
 
     const targetCanvas = els.fastPassCanvas;
     const ctx = targetCanvas.getContext("2d");
+
+    targetCanvas.classList.remove("hidden");
+    els.fastPassImage.classList.add("hidden");
+    els.fastPassImage.removeAttribute("src");
+    els.savePassHelp.classList.add("hidden");
     const template = await loadImage(templateUrl, "The Fast Pass template image could not be loaded.");
     const names = childNames(children);
     state.qrFailed = false;
@@ -901,38 +908,80 @@
     setError("");
   }
 
-  function saveFastPass() {
-    if (!state.passReady) return;
-    const filename = `fast-pass-${sanitizeFilename((state.parent && state.parent.parentName) || "family")}.png`;
-    const canvas = els.fastPassCanvas;
-
-    const saveBlob = (blob) => {
-      if (!blob) {
-        setError("The Fast Pass image could not be downloaded.");
+  function canvasToPngBlob(canvas) {
+    return new Promise((resolve) => {
+      if (typeof canvas.toBlob === "function") {
+        canvas.toBlob(resolve, "image/png");
         return;
       }
-      const href = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = href;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(href), 1000);
-    };
 
-    if (canvas.toBlob) {
-      canvas.toBlob(saveBlob, "image/png");
-    } else {
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      try {
+        const dataUrl = canvas.toDataURL("image/png");
+        const parts = dataUrl.split(",");
+        const binary = window.atob(parts[1]);
+        const bytes = new Uint8Array(binary.length);
+
+        for (let index = 0; index < binary.length; index += 1) {
+          bytes[index] = binary.charCodeAt(index);
+        }
+
+        resolve(new Blob([bytes], { type: "image/png" }));
+      } catch (_error) {
+        resolve(null);
+      }
+    });
+  }
+
+  function showSaveImageFallback(canvas) {
+    try {
+      els.fastPassImage.src = canvas.toDataURL("image/png");
+      els.fastPassImage.classList.remove("hidden");
+      canvas.classList.add("hidden");
+      els.savePassHelp.textContent =
+        "Press and hold the Fast Pass image, then choose Save to Photos or Save Image. On a computer, right-click the image and save it.";
+      els.savePassHelp.classList.remove("hidden");
+      setStatus("Your Fast Pass is now displayed as a saveable image.");
+    } catch (_error) {
+      setError("The Fast Pass image could not be prepared. Please take a screenshot instead.");
     }
   }
 
+  async function saveFastPass() {
+    if (!state.passReady) return;
+
+    const canvas = els.fastPassCanvas;
+    const filename = `fast-pass-${sanitizeFilename(
+      (state.parent && state.parent.parentName) || "family"
+    )}.png`;
+    const blob = await canvasToPngBlob(canvas);
+
+    if (!blob) {
+      setError("The Fast Pass image could not be prepared. Please take a screenshot instead.");
+      return;
+    }
+
+    const file = new File([blob], filename, { type: "image/png" });
+    const canShareFile =
+      typeof navigator.share === "function" &&
+      typeof navigator.canShare === "function" &&
+      navigator.canShare({ files: [file] });
+
+    if (canShareFile) {
+      try {
+        await navigator.share({
+          title: "Paducah Clinic Fast Pass",
+          text: "Save this Fast Pass to your photos for clinic check-in.",
+          files: [file]
+        });
+        setStatus("Fast Pass shared. Choose Save Image or your Photos app from the phone menu.");
+        return;
+      } catch (error) {
+        if (error && error.name === "AbortError") return;
+      }
+    }
+
+    showSaveImageFallback(canvas);
+  }
   function setupStaffMode() {
     document.body.classList.add("staff-mode");
     setHero("Staff Check-In", "Scan a Fast Pass, review the family, and confirm the gate check-in.");
