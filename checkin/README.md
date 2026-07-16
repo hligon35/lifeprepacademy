@@ -67,8 +67,11 @@ Spreadsheet ID:
 
 Source tabs:
 
-- `Child Registrations`
+- `Child Registrations` (existing confirmed registrations)
+- `Waitlist` (new Jotform submissions)
 - `Event Tickets`
+
+Only `Waitlist` rows with `registration_type=add_child` and a valid existing `parent_key` are added to a Fast Pass. Normal waitlist registrations remain excluded from confirmed families.
 
 Generated/updated tabs:
 
@@ -88,3 +91,26 @@ The email points the parent to:
 ```text
 https://lifeprepacademyfoundation.com/checkin/?k={{parent_token}}
 ```
+
+
+## Additional-child return flow
+
+The Fast Pass page sends these hidden values into Jotform when a parent selects **Add another child**:
+
+- `parent_key`
+- `return_url`
+- `registration_type`
+- `previous_child_count`
+
+Configure Jotform to return the parent to the submitted `return_url`. The URL contains the existing family token, `returning=1`, and the previous child count.
+
+After the submission:
+
+1. Jotform writes the submission to `Waitlist`.
+2. `Sync.gs` accepts it only when `registration_type=add_child` and `parent_key` matches an existing family. It then links by that key first, with email or phone as supporting identifiers.
+3. The existing `parent_token` and `qr_id` are preserved.
+4. A changed child list clears the old verification state.
+5. `email_status` returns to `Ready for Make`, so the existing SendGrid scenario sends the updated Fast Pass email.
+6. The returning browser waits for the child count to increase and then shows the full family verification screen again.
+
+Run `installFastPassSyncTrigger()` once from Apps Script after deploying these files. It installs a five-minute synchronization fallback. If Make calls the `syncParents` action immediately after the Jotform submission, the browser will usually refresh before the fallback trigger is needed.
