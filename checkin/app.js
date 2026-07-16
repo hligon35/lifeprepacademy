@@ -213,6 +213,16 @@
       .replace(/^-+|-+$/g, "") || "family";
   }
 
+  function isIosDevice() {
+    const ua = window.navigator.userAgent || "";
+    const platform = window.navigator.platform || "";
+    const touchPoints = Number(window.navigator.maxTouchPoints || 0);
+
+    return /iPad|iPhone|iPod/.test(ua)
+      || (platform === "MacIntel" && touchPoints > 1)
+      || /iPad|iPhone|iPod/.test(platform);
+  }
+
   function clearPreparedFastPass() {
     state.passFile = null;
     if (state.passImageUrl) {
@@ -1027,11 +1037,43 @@
     }
   }
 
+  function openFastPassImageView() {
+    showSaveImageFallback(els.fastPassCanvas);
+
+    if (!state.passImageUrl) {
+      setStatus("Press and hold the Fast Pass image to save it to Photos.");
+      return;
+    }
+
+    const popup = window.open("", "_blank", "noopener,noreferrer");
+
+    if (!popup) {
+      setStatus("Press and hold the Fast Pass image to save it to Photos, or use Safari's Share button and choose Save Image.");
+      return;
+    }
+
+    popup.document.title = "Fast Pass Image";
+    popup.document.body.style.margin = "0";
+    popup.document.body.style.background = "#081738";
+    popup.document.body.style.display = "grid";
+    popup.document.body.style.placeItems = "center";
+    popup.document.body.innerHTML = "<img alt=\"Fast Pass\" style=\"display:block;max-width:100vw;max-height:100vh;width:auto;height:auto;\">";
+    popup.document.querySelector("img").src = state.passImageUrl;
+
+    setStatus("Use Safari's Share button on the opened image and choose Save Image, or press and hold the image to save it to Photos.");
+  }
+
   async function saveFastPass() {
     if (!state.passReady) return;
 
     const canvas = els.fastPassCanvas;
     const file = state.passFile;
+
+    if (isIosDevice()) {
+      openFastPassImageView();
+      return;
+    }
+
     const canAttemptNativeShare = typeof navigator.share === "function" && file;
     const canShareFile =
       canAttemptNativeShare && (
