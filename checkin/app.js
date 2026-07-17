@@ -40,6 +40,7 @@
     fastPassCanvas: $("fastPassCanvas"),
     fastPassImage: $("fastPassImage"),
     savePassBtn: $("savePassBtn"),
+    downloadPassLink: $("downloadPassLink"),
     savePassHelp: $("savePassHelp"),
     qrFallback: $("qrFallback"),
     qrFallbackCode: $("qrFallbackCode"),
@@ -213,16 +214,6 @@
       .replace(/^-+|-+$/g, "") || "family";
   }
 
-  function isIosDevice() {
-    const ua = window.navigator.userAgent || "";
-    const platform = window.navigator.platform || "";
-    const touchPoints = Number(window.navigator.maxTouchPoints || 0);
-
-    return /iPad|iPhone|iPod/.test(ua)
-      || (platform === "MacIntel" && touchPoints > 1)
-      || /iPad|iPhone|iPod/.test(platform);
-  }
-
   function clearPreparedFastPass() {
     state.passFile = null;
     if (state.passImageUrl) {
@@ -350,6 +341,9 @@
     targetCanvas.classList.remove("hidden");
     els.fastPassImage.classList.add("hidden");
     els.fastPassImage.removeAttribute("src");
+    els.downloadPassLink.classList.add("hidden");
+    els.downloadPassLink.removeAttribute("href");
+    els.downloadPassLink.removeAttribute("download");
     els.savePassHelp.classList.add("hidden");
     const template = await loadImage(templateUrl, "The Fast Pass template image could not be loaded.");
     const names = childNames(children);
@@ -1024,43 +1018,34 @@
 
   function showSaveImageFallback(canvas) {
     try {
-      const imageSource = state.passImageUrl || canvas.toDataURL("image/png");
+      const imageSource = state.passImageUrl;
+
+      if (!imageSource) {
+        throw new Error("missing-pass-image");
+      }
+
       els.fastPassImage.src = imageSource;
       els.fastPassImage.classList.remove("hidden");
       canvas.classList.add("hidden");
+
+      if ("download" in els.downloadPassLink) {
+        els.downloadPassLink.href = imageSource;
+        els.downloadPassLink.download = (state.passFile && state.passFile.name) || "fast-pass.png";
+        els.downloadPassLink.textContent = "Download Fast Pass";
+        els.downloadPassLink.classList.remove("hidden");
+      } else {
+        els.downloadPassLink.classList.add("hidden");
+        els.downloadPassLink.removeAttribute("href");
+        els.downloadPassLink.removeAttribute("download");
+      }
+
       els.savePassHelp.textContent =
-        "Take a screenshot of the Fast Pass image in case saving it does not work on your device. On a computer, right-click the image and save it.";
+        "Press and hold the Fast Pass image to save it when supported. You can also take a screenshot as a backup for check-in. On a computer, you can use Download Fast Pass or right-click the image and save it.";
       els.savePassHelp.classList.remove("hidden");
-      setStatus("Your Fast Pass is now displayed as a saveable image.");
+      setStatus("Use the button to share or save your Fast Pass. We also recommend taking a screenshot as a backup for check-in.");
     } catch (_error) {
       setError("The Fast Pass image could not be prepared. Please take a screenshot instead.");
     }
-  }
-
-  function openFastPassImageView() {
-    showSaveImageFallback(els.fastPassCanvas);
-
-    if (!state.passImageUrl) {
-      setStatus("Take a screenshot of the Fast Pass image so you have a backup for check-in.");
-      return;
-    }
-
-    const popup = window.open("", "_blank", "noopener,noreferrer");
-
-    if (!popup) {
-      setStatus("Take a screenshot of the Fast Pass image in case saving it does not work on your phone.");
-      return;
-    }
-
-    popup.document.title = "Fast Pass Image";
-    popup.document.body.style.margin = "0";
-    popup.document.body.style.background = "#081738";
-    popup.document.body.style.display = "grid";
-    popup.document.body.style.placeItems = "center";
-    popup.document.body.innerHTML = "<img alt=\"Fast Pass\" style=\"display:block;max-width:100vw;max-height:100vh;width:auto;height:auto;\">";
-    popup.document.querySelector("img").src = state.passImageUrl;
-
-    setStatus("Take a screenshot of the opened Fast Pass image in case saving it does not work on your phone.");
   }
 
   async function saveFastPass() {
@@ -1069,14 +1054,15 @@
     const canvas = els.fastPassCanvas;
     const file = state.passFile;
 
-    if (isIosDevice()) {
-      openFastPassImageView();
+    setError("");
+
+    if (!file) {
+      setError("The Fast Pass image is still being prepared. Please try again.");
       return;
     }
 
-    const canAttemptNativeShare = typeof navigator.share === "function" && file;
     const canShareFile =
-      canAttemptNativeShare && (
+      typeof navigator.share === "function" && (
         typeof navigator.canShare !== "function" ||
         navigator.canShare({ files: [file] })
       );
@@ -1088,16 +1074,12 @@
           text: "Save this Fast Pass to your photos for clinic check-in.",
           files: [file]
         });
-        setStatus("Fast Pass ready to share. Take a screenshot too in case saving the image does not work on your phone.");
+        setStatus("Your Fast Pass is ready to save or share. We also recommend taking a screenshot as a backup for check-in.");
         return;
       } catch (error) {
         if (error && error.name === "AbortError") return;
+        console.warn("Fast Pass native sharing failed:", error);
       }
-    }
-
-    if (!file) {
-      setError("The Fast Pass image is still being prepared. Please try the button again.");
-      return;
     }
 
     showSaveImageFallback(canvas);
