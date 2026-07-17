@@ -1029,7 +1029,7 @@
       els.fastPassImage.classList.remove("hidden");
       canvas.classList.add("hidden");
       els.savePassHelp.textContent =
-        "Press and hold the Fast Pass image, then choose Save to Photos or Save Image. On a computer, right-click the image and save it.";
+        "Take a screenshot of the Fast Pass image in case saving it does not work on your device. On a computer, right-click the image and save it.";
       els.savePassHelp.classList.remove("hidden");
       setStatus("Your Fast Pass is now displayed as a saveable image.");
     } catch (_error) {
@@ -1041,14 +1041,14 @@
     showSaveImageFallback(els.fastPassCanvas);
 
     if (!state.passImageUrl) {
-      setStatus("Press and hold the Fast Pass image to save it to Photos.");
+      setStatus("Take a screenshot of the Fast Pass image so you have a backup for check-in.");
       return;
     }
 
     const popup = window.open("", "_blank", "noopener,noreferrer");
 
     if (!popup) {
-      setStatus("Press and hold the Fast Pass image to save it to Photos, or use Safari's Share button and choose Save Image.");
+      setStatus("Take a screenshot of the Fast Pass image in case saving it does not work on your phone.");
       return;
     }
 
@@ -1060,7 +1060,7 @@
     popup.document.body.innerHTML = "<img alt=\"Fast Pass\" style=\"display:block;max-width:100vw;max-height:100vh;width:auto;height:auto;\">";
     popup.document.querySelector("img").src = state.passImageUrl;
 
-    setStatus("Use Safari's Share button on the opened image and choose Save Image, or press and hold the image to save it to Photos.");
+    setStatus("Take a screenshot of the opened Fast Pass image in case saving it does not work on your phone.");
   }
 
   async function saveFastPass() {
@@ -1088,7 +1088,7 @@
           text: "Save this Fast Pass to your photos for clinic check-in.",
           files: [file]
         });
-        setStatus("Fast Pass ready to share. Choose Save Image or your Photos app from the phone menu.");
+        setStatus("Fast Pass ready to share. Take a screenshot too in case saving the image does not work on your phone.");
         return;
       } catch (error) {
         if (error && error.name === "AbortError") return;
