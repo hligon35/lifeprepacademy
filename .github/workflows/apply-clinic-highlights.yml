@@ -1,0 +1,136 @@
+name: Apply clinic highlights section
+
+on:
+  push:
+    branches:
+      - agent/add-clinic-highlights
+    paths:
+      - .github/workflows/apply-clinic-highlights.yml
+
+permissions:
+  contents: write
+
+jobs:
+  update-page:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/add-clinic-highlights
+
+      - name: Replace expired clinic banner with video
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path("youth-programs.html")
+          text = path.read_text(encoding="utf-8")
+
+          new_style = '''\t\t<style>
+\t\t\t.page-youth-programs .program-card .program-logo {
+\t\t\t\tdisplay: block;
+\t\t\t\tmargin-inline: auto;
+\t\t\t}
+
+\t\t\t.page-youth-programs .program-card .program-logo--nfl {
+\t\t\t\ttransform: translateX(14px);
+\t\t\t}
+
+\t\t\t.page-youth-programs .clinic-highlights {
+\t\t\t\tmargin: 3rem auto 3.5rem;
+\t\t\t\tmax-width: 1080px;
+\t\t\t\tpadding: clamp(1.25rem, 3vw, 2.25rem);
+\t\t\t\tborder: 1px solid rgba(40, 17, 86, 0.12);
+\t\t\t\tborder-radius: 24px;
+\t\t\t\tbackground: #ffffff;
+\t\t\t\tbox-shadow: 0 22px 60px rgba(20, 12, 46, 0.16);
+\t\t\t\ttext-align: center;
+\t\t\t}
+
+\t\t\t.page-youth-programs .clinic-highlights h2 {
+\t\t\t\tmargin: 0 0 1.25rem;
+\t\t\t\tcolor: #281156;
+\t\t\t\tfont-size: clamp(1.55rem, 3vw, 2.4rem);
+\t\t\t}
+
+\t\t\t.page-youth-programs .clinic-highlights-video {
+\t\t\t\tdisplay: block;
+\t\t\t\twidth: 100%;
+\t\t\t\theight: auto;
+\t\t\t\tmax-height: 72vh;
+\t\t\t\tborder-radius: 18px;
+\t\t\t\tbackground: #000000;
+\t\t\t\tbox-shadow: 0 14px 36px rgba(20, 12, 46, 0.2);
+\t\t\t}
+
+\t\t\t.page-youth-programs .clinic-highlights-subtitle {
+\t\t\t\tmargin: 1rem 0 0;
+\t\t\t\tcolor: #5f5870;
+\t\t\t\tfont-size: clamp(1rem, 2vw, 1.15rem);
+\t\t\t\tfont-style: italic;
+\t\t\t}
+
+\t\t\t@media (max-width: 640px) {
+\t\t\t\t.page-youth-programs .clinic-highlights {
+\t\t\t\t\tmargin: 2rem auto 2.75rem;
+\t\t\t\t\tpadding: 1rem;
+\t\t\t\t\tborder-radius: 18px;
+\t\t\t\t}
+
+\t\t\t\t.page-youth-programs .clinic-highlights-video {
+\t\t\t\t\tborder-radius: 12px;
+\t\t\t\t}
+\t\t\t}
+\t\t</style>'''
+
+          text, style_count = re.subn(r"\t\t<style>.*?\t\t</style>", new_style, text, count=1, flags=re.S)
+          if style_count != 1:
+              raise SystemExit("Could not replace the clinic styles")
+
+          new_section = '''\t\t\t\t\t\t<section class="clinic-highlights" aria-labelledby="clinic-highlights-heading">
+\t\t\t\t\t\t\t<h2 id="clinic-highlights-heading">Paducah NFL Flag Clinic 2026</h2>
+\t\t\t\t\t\t\t<video class="clinic-highlights-video" controls playsinline preload="metadata">
+\t\t\t\t\t\t\t\t<source src="CLINIC_HIGHLIGHTS.mp4" type="video/mp4" />
+\t\t\t\t\t\t\t\tYour browser does not support HTML5 video.
+\t\t\t\t\t\t\t</video>
+\t\t\t\t\t\t\t<p class="clinic-highlights-subtitle">Images coming soon...</p>
+\t\t\t\t\t\t</section>'''
+
+          text, section_count = re.subn(
+              r"\t\t\t\t\t\t<section\s+class=\"clinic-countdown\".*?\t\t\t\t\t\t</section>",
+              new_section,
+              text,
+              count=1,
+              flags=re.S,
+          )
+          if section_count != 1:
+              raise SystemExit("Could not replace the clinic countdown section")
+
+          text = re.sub(
+              r"\n\t\t\t\tconst countdownRoot = document\.querySelector\(\"\.clinic-countdown\[data-target-time\]\"\);",
+              "",
+              text,
+              count=1,
+          )
+          text, script_count = re.subn(
+              r"\n\t\t\t\tfunction initClinicCountdown\(\) \{.*?\n\t\t\t\t\}\n\n\t\t\t\tinitClinicCountdown\(\);",
+              "",
+              text,
+              count=1,
+              flags=re.S,
+          )
+          if script_count != 1:
+              raise SystemExit("Could not remove the expired countdown script")
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
+          rm .github/workflows/apply-clinic-highlights.yml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add youth-programs.html .github/workflows/apply-clinic-highlights.yml
+          git commit -m "Add clinic highlights video to youth programs"
+          git push origin HEAD:agent/add-clinic-highlights
