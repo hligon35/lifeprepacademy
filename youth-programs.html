@@ -4,37 +4,25 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Youth Programs | LifePrep Academy Foundation</title>
-		<meta
-			name="description"
-			content="Explore LifePrep Academy Foundation youth programs, including NFL FLAG and MLS GO, and watch highlights from the 2026 Paducah NFL Flag Clinic."
-		/>
+		<meta name="description" content="Explore LifePrep Academy Foundation youth programs, including NFL FLAG and MLS GO, and watch highlights from the 2026 Paducah NFL Flag Clinic." />
 		<meta name="robots" content="index, follow" />
 		<meta name="referrer" content="strict-origin-when-cross-origin" />
 		<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
 		<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png" />
 		<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png" />
 		<link rel="canonical" href="https://www.lifeprepacademyfoundation.com/youth-programs.html" />
-
 		<meta property="og:type" content="website" />
 		<meta property="og:title" content="Youth Programs | LifePrep Academy Foundation" />
-		<meta
-			property="og:description"
-			content="Watch highlights from the 2026 Paducah NFL Flag Clinic and learn more about upcoming youth programs."
-		/>
+		<meta property="og:description" content="Watch highlights from the 2026 Paducah NFL Flag Clinic and learn more about upcoming youth programs." />
 		<meta property="og:image" content="https://www.lifeprepacademyfoundation.com/groupPhoto.avif" />
 		<meta property="og:url" content="https://www.lifeprepacademyfoundation.com/youth-programs.html" />
 		<meta property="og:site_name" content="LifePrep Academy Foundation" />
 		<meta property="og:locale" content="en_US" />
-
 		<meta name="twitter:card" content="summary_large_image" />
 		<meta name="twitter:title" content="Youth Programs | LifePrep Academy Foundation" />
-		<meta
-			name="twitter:description"
-			content="Watch highlights from the 2026 Paducah NFL Flag Clinic and learn more about upcoming youth programs."
-		/>
+		<meta name="twitter:description" content="Watch highlights from the 2026 Paducah NFL Flag Clinic and learn more about upcoming youth programs." />
 		<meta name="twitter:image" content="https://www.lifeprepacademyfoundation.com/groupPhoto.avif" />
 		<meta name="theme-color" content="#281156" />
-
 		<link rel="preload" href="style.min.css?v=9e84f9012f" as="style" />
 		<link rel="stylesheet" href="style.min.css?v=9e84f9012f" />
 		<noscript><link rel="stylesheet" href="style.min.css?v=9e84f9012f" /></noscript>
@@ -43,504 +31,84 @@
 		<link rel="preconnect" href="https://script.google.com" crossorigin />
 		<link rel="preconnect" href="https://challenges.cloudflare.com" crossorigin />
 		<link rel="preconnect" href="https://drive.google.com" crossorigin />
-
 		<style>
-			.page-youth-programs .program-card .program-logo {
-				display: block;
-				margin-inline: auto;
-			}
-
-			.page-youth-programs .program-card .program-logo--nfl {
-				transform: translateX(14px);
-			}
-
-			.clinic-highlights {
-				margin: 2.5rem auto 3.5rem;
-				padding: clamp(1rem, 2.5vw, 2rem);
-				max-width: 1080px;
-				border: 1px solid rgba(40, 17, 86, 0.12);
-				border-radius: 24px;
-				background: #ffffff;
-				box-shadow: 0 20px 55px rgba(40, 17, 86, 0.14);
-				text-align: center;
-			}
-
-			.clinic-highlights h2 {
-				margin: 0 0 1.25rem;
-				color: #281156;
-				font-size: clamp(1.65rem, 4vw, 2.6rem);
-			}
-
-			.clinic-highlights-video-wrap {
-				overflow: hidden;
-				border-radius: 18px;
-				background: #000000;
-				box-shadow: 0 12px 30px rgba(20, 12, 46, 0.2);
-			}
-
-			.clinic-highlights video {
-				display: block;
-				width: 100%;
-				height: auto;
-				max-height: 720px;
-				background: #000000;
-			}
-
-			.clinic-gallery {
-				margin-top: 1.5rem;
-				text-align: left;
-			}
-
-			.clinic-gallery-heading {
-				margin: 0 0 0.85rem;
-				color: #281156;
-				font-size: clamp(1.15rem, 2.5vw, 1.5rem);
-				text-align: center;
-			}
-
-			.clinic-gallery-viewport {
-				position: relative;
-				overflow: hidden;
-				border-radius: 16px;
-				background: #f5f2fb;
-				box-shadow: inset 0 0 0 1px rgba(40, 17, 86, 0.08);
-			}
-
-			.clinic-gallery-viewport::before,
-			.clinic-gallery-viewport::after {
-				content: "";
-				position: absolute;
-				top: 0;
-				bottom: 0;
-				z-index: 2;
-				width: clamp(28px, 6vw, 80px);
-				pointer-events: none;
-			}
-
-			.clinic-gallery-viewport::before {
-				left: 0;
-				background: linear-gradient(90deg, #f5f2fb, rgba(245, 242, 251, 0));
-			}
-
-			.clinic-gallery-viewport::after {
-				right: 0;
-				background: linear-gradient(270deg, #f5f2fb, rgba(245, 242, 251, 0));
-			}
-
-			.clinic-gallery-track {
-				display: flex;
-				width: max-content;
-				animation: clinic-gallery-scroll 150s linear infinite;
-				will-change: transform;
-			}
-
-			.clinic-gallery-viewport:hover .clinic-gallery-track,
-			.clinic-gallery-viewport:focus-within .clinic-gallery-track {
-				animation-play-state: paused;
-			}
-
-			.clinic-gallery-group {
-				display: flex;
-				flex-shrink: 0;
-				gap: 1rem;
-				padding: 1rem 1rem 1rem 0;
-			}
-
-			.clinic-gallery-group:first-child {
-				padding-left: 1rem;
-			}
-
-			.clinic-gallery-item {
-				display: block;
-				flex: 0 0 clamp(210px, 28vw, 330px);
-				aspect-ratio: 3 / 2;
-				overflow: hidden;
-				border-radius: 13px;
-				background: #ded8eb;
-				box-shadow: 0 8px 22px rgba(40, 17, 86, 0.16);
-			}
-
-			.clinic-gallery-item img {
-				display: block;
-				width: 100%;
-				height: 100%;
-				object-fit: cover;
-				transition: transform 300ms ease;
-			}
-
-			.clinic-gallery-item:hover img,
-			.clinic-gallery-item:focus-visible img {
-				transform: scale(1.035);
-			}
-
-			@keyframes clinic-gallery-scroll {
-				from { transform: translateX(0); }
-				to { transform: translateX(-50%); }
-			}
-
-			@media (prefers-reduced-motion: reduce) {
-				.clinic-gallery-track {
-					animation: none;
-				}
-
-				.clinic-gallery-viewport {
-					overflow-x: auto;
-					scroll-snap-type: x proximity;
-				}
-
-				.clinic-gallery-item {
-					scroll-snap-align: start;
-				}
-
-				.clinic-gallery-group[aria-hidden="true"] {
-					display: none;
-				}
-			}
-
-			@media (max-width: 640px) {
-				.clinic-highlights {
-					margin-top: 1.75rem;
-					border-radius: 18px;
-				}
-
-				.clinic-highlights-video-wrap {
-					border-radius: 12px;
-				}
-
-				.clinic-gallery-viewport {
-					border-radius: 12px;
-				}
-
-				.clinic-gallery-track {
-					animation-duration: 120s;
-				}
-			}
+			.page-youth-programs .program-card .program-logo { display:block; margin-inline:auto; }
+			.page-youth-programs .program-card .program-logo--nfl { transform:translateX(14px); }
+			.clinic-highlights { margin:2.5rem auto 3.5rem; padding:clamp(1rem,2.5vw,2rem); max-width:1080px; border:1px solid rgba(40,17,86,.12); border-radius:24px; background:#fff; box-shadow:0 20px 55px rgba(40,17,86,.14); text-align:center; }
+			.clinic-highlights h2 { margin:0 0 1.25rem; color:#281156; font-size:clamp(1.65rem,4vw,2.6rem); }
+			.clinic-highlights-video-wrap { overflow:hidden; border-radius:18px; background:#000; box-shadow:0 12px 30px rgba(20,12,46,.2); }
+			.clinic-highlights video { display:block; width:100%; height:auto; max-height:720px; background:#000; }
+			.clinic-gallery { margin-top:1.5rem; text-align:left; }
+			.clinic-gallery-heading { margin:0 0 .85rem; color:#281156; font-size:clamp(1.15rem,2.5vw,1.5rem); text-align:center; }
+			.clinic-gallery-viewport { position:relative; overflow:hidden; border-radius:16px; background:#f5f2fb; box-shadow:inset 0 0 0 1px rgba(40,17,86,.08); }
+			.clinic-gallery-viewport::before,.clinic-gallery-viewport::after { content:""; position:absolute; top:0; bottom:0; z-index:2; width:clamp(28px,6vw,80px); pointer-events:none; }
+			.clinic-gallery-viewport::before { left:0; background:linear-gradient(90deg,#f5f2fb,rgba(245,242,251,0)); }
+			.clinic-gallery-viewport::after { right:0; background:linear-gradient(270deg,#f5f2fb,rgba(245,242,251,0)); }
+			.clinic-gallery-track { display:flex; width:max-content; animation:clinic-gallery-scroll 150s linear infinite; will-change:transform; }
+			.clinic-gallery-viewport:hover .clinic-gallery-track,.clinic-gallery-viewport:focus-within .clinic-gallery-track { animation-play-state:paused; }
+			.clinic-gallery-group { display:flex; flex-shrink:0; gap:1rem; padding:1rem 1rem 1rem 0; }
+			.clinic-gallery-group:first-child { padding-left:1rem; }
+			.clinic-gallery-item { display:block; flex:0 0 clamp(210px,28vw,330px); aspect-ratio:3/2; overflow:hidden; padding:0; border:0; border-radius:13px; background:#ded8eb; box-shadow:0 8px 22px rgba(40,17,86,.16); cursor:zoom-in; }
+			.clinic-gallery-item img { display:block; width:100%; height:100%; object-fit:cover; transition:transform 300ms ease; }
+			.clinic-gallery-item:hover img,.clinic-gallery-item:focus-visible img { transform:scale(1.035); }
+			.clinic-gallery-modal { position:fixed; inset:0; z-index:3000; display:flex; align-items:center; justify-content:center; padding:clamp(1rem,4vw,3rem); background:rgba(8,5,18,.92); opacity:0; visibility:hidden; transition:opacity 200ms ease,visibility 200ms ease; }
+			.clinic-gallery-modal.is-open { opacity:1; visibility:visible; }
+			.clinic-gallery-modal-dialog { position:relative; display:flex; align-items:center; justify-content:center; width:100%; height:100%; max-width:1400px; }
+			.clinic-gallery-modal-image { display:block; max-width:100%; max-height:88vh; width:auto; height:auto; object-fit:contain; border-radius:12px; box-shadow:0 20px 70px rgba(0,0,0,.55); }
+			.clinic-gallery-modal-close,.clinic-gallery-modal-nav { position:absolute; z-index:2; display:grid; place-items:center; border:1px solid rgba(255,255,255,.28); background:rgba(20,12,46,.75); color:#fff; cursor:pointer; backdrop-filter:blur(8px); }
+			.clinic-gallery-modal-close { top:0; right:0; width:48px; height:48px; border-radius:50%; font-size:2rem; line-height:1; }
+			.clinic-gallery-modal-nav { top:50%; transform:translateY(-50%); width:50px; height:64px; border-radius:12px; font-size:2rem; }
+			.clinic-gallery-modal-prev { left:0; }
+			.clinic-gallery-modal-next { right:0; }
+			.clinic-gallery-modal-close:hover,.clinic-gallery-modal-close:focus-visible,.clinic-gallery-modal-nav:hover,.clinic-gallery-modal-nav:focus-visible { background:#281156; outline:2px solid #f9b515; outline-offset:2px; }
+			.clinic-gallery-modal-counter { position:absolute; left:50%; bottom:0; transform:translateX(-50%); margin:0; padding:.45rem .8rem; border-radius:999px; background:rgba(20,12,46,.78); color:#fff; font-size:.9rem; }
+			body.modal-open { overflow:hidden; }
+			@keyframes clinic-gallery-scroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+			@media (prefers-reduced-motion:reduce) { .clinic-gallery-track{animation:none}.clinic-gallery-viewport{overflow-x:auto;scroll-snap-type:x proximity}.clinic-gallery-item{scroll-snap-align:start}.clinic-gallery-group[aria-hidden="true"]{display:none}.clinic-gallery-modal{transition:none} }
+			@media (max-width:640px) { .clinic-highlights{margin-top:1.75rem;border-radius:18px}.clinic-highlights-video-wrap,.clinic-gallery-viewport{border-radius:12px}.clinic-gallery-track{animation-duration:120s}.clinic-gallery-modal{padding:.75rem}.clinic-gallery-modal-nav{width:42px;height:54px;font-size:1.6rem}.clinic-gallery-modal-close{width:44px;height:44px}.clinic-gallery-modal-image{max-height:82vh} }
 		</style>
 	</head>
 	<body class="page-youth-programs">
 		<a class="skip-link" href="#main-content">Skip to main content</a>
 		<div class="content-wrapper">
-			<header>
-				<nav role="navigation" aria-label="Main navigation">
-					<div class="brand">
-						<div class="logo">
-							<img src="logo.png" alt="LifePrep Academy Foundation Logo" width="100" height="100" decoding="async" />
-						</div>
-						<a href="index.html" class="site-title">LifePrep Academy<br />Foundation</a>
-					</div>
-					<ul id="primary-nav">
-						<li><a href="index.html#home">Home</a></li>
-						<li><a href="about.html">About Us</a></li>
-						<li><a href="programs.html">Programs</a></li>
-						<li><a href="youth-programs.html" aria-current="page">Youth<br />Programs</a></li>
-						<li><a href="events.html">Events</a></li>
-						<li><a href="https://give.cornerstone.cc/lifeprepacademyfnd" target="_blank" rel="noopener noreferrer">Donate</a></li>
-						<li><a href="contact.html">Contact</a></li>
-					</ul>
-					<button class="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-controls="primary-nav" aria-expanded="false">☰</button>
-				</nav>
-			</header>
-
+			<header><nav role="navigation" aria-label="Main navigation"><div class="brand"><div class="logo"><img src="logo.png" alt="LifePrep Academy Foundation Logo" width="100" height="100" decoding="async" /></div><a href="index.html" class="site-title">LifePrep Academy<br />Foundation</a></div><ul id="primary-nav"><li><a href="index.html#home">Home</a></li><li><a href="about.html">About Us</a></li><li><a href="programs.html">Programs</a></li><li><a href="youth-programs.html" aria-current="page">Youth<br />Programs</a></li><li><a href="events.html">Events</a></li><li><a href="https://give.cornerstone.cc/lifeprepacademyfnd" target="_blank" rel="noopener noreferrer">Donate</a></li><li><a href="contact.html">Contact</a></li></ul><button class="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-controls="primary-nav" aria-expanded="false">☰</button></nav></header>
 			<main id="main-content">
-				<section class="programs-section">
-					<div class="container">
-						<h1>Youth Programs</h1>
-						<p class="muted">Stay connected. More youth programs are coming soon.</p>
-
-						<section class="clinic-highlights" aria-labelledby="clinic-highlights-heading">
-							<h2 id="clinic-highlights-heading">Paducah NFL Flag Clinic 2026</h2>
-							<div class="clinic-highlights-video-wrap">
-								<video controls playsinline preload="metadata">
-									<source src="CLINIC_HIGHLIGHTS.mp4" type="video/mp4" />
-									Your browser does not support the video element.
-								</video>
-							</div>
-							<div class="clinic-gallery" aria-labelledby="clinic-gallery-heading">
-								<h3 class="clinic-gallery-heading" id="clinic-gallery-heading">Clinic Photo Gallery</h3>
-								<div class="clinic-gallery-viewport" tabindex="0" aria-label="Auto-scrolling clinic photo gallery. Hover or focus to pause.">
-									<div class="clinic-gallery-track" id="clinic-gallery-track"></div>
-								</div>
-							</div>
-						</section>
-
-						<div class="programs-grid">
-							<article class="program-card program-card--nfl">
-								<img src="NFLflagLogo.jpg" alt="NFL FLAG logo" width="260" height="160" decoding="async" class="program-logo program-logo--nfl" />
-								<p><strong>Coming soon to<br />Paducah, KY.<br />Stay tuned!</strong></p>
-								<button type="button" class="btn btn-primary" data-program-trigger="nfl" data-button-label="More Info" aria-controls="youth-contact" aria-expanded="false">More Info</button>
-							</article>
-
-							<article class="program-card">
-								<img src="mlsLogo.png" alt="MLS GO logo" width="260" height="160" decoding="async" class="program-logo" />
-								<p><strong>Coming soon!</strong></p>
-								<button type="button" class="btn btn-primary" data-program-trigger="mlsgo" data-button-label="More Info" aria-controls="youth-contact" aria-expanded="false">More Info</button>
-							</article>
-						</div>
-					</div>
-				</section>
-
-				<section class="contact-section" id="youth-contact" hidden>
-					<div class="container">
-						<h2>Youth Programs Contact</h2>
-						<p class="muted">Use the form below to ask about NFL FLAG or MLS GO. We&rsquo;ll follow up with next steps and availability.</p>
-
-						<form class="contact-form" id="contactForm" data-no-script-handler="true" action="https://script.google.com/macros/s/AKfycbyX8fMg7UaZKAojerNx8BDPmmrNmfvbtmxjxUExBcnZpOJM4fPOj9Cl4F7SP7S6quXe/exec" method="POST" aria-describedby="contact-form-status">
-							<h3 class="mlsgo-form-title" id="youth-contact-title">Youth Programs Inquiry</h3>
-							<p class="muted" id="youth-contact-helper">Choose a program and send us your question. We&rsquo;ll reply with details on enrollment, timing, and next steps.</p>
-							<input type="hidden" name="form_type" value="youth" />
-
-							<div class="hp-wrapper" aria-hidden="true">
-								<label>Do not fill this field<input type="text" name="hp_field" tabindex="-1" autocomplete="off" /></label>
-							</div>
-
-							<div id="captchaContainer" class="cf-turnstile" data-sitekey="0x4AAAAAAB5rtUiQ1MiqGIxp" data-size="compact" data-theme="light"></div>
-
-							<div class="form-grid">
-								<div class="form-group">
-									<label for="name">Full Name *</label>
-									<input type="text" id="name" name="name" required autocomplete="name" aria-required="true" />
-								</div>
-
-								<div class="form-group">
-									<label for="email">Email Address *</label>
-									<input type="email" id="email" name="email" required autocomplete="email" inputmode="email" aria-required="true" />
-								</div>
-
-								<div class="form-group">
-									<label for="phone">Phone Number</label>
-									<input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="tel" placeholder="Optional" />
-								</div>
-
-								<div class="form-group">
-									<label for="organization">Organization / Team Name</label>
-									<input type="text" id="organization" name="organization" autocomplete="organization" placeholder="Optional" />
-								</div>
-
-								<div class="form-group">
-									<label for="subject">Program *</label>
-									<select id="subject" name="subject" required aria-required="true" class="select-fit select-fit-lg">
-										<option value="" disabled selected>Select a program</option>
-										<option value="MLS GO / Youth Programs Information">MLS GO / Youth Programs Information</option>
-										<option value="NFL FLAG / Youth Programs Information">NFL FLAG / Youth Programs Information</option>
-										<option value="General Youth Programs">General Youth Programs</option>
-									</select>
-								</div>
-
-								<div class="form-group">
-									<label for="preferredContact">Preferred Contact Method</label>
-									<select id="preferredContact" name="preferred_contact_method" class="select-fit">
-										<option value="" selected>No preference</option>
-										<option value="Email">Email</option>
-										<option value="Phone">Phone</option>
-										<option value="Text">Text</option>
-									</select>
-								</div>
-
-								<div class="form-group span-all">
-									<label for="message">How can we help? *</label>
-									<textarea id="message" name="message" rows="6" required autocomplete="on" aria-required="true" placeholder="Tell us what you need to know, who the program is for, and any timing questions."></textarea>
-								</div>
-
-								<div class="form-group span-all">
-									<div class="form-actions">
-										<button type="submit" class="btn btn-primary" id="contactSubmitBtn">Send Message</button>
-										<div id="contact-form-status" class="form-toast visually-hidden" aria-live="polite" role="status"></div>
-									</div>
-								</div>
-							</div>
-						</form>
-					</div>
-				</section>
+				<section class="programs-section"><div class="container"><h1>Youth Programs</h1><p class="muted">Stay connected. More youth programs are coming soon.</p>
+					<section class="clinic-highlights" aria-labelledby="clinic-highlights-heading"><h2 id="clinic-highlights-heading">Paducah NFL Flag Clinic 2026</h2><div class="clinic-highlights-video-wrap"><video controls playsinline preload="metadata"><source src="CLINIC_HIGHLIGHTS.mp4" type="video/mp4" />Your browser does not support the video element.</video></div><div class="clinic-gallery" aria-labelledby="clinic-gallery-heading"><h3 class="clinic-gallery-heading" id="clinic-gallery-heading">Clinic Photo Gallery</h3><div class="clinic-gallery-viewport" tabindex="0" aria-label="Auto-scrolling clinic photo gallery. Hover or focus to pause."><div class="clinic-gallery-track" id="clinic-gallery-track"></div></div></div></section>
+					<div class="programs-grid"><article class="program-card program-card--nfl"><img src="NFLflagLogo.jpg" alt="NFL FLAG logo" width="260" height="160" decoding="async" class="program-logo program-logo--nfl" /><p><strong>Coming soon to<br />Paducah, KY.<br />Stay tuned!</strong></p><button type="button" class="btn btn-primary" data-program-trigger="nfl" data-button-label="More Info" aria-controls="youth-contact" aria-expanded="false">More Info</button></article><article class="program-card"><img src="mlsLogo.png" alt="MLS GO logo" width="260" height="160" decoding="async" class="program-logo" /><p><strong>Coming soon!</strong></p><button type="button" class="btn btn-primary" data-program-trigger="mlsgo" data-button-label="More Info" aria-controls="youth-contact" aria-expanded="false">More Info</button></article></div>
+				</div></section>
+				<section class="contact-section" id="youth-contact" hidden><div class="container"><h2>Youth Programs Contact</h2><p class="muted">Use the form below to ask about NFL FLAG or MLS GO. We&rsquo;ll follow up with next steps and availability.</p><form class="contact-form" id="contactForm" data-no-script-handler="true" action="https://script.google.com/macros/s/AKfycbyX8fMg7UaZKAojerNx8BDPmmrNmfvbtmxjxUExBcnZpOJM4fPOj9Cl4F7SP7S6quXe/exec" method="POST" aria-describedby="contact-form-status"><h3 class="mlsgo-form-title" id="youth-contact-title">Youth Programs Inquiry</h3><p class="muted" id="youth-contact-helper">Choose a program and send us your question. We&rsquo;ll reply with details on enrollment, timing, and next steps.</p><input type="hidden" name="form_type" value="youth" /><div class="hp-wrapper" aria-hidden="true"><label>Do not fill this field<input type="text" name="hp_field" tabindex="-1" autocomplete="off" /></label></div><div id="captchaContainer" class="cf-turnstile" data-sitekey="0x4AAAAAAB5rtUiQ1MiqGIxp" data-size="compact" data-theme="light"></div><div class="form-grid"><div class="form-group"><label for="name">Full Name *</label><input type="text" id="name" name="name" required autocomplete="name" aria-required="true" /></div><div class="form-group"><label for="email">Email Address *</label><input type="email" id="email" name="email" required autocomplete="email" inputmode="email" aria-required="true" /></div><div class="form-group"><label for="phone">Phone Number</label><input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="tel" placeholder="Optional" /></div><div class="form-group"><label for="organization">Organization / Team Name</label><input type="text" id="organization" name="organization" autocomplete="organization" placeholder="Optional" /></div><div class="form-group"><label for="subject">Program *</label><select id="subject" name="subject" required aria-required="true" class="select-fit select-fit-lg"><option value="" disabled selected>Select a program</option><option value="MLS GO / Youth Programs Information">MLS GO / Youth Programs Information</option><option value="NFL FLAG / Youth Programs Information">NFL FLAG / Youth Programs Information</option><option value="General Youth Programs">General Youth Programs</option></select></div><div class="form-group"><label for="preferredContact">Preferred Contact Method</label><select id="preferredContact" name="preferred_contact_method" class="select-fit"><option value="" selected>No preference</option><option value="Email">Email</option><option value="Phone">Phone</option><option value="Text">Text</option></select></div><div class="form-group span-all"><label for="message">How can we help? *</label><textarea id="message" name="message" rows="6" required autocomplete="on" aria-required="true" placeholder="Tell us what you need to know, who the program is for, and any timing questions."></textarea></div><div class="form-group span-all"><div class="form-actions"><button type="submit" class="btn btn-primary" id="contactSubmitBtn">Send Message</button><div id="contact-form-status" class="form-toast visually-hidden" aria-live="polite" role="status"></div></div></div></div></form></div></section>
 			</main>
-
-			<footer role="contentinfo">
-				<div class="container">
-					<div class="footer-content">
-						<div class="footer-section">
-							<h4>LifePrep Academy Foundation</h4>
-							<p>Empowering lives through education and community development.</p>
-						</div>
-						<div class="footer-section footer-section--quick-links">
-							<h4>Quick Links</h4>
-							<ul class="footer-quick-links">
-								<li><a href="index.html">Home</a></li>
-								<li><a href="about.html">About Us</a></li>
-								<li><a href="programs.html">Programs</a></li>
-								<li><a href="youth-programs.html" aria-current="page">Youth Programs</a></li>
-								<li><a href="events.html">Events</a></li>
-								<li><a href="contact.html">Contact</a></li>
-							</ul>
-						</div>
-						<div class="footer-section">
-							<h4>Connect With Us</h4>
-							<div class="social-links">
-								<a href="https://www.facebook.com/profile.php?id=61580380810980" target="_blank" rel="me noopener noreferrer">Facebook</a>
-								<a href="https://www.instagram.com/lpa_foundation/" target="_blank" rel="me noopener noreferrer">Instagram</a>
-							</div>
-						</div>
-					</div>
-					<p class="footer-disclaimer">
-						LifePrep Academy, LLC is a Maryland limited liability corporation operating through a fiscal sponsorship with
-						<a href="https://www.ppf.org/pp" target="_blank" rel="noopener noreferrer">Players Philanthropy Fund, Inc.</a>,
-						a Texas nonprofit corporation recognized by the IRS as a tax-exempt public charity under Section 501(c)(3) of the Internal Revenue Code (Federal Tax ID: 27-6601178). Contributions to LifePrep Academy Foundation qualify as tax-deductible to the fullest extent of the law.
-					</p>
-					<div class="footer-bottom">
-						<p>&copy; <span data-auto-year>2026</span> LifePrep Academy Foundation. All rights reserved. | <a href="privacy.html">Privacy Policy</a> | <a href="terms.html">Terms of Service</a></p>
-					</div>
-				</div>
-			</footer>
+			<footer role="contentinfo"><div class="container"><div class="footer-content"><div class="footer-section"><h4>LifePrep Academy Foundation</h4><p>Empowering lives through education and community development.</p></div><div class="footer-section footer-section--quick-links"><h4>Quick Links</h4><ul class="footer-quick-links"><li><a href="index.html">Home</a></li><li><a href="about.html">About Us</a></li><li><a href="programs.html">Programs</a></li><li><a href="youth-programs.html" aria-current="page">Youth Programs</a></li><li><a href="events.html">Events</a></li><li><a href="contact.html">Contact</a></li></ul></div><div class="footer-section"><h4>Connect With Us</h4><div class="social-links"><a href="https://www.facebook.com/profile.php?id=61580380810980" target="_blank" rel="me noopener noreferrer">Facebook</a><a href="https://www.instagram.com/lpa_foundation/" target="_blank" rel="me noopener noreferrer">Instagram</a></div></div></div><p class="footer-disclaimer">LifePrep Academy, LLC is a Maryland limited liability corporation operating through a fiscal sponsorship with <a href="https://www.ppf.org/pp" target="_blank" rel="noopener noreferrer">Players Philanthropy Fund, Inc.</a>, a Texas nonprofit corporation recognized by the IRS as a tax-exempt public charity under Section 501(c)(3) of the Internal Revenue Code (Federal Tax ID: 27-6601178). Contributions to LifePrep Academy Foundation qualify as tax-deductible to the fullest extent of the law.</p><div class="footer-bottom"><p>&copy; <span data-auto-year>2026</span> LifePrep Academy Foundation. All rights reserved. | <a href="privacy.html">Privacy Policy</a> | <a href="terms.html">Terms of Service</a></p></div></div></footer>
 		</div>
-
+		<div class="clinic-gallery-modal" id="clinic-gallery-modal" role="dialog" aria-modal="true" aria-label="Clinic photo viewer" aria-hidden="true"><div class="clinic-gallery-modal-dialog"><button type="button" class="clinic-gallery-modal-close" aria-label="Close photo viewer">&times;</button><button type="button" class="clinic-gallery-modal-nav clinic-gallery-modal-prev" aria-label="Previous photo">&#10094;</button><img class="clinic-gallery-modal-image" src="" alt="" /><button type="button" class="clinic-gallery-modal-nav clinic-gallery-modal-next" aria-label="Next photo">&#10095;</button><p class="clinic-gallery-modal-counter" aria-live="polite"></p></div></div>
 		<script src="script.min.js?v=761c52840a" defer></script>
 		<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 		<script>
-			(function () {
-				const clinicPhotos = [
-					["125zUNObNE18Y93b97xyXZ12ZJ8IWKf2d", "1Q7A1733"],
-					["1JV6DaxrWark5XIFGWwCkK6DHdx8mw5q8", "1Q7A1826"],
-					["1cASWqcr9GYH4zXoY67DXiZ0ADFShJ3sq", "1Q7A1723"],
-					["1eIApUhqJn3l1T1awN2MPlIjoW-M_Om05", "1Q7A1671"],
-					["1CdDnJxYyKzKsf_d-bMpy0ER4rnLWpeBo", "1Q7A1715"],
-					["1XNTnh5Of6WPNoSJ7U-V0MOw7eHppO-ks", "1Q7A1701"],
-					["1Tia_ww92jcS524KdS9nQ8CcDYZGmkfBF", "1Q7A1797"],
-					["13AD-I5fYw-SjwAgyos6jW3gFjVgvhiL_", "1Q7A1808"],
-					["1QUOlLL1bslfGUGjIAybSD4k9vrSZSID6", "1Q7A1737"],
-					["168Kij2CAubd6khPUUifx1bvpUTr345wK", "1Q7A1770"],
-					["1C4TApJxKhny6AAdKxjdu6LOfF5_Dkhdc", "1Q7A1655"],
-					["1wmdbyGvXt1trJ7ukoMSJ_-iE2H-8m-NM", "1Q7A1662"],
-					["1Gf6BC7hsjCBw2MavsiB-eSkJ8BxZTS8s", "1Q7A1769"],
-					["1fZflyz1033eEng2mQuBNCzguQSfgE94J", "1Q7A1823"],
-					["1B3QAwrcIhL5phJFFWT0E3M-n9E6mo1z-", "1Q7A1709"],
-					["1tLlt84pLlp5MWEJqDoPSxJ--fcuD4gPm", "1Q7A1617"],
-					["1_8s6KF_tVxsfePOSzaB_dUiSBqirS7jq", "1Q7A1616"],
-					["1f8RL2z0C9z5JVsnfxDLZXgiWLpfw6yrx", "1Q7A1795"],
-					["1AgbSdGJfcMFv4DouG5AP7VH5VJlv1Jcr", "1Q7A1721"],
-					["15_cYhdE8ks8d9ldmE2D1dwhmiSCuLcMB", "1Q7A1672"],
-					["1Qn64rS9qybpiJ5C1OF-_OQ-xxW3ucWgY", "1Q7A1799"],
-					["1sYFkHXCYxKO-uTkkoyd-zco34lGiDmlQ", "1Q7A1642"],
-					["1w_GuIljUG4mwpi2Q3eAW1G8JjslgdseV", "1Q7A1816"],
-					["195O9c_olzK6w6t46sJ6g_YkXxWp5CcU4", "1Q7A1719"],
-					["1nvmRs80YlCSdaDy92GerArSirb7XU5_D", "1Q7A1722"],
-					["1BgYCCRvAzybuYANZcIfFK31foKL84hq7", "1Q7A1641"],
-					["10NvWNsBkVa7RYfdWvM0LOYh7qO-asRyk", "1Q7A1708"],
-					["1l_w6gcQswBZEyzN0Kx7wpZX5FVQI3d7z", "1Q7A1686"],
-					["1lp3ywFDahbmCe6UrXmnCIiD8WISB0CDu", "1Q7A1728"],
-					["1-I7uP82f7eLU5vyD-ggL3DPuemZAl0WM", "1Q7A1803"],
-					["1-N3VgafG-EzM3HjQUBXPlszcRglbeiFn", "1Q7A1780"],
-					["1PRI1mKj-ScD-2C_0E_Ga1hVgecGx92VZ", "1Q7A1706"],
-					["1Xiur7prxsCaa7w3nC4CBw6LVCacpY5N1", "1Q7A1631"],
-					["1cwWqSsa3gxes7kemFhrONGSf8Ep_In4Y", "1Q7A1821"],
-					["1uRHVg8K1SMI3kpmvxVH7U0QaUaUw4LBZ", "1Q7A1720"],
-					["1aIMIPoLQ_rih1N_wj3-vvroLYju6PJGi", "1Q7A1717"],
-					["1awhz6zGoKQKsDp6vxNZnJ-LQhcB7puCk", "1Q7A1818"],
-					["1f5MDRvXkBkmsAZMyjuUmEHS0gHfODCgC", "1Q7A1730"],
-					["1CZ2jmLg6oYi_WMJJhqAWOcP7qc5sNzO8", "1Q7A1707"],
-					["1kR4XcelThWac8pj36d0dmzejSKuxo1BJ", "1Q7A1783"]
+			(function(){
+				const clinicPhotos=[
+					["125zUNObNE18Y93b97xyXZ12ZJ8IWKf2d","1Q7A1733"],["1JV6DaxrWark5XIFGWwCkK6DHdx8mw5q8","1Q7A1826"],["1cASWqcr9GYH4zXoY67DXiZ0ADFShJ3sq","1Q7A1723"],["1eIApUhqJn3l1T1awN2MPlIjoW-M_Om05","1Q7A1671"],["1CdDnJxYyKzKsf_d-bMpy0ER4rnLWpeBo","1Q7A1715"],["1XNTnh5Of6WPNoSJ7U-V0MOw7eHppO-ks","1Q7A1701"],["1Tia_ww92jcS524KdS9nQ8CcDYZGmkfBF","1Q7A1797"],["13AD-I5fYw-SjwAgyos6jW3gFjVgvhiL_","1Q7A1808"],["1QUOlLL1bslfGUGjIAybSD4k9vrSZSID6","1Q7A1737"],["168Kij2CAubd6khPUUifx1bvpUTr345wK","1Q7A1770"],["1C4TApJxKhny6AAdKxjdu6LOfF5_Dkhdc","1Q7A1655"],["1wmdbyGvXt1trJ7ukoMSJ_-iE2H-8m-NM","1Q7A1662"],["1Gf6BC7hsjCBw2MavsiB-eSkJ8BxZTS8s","1Q7A1769"],["1fZflyz1033eEng2mQuBNCzguQSfgE94J","1Q7A1823"],["1B3QAwrcIhL5phJFFWT0E3M-n9E6mo1z-","1Q7A1709"],["1tLlt84pLlp5MWEJqDoPSxJ--fcuD4gPm","1Q7A1617"],["1_8s6KF_tVxsfePOSzaB_dUiSBqirS7jq","1Q7A1616"],["1f8RL2z0C9z5JVsnfxDLZXgiWLpfw6yrx","1Q7A1795"],["1AgbSdGJfcMFv4DouG5AP7VH5VJlv1Jcr","1Q7A1721"],["15_cYhdE8ks8d9ldmE2D1dwhmiSCuLcMB","1Q7A1672"],["1Qn64rS9qybpiJ5C1OF-_OQ-xxW3ucWgY","1Q7A1799"],["1sYFkHXCYxKO-uTkkoyd-zco34lGiDmlQ","1Q7A1642"],["1w_GuIljUG4mwpi2Q3eAW1G8JjslgdseV","1Q7A1816"],["195O9c_olzK6w6t46sJ6g_YkXxWp5CcU4","1Q7A1719"],["1nvmRs80YlCSdaDy92GerArSirb7XU5_D","1Q7A1722"],["1BgYCCRvAzybuYANZcIfFK31foKL84hq7","1Q7A1641"],["10NvWNsBkVa7RYfdWvM0LOYh7qO-asRyk","1Q7A1708"],["1l_w6gcQswBZEyzN0Kx7wpZX5FVQI3d7z","1Q7A1686"],["1lp3ywFDahbmCe6UrXmnCIiD8WISB0CDu","1Q7A1728"],["1-I7uP82f7eLU5vyD-ggL3DPuemZAl0WM","1Q7A1803"],["1-N3VgafG-EzM3HjQUBXPlszcRglbeiFn","1Q7A1780"],["1PRI1mKj-ScD-2C_0E_Ga1hVgecGx92VZ","1Q7A1706"],["1Xiur7prxsCaa7w3nC4CBw6LVCacpY5N1","1Q7A1631"],["1cwWqSsa3gxes7kemFhrONGSf8Ep_In4Y","1Q7A1821"],["1uRHVg8K1SMI3kpmvxVH7U0QaUaUw4LBZ","1Q7A1720"],["1aIMIPoLQ_rih1N_wj3-vvroLYju6PJGi","1Q7A1717"],["1awhz6zGoKQKsDp6vxNZnJ-LQhcB7puCk","1Q7A1818"],["1f5MDRvXkBkmsAZMyjuUmEHS0gHfODCgC","1Q7A1730"],["1CZ2jmLg6oYi_WMJJhqAWOcP7qc5sNzO8","1Q7A1707"],["1kR4XcelThWac8pj36d0dmzejSKuxo1BJ","1Q7A1783"]
 				];
-
-				const galleryTrack = document.getElementById("clinic-gallery-track");
-				if (galleryTrack) {
-					function buildGalleryGroup(isDuplicate) {
-						const group = document.createElement("div");
-						group.className = "clinic-gallery-group";
-						if (isDuplicate) group.setAttribute("aria-hidden", "true");
-
-						clinicPhotos.forEach(function (photo, index) {
-							const fileId = photo[0];
-							const fileName = photo[1];
-							const link = document.createElement("a");
-							link.className = "clinic-gallery-item";
-							link.href = "https://drive.google.com/file/d/" + fileId + "/view";
-							link.target = "_blank";
-							link.rel = "noopener noreferrer";
-							link.setAttribute("aria-label", "Open clinic photo " + (index + 1) + " in Google Drive");
-
-							const image = document.createElement("img");
-							image.src = "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w1200";
-							image.alt = isDuplicate ? "" : "Paducah NFL Flag Clinic 2026 photo " + (index + 1);
-							image.loading = index < 4 && !isDuplicate ? "eager" : "lazy";
-							image.decoding = "async";
-							image.addEventListener("error", function () { link.remove(); }, { once: true });
-
-							link.appendChild(image);
-							group.appendChild(link);
-						});
-
-						return group;
-					}
-
-					galleryTrack.appendChild(buildGalleryGroup(false));
-					galleryTrack.appendChild(buildGalleryGroup(true));
-				}
-
-				const toggleButtons = Array.from(document.querySelectorAll("[data-program-trigger]"));
-				const contactSection = document.getElementById("youth-contact");
-				const contactTitle = document.getElementById("youth-contact-title");
-				const contactHelper = document.getElementById("youth-contact-helper");
-				const subjectField = document.getElementById("subject");
-				const messageField = document.getElementById("message");
-
-				if (!toggleButtons.length || !contactSection || !contactTitle || !contactHelper || !subjectField) return;
-
-				const programConfig = {
-					nfl: {
-						title: "More Info: NFL FLAG",
-						helper: "Complete the form below and we&rsquo;ll follow up with NFL FLAG program details and next steps.",
-						subject: "NFL FLAG / Youth Programs Information",
-						placeholder: "Tell us what you want to know about NFL FLAG, your participant age range, and any timing questions."
-					},
-					mlsgo: {
-						title: "More Info: MLS GO",
-						helper: "Complete the form below and we&rsquo;ll follow up with MLS GO program details and next steps.",
-						subject: "MLS GO / Youth Programs Information",
-						placeholder: "Tell us what you want to know about MLS GO, who the program is for, and any timing questions."
-					}
-				};
-
-				let activeProgram = "";
-
-				function syncButtons() {
-					toggleButtons.forEach(function (button) {
-						const program = button.getAttribute("data-program-trigger") || "";
-						const isActive = !contactSection.hasAttribute("hidden") && activeProgram === program;
-						button.setAttribute("aria-expanded", isActive ? "true" : "false");
-						button.textContent = isActive ? "Hide Form" : button.getAttribute("data-button-label") || "More Info";
-					});
-				}
-
-				function applyProgram(program) {
-					const config = programConfig[program] || programConfig.mlsgo;
-					activeProgram = program;
-					contactTitle.textContent = config.title;
-					contactHelper.innerHTML = config.helper;
-					subjectField.value = config.subject;
-					if (messageField && !messageField.value.trim()) messageField.placeholder = config.placeholder;
-				}
-
-				function setOpen(open, program, scroll) {
-					if (open) {
-						applyProgram(program);
-						contactSection.removeAttribute("hidden");
-						syncButtons();
-						if (scroll) contactSection.scrollIntoView({ behavior: "smooth", block: "start" });
-					} else {
-						activeProgram = "";
-						contactSection.setAttribute("hidden", "");
-						syncButtons();
-					}
-				}
-
-				toggleButtons.forEach(function (button) {
-					button.addEventListener("click", function () {
-						const program = button.getAttribute("data-program-trigger") || "mlsgo";
-						const isActive = !contactSection.hasAttribute("hidden") && activeProgram === program;
-						setOpen(!isActive, program, true);
-					});
-				});
-
-				if (location.hash === "#youth-contact" || location.hash === "#mlsgo-contact") {
-					setOpen(true, "mlsgo", false);
-				}
+				const galleryTrack=document.getElementById("clinic-gallery-track");
+				const modal=document.getElementById("clinic-gallery-modal");
+				const modalImage=modal?modal.querySelector(".clinic-gallery-modal-image"):null;
+				const modalCounter=modal?modal.querySelector(".clinic-gallery-modal-counter"):null;
+				const closeButton=modal?modal.querySelector(".clinic-gallery-modal-close"):null;
+				const previousButton=modal?modal.querySelector(".clinic-gallery-modal-prev"):null;
+				const nextButton=modal?modal.querySelector(".clinic-gallery-modal-next"):null;
+				let activePhotoIndex=0;
+				let lastFocusedElement=null;
+				function photoUrl(index){return "https://drive.google.com/thumbnail?id="+clinicPhotos[index][0]+"&sz=w2400";}
+				function showPhoto(index){activePhotoIndex=(index+clinicPhotos.length)%clinicPhotos.length;if(modalImage){modalImage.src=photoUrl(activePhotoIndex);modalImage.alt="Paducah NFL Flag Clinic 2026 photo "+(activePhotoIndex+1);}if(modalCounter)modalCounter.textContent=(activePhotoIndex+1)+" of "+clinicPhotos.length;}
+				function openModal(index){if(!modal)return;lastFocusedElement=document.activeElement;showPhoto(index);modal.classList.add("is-open");modal.setAttribute("aria-hidden","false");document.body.classList.add("modal-open");if(closeButton)closeButton.focus();}
+				function closeModal(){if(!modal)return;modal.classList.remove("is-open");modal.setAttribute("aria-hidden","true");document.body.classList.remove("modal-open");if(modalImage)modalImage.src="";if(lastFocusedElement&&typeof lastFocusedElement.focus==="function")lastFocusedElement.focus();}
+				if(galleryTrack){function buildGalleryGroup(isDuplicate){const group=document.createElement("div");group.className="clinic-gallery-group";if(isDuplicate)group.setAttribute("aria-hidden","true");clinicPhotos.forEach(function(photo,index){const button=document.createElement("button");button.type="button";button.className="clinic-gallery-item";button.setAttribute("aria-label","Open clinic photo "+(index+1));const image=document.createElement("img");image.src="https://drive.google.com/thumbnail?id="+photo[0]+"&sz=w1200";image.alt=isDuplicate?"":"Paducah NFL Flag Clinic 2026 photo "+(index+1);image.loading=index<4&&!isDuplicate?"eager":"lazy";image.decoding="async";image.addEventListener("error",function(){button.remove();},{once:true});button.addEventListener("click",function(){openModal(index);});button.appendChild(image);group.appendChild(button);});return group;}galleryTrack.appendChild(buildGalleryGroup(false));galleryTrack.appendChild(buildGalleryGroup(true));}
+				if(closeButton)closeButton.addEventListener("click",closeModal);
+				if(previousButton)previousButton.addEventListener("click",function(){showPhoto(activePhotoIndex-1);});
+				if(nextButton)nextButton.addEventListener("click",function(){showPhoto(activePhotoIndex+1);});
+				if(modal)modal.addEventListener("click",function(event){if(event.target===modal)closeModal();});
+				document.addEventListener("keydown",function(event){if(!modal||!modal.classList.contains("is-open"))return;if(event.key==="Escape")closeModal();else if(event.key==="ArrowLeft")showPhoto(activePhotoIndex-1);else if(event.key==="ArrowRight")showPhoto(activePhotoIndex+1);});
+				const toggleButtons=Array.from(document.querySelectorAll("[data-program-trigger]"));const contactSection=document.getElementById("youth-contact");const contactTitle=document.getElementById("youth-contact-title");const contactHelper=document.getElementById("youth-contact-helper");const subjectField=document.getElementById("subject");const messageField=document.getElementById("message");if(!toggleButtons.length||!contactSection||!contactTitle||!contactHelper||!subjectField)return;const programConfig={nfl:{title:"More Info: NFL FLAG",helper:"Complete the form below and we&rsquo;ll follow up with NFL FLAG program details and next steps.",subject:"NFL FLAG / Youth Programs Information",placeholder:"Tell us what you want to know about NFL FLAG, your participant age range, and any timing questions."},mlsgo:{title:"More Info: MLS GO",helper:"Complete the form below and we&rsquo;ll follow up with MLS GO program details and next steps.",subject:"MLS GO / Youth Programs Information",placeholder:"Tell us what you want to know about MLS GO, who the program is for, and any timing questions."}};let activeProgram="";function syncButtons(){toggleButtons.forEach(function(button){const program=button.getAttribute("data-program-trigger")||"";const isActive=!contactSection.hasAttribute("hidden")&&activeProgram===program;button.setAttribute("aria-expanded",isActive?"true":"false");button.textContent=isActive?"Hide Form":button.getAttribute("data-button-label")||"More Info";});}function applyProgram(program){const config=programConfig[program]||programConfig.mlsgo;activeProgram=program;contactTitle.textContent=config.title;contactHelper.innerHTML=config.helper;subjectField.value=config.subject;if(messageField&&!messageField.value.trim())messageField.placeholder=config.placeholder;}function setOpen(open,program,scroll){if(open){applyProgram(program);contactSection.removeAttribute("hidden");syncButtons();if(scroll)contactSection.scrollIntoView({behavior:"smooth",block:"start"});}else{activeProgram="";contactSection.setAttribute("hidden","");syncButtons();}}toggleButtons.forEach(function(button){button.addEventListener("click",function(){const program=button.getAttribute("data-program-trigger")||"mlsgo";const isActive=!contactSection.hasAttribute("hidden")&&activeProgram===program;setOpen(!isActive,program,true);});});if(location.hash==="#youth-contact"||location.hash==="#mlsgo-contact")setOpen(true,"mlsgo",false);
 			})();
 		</script>
 	</body>
