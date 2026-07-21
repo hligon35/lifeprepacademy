@@ -42,6 +42,7 @@
 		<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin />
 		<link rel="preconnect" href="https://script.google.com" crossorigin />
 		<link rel="preconnect" href="https://challenges.cloudflare.com" crossorigin />
+		<link rel="preconnect" href="https://drive.google.com" crossorigin />
 
 		<style>
 			.page-youth-programs .program-card .program-logo {
@@ -85,11 +86,115 @@
 				background: #000000;
 			}
 
-			.clinic-highlights-subtitle {
-				margin: 1rem 0 0;
-				color: #5f5870;
-				font-size: clamp(1rem, 2vw, 1.15rem);
-				font-style: italic;
+			.clinic-gallery {
+				margin-top: 1.5rem;
+				text-align: left;
+			}
+
+			.clinic-gallery-heading {
+				margin: 0 0 0.85rem;
+				color: #281156;
+				font-size: clamp(1.15rem, 2.5vw, 1.5rem);
+				text-align: center;
+			}
+
+			.clinic-gallery-viewport {
+				position: relative;
+				overflow: hidden;
+				border-radius: 16px;
+				background: #f5f2fb;
+				box-shadow: inset 0 0 0 1px rgba(40, 17, 86, 0.08);
+			}
+
+			.clinic-gallery-viewport::before,
+			.clinic-gallery-viewport::after {
+				content: "";
+				position: absolute;
+				top: 0;
+				bottom: 0;
+				z-index: 2;
+				width: clamp(28px, 6vw, 80px);
+				pointer-events: none;
+			}
+
+			.clinic-gallery-viewport::before {
+				left: 0;
+				background: linear-gradient(90deg, #f5f2fb, rgba(245, 242, 251, 0));
+			}
+
+			.clinic-gallery-viewport::after {
+				right: 0;
+				background: linear-gradient(270deg, #f5f2fb, rgba(245, 242, 251, 0));
+			}
+
+			.clinic-gallery-track {
+				display: flex;
+				width: max-content;
+				animation: clinic-gallery-scroll 150s linear infinite;
+				will-change: transform;
+			}
+
+			.clinic-gallery-viewport:hover .clinic-gallery-track,
+			.clinic-gallery-viewport:focus-within .clinic-gallery-track {
+				animation-play-state: paused;
+			}
+
+			.clinic-gallery-group {
+				display: flex;
+				flex-shrink: 0;
+				gap: 1rem;
+				padding: 1rem 1rem 1rem 0;
+			}
+
+			.clinic-gallery-group:first-child {
+				padding-left: 1rem;
+			}
+
+			.clinic-gallery-item {
+				display: block;
+				flex: 0 0 clamp(210px, 28vw, 330px);
+				aspect-ratio: 3 / 2;
+				overflow: hidden;
+				border-radius: 13px;
+				background: #ded8eb;
+				box-shadow: 0 8px 22px rgba(40, 17, 86, 0.16);
+			}
+
+			.clinic-gallery-item img {
+				display: block;
+				width: 100%;
+				height: 100%;
+				object-fit: cover;
+				transition: transform 300ms ease;
+			}
+
+			.clinic-gallery-item:hover img,
+			.clinic-gallery-item:focus-visible img {
+				transform: scale(1.035);
+			}
+
+			@keyframes clinic-gallery-scroll {
+				from { transform: translateX(0); }
+				to { transform: translateX(-50%); }
+			}
+
+			@media (prefers-reduced-motion: reduce) {
+				.clinic-gallery-track {
+					animation: none;
+				}
+
+				.clinic-gallery-viewport {
+					overflow-x: auto;
+					scroll-snap-type: x proximity;
+				}
+
+				.clinic-gallery-item {
+					scroll-snap-align: start;
+				}
+
+				.clinic-gallery-group[aria-hidden="true"] {
+					display: none;
+				}
 			}
 
 			@media (max-width: 640px) {
@@ -101,6 +206,14 @@
 				.clinic-highlights-video-wrap {
 					border-radius: 12px;
 				}
+
+				.clinic-gallery-viewport {
+					border-radius: 12px;
+				}
+
+				.clinic-gallery-track {
+					animation-duration: 120s;
+				}
 			}
 		</style>
 	</head>
@@ -111,51 +224,20 @@
 				<nav role="navigation" aria-label="Main navigation">
 					<div class="brand">
 						<div class="logo">
-							<img
-								src="logo.png"
-								alt="LifePrep Academy Foundation Logo"
-								width="100"
-								height="100"
-								decoding="async"
-							/>
+							<img src="logo.png" alt="LifePrep Academy Foundation Logo" width="100" height="100" decoding="async" />
 						</div>
-						<a href="index.html" class="site-title">
-							LifePrep Academy
-							<br />
-							Foundation
-						</a>
+						<a href="index.html" class="site-title">LifePrep Academy<br />Foundation</a>
 					</div>
 					<ul id="primary-nav">
 						<li><a href="index.html#home">Home</a></li>
 						<li><a href="about.html">About Us</a></li>
 						<li><a href="programs.html">Programs</a></li>
-						<li>
-							<a href="youth-programs.html" aria-current="page">
-								Youth
-								<br />
-								Programs
-							</a>
-						</li>
+						<li><a href="youth-programs.html" aria-current="page">Youth<br />Programs</a></li>
 						<li><a href="events.html">Events</a></li>
-						<li>
-							<a
-								href="https://give.cornerstone.cc/lifeprepacademyfnd"
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								Donate
-							</a>
-						</li>
+						<li><a href="https://give.cornerstone.cc/lifeprepacademyfnd" target="_blank" rel="noopener noreferrer">Donate</a></li>
 						<li><a href="contact.html">Contact</a></li>
 					</ul>
-					<button
-						class="mobile-menu-toggle"
-						aria-label="Toggle mobile menu"
-						aria-controls="primary-nav"
-						aria-expanded="false"
-					>
-						☰
-					</button>
+					<button class="mobile-menu-toggle" aria-label="Toggle mobile menu" aria-controls="primary-nav" aria-expanded="false">☰</button>
 				</nav>
 			</header>
 
@@ -173,52 +255,25 @@
 									Your browser does not support the video element.
 								</video>
 							</div>
-							<p class="clinic-highlights-subtitle">Images coming soon...</p>
+							<div class="clinic-gallery" aria-labelledby="clinic-gallery-heading">
+								<h3 class="clinic-gallery-heading" id="clinic-gallery-heading">Clinic Photo Gallery</h3>
+								<div class="clinic-gallery-viewport" tabindex="0" aria-label="Auto-scrolling clinic photo gallery. Hover or focus to pause.">
+									<div class="clinic-gallery-track" id="clinic-gallery-track"></div>
+								</div>
+							</div>
 						</section>
 
 						<div class="programs-grid">
 							<article class="program-card program-card--nfl">
-								<img
-									src="NFLflagLogo.jpg"
-									alt="NFL FLAG logo"
-									width="260"
-									height="160"
-									decoding="async"
-									class="program-logo program-logo--nfl"
-								/>
+								<img src="NFLflagLogo.jpg" alt="NFL FLAG logo" width="260" height="160" decoding="async" class="program-logo program-logo--nfl" />
 								<p><strong>Coming soon to<br />Paducah, KY.<br />Stay tuned!</strong></p>
-								<button
-									type="button"
-									class="btn btn-primary"
-									data-program-trigger="nfl"
-									data-button-label="More Info"
-									aria-controls="youth-contact"
-									aria-expanded="false"
-								>
-									More Info
-								</button>
+								<button type="button" class="btn btn-primary" data-program-trigger="nfl" data-button-label="More Info" aria-controls="youth-contact" aria-expanded="false">More Info</button>
 							</article>
 
 							<article class="program-card">
-								<img
-									src="mlsLogo.png"
-									alt="MLS GO logo"
-									width="260"
-									height="160"
-									decoding="async"
-									class="program-logo"
-								/>
+								<img src="mlsLogo.png" alt="MLS GO logo" width="260" height="160" decoding="async" class="program-logo" />
 								<p><strong>Coming soon!</strong></p>
-								<button
-									type="button"
-									class="btn btn-primary"
-									data-program-trigger="mlsgo"
-									data-button-label="More Info"
-									aria-controls="youth-contact"
-									aria-expanded="false"
-								>
-									More Info
-								</button>
+								<button type="button" class="btn btn-primary" data-program-trigger="mlsgo" data-button-label="More Info" aria-controls="youth-contact" aria-expanded="false">More Info</button>
 							</article>
 						</div>
 					</div>
@@ -227,38 +282,18 @@
 				<section class="contact-section" id="youth-contact" hidden>
 					<div class="container">
 						<h2>Youth Programs Contact</h2>
-						<p class="muted">
-							Use the form below to ask about NFL FLAG or MLS GO. We&rsquo;ll follow up with next steps and availability.
-						</p>
+						<p class="muted">Use the form below to ask about NFL FLAG or MLS GO. We&rsquo;ll follow up with next steps and availability.</p>
 
-						<form
-							class="contact-form"
-							id="contactForm"
-							data-no-script-handler="true"
-							action="https://script.google.com/macros/s/AKfycbyX8fMg7UaZKAojerNx8BDPmmrNmfvbtmxjxUExBcnZpOJM4fPOj9Cl4F7SP7S6quXe/exec"
-							method="POST"
-							aria-describedby="contact-form-status"
-						>
+						<form class="contact-form" id="contactForm" data-no-script-handler="true" action="https://script.google.com/macros/s/AKfycbyX8fMg7UaZKAojerNx8BDPmmrNmfvbtmxjxUExBcnZpOJM4fPOj9Cl4F7SP7S6quXe/exec" method="POST" aria-describedby="contact-form-status">
 							<h3 class="mlsgo-form-title" id="youth-contact-title">Youth Programs Inquiry</h3>
-							<p class="muted" id="youth-contact-helper">
-								Choose a program and send us your question. We&rsquo;ll reply with details on enrollment, timing, and next steps.
-							</p>
+							<p class="muted" id="youth-contact-helper">Choose a program and send us your question. We&rsquo;ll reply with details on enrollment, timing, and next steps.</p>
 							<input type="hidden" name="form_type" value="youth" />
 
 							<div class="hp-wrapper" aria-hidden="true">
-								<label>
-									Do not fill this field
-									<input type="text" name="hp_field" tabindex="-1" autocomplete="off" />
-								</label>
+								<label>Do not fill this field<input type="text" name="hp_field" tabindex="-1" autocomplete="off" /></label>
 							</div>
 
-							<div
-								id="captchaContainer"
-								class="cf-turnstile"
-								data-sitekey="0x4AAAAAAB5rtUiQ1MiqGIxp"
-								data-size="compact"
-								data-theme="light"
-							></div>
+							<div id="captchaContainer" class="cf-turnstile" data-sitekey="0x4AAAAAAB5rtUiQ1MiqGIxp" data-size="compact" data-theme="light"></div>
 
 							<div class="form-grid">
 								<div class="form-group">
@@ -273,7 +308,7 @@
 
 								<div class="form-group">
 									<label for="phone">Phone Number</label>
-									<input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="email" placeholder="Optional" />
+									<input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="tel" placeholder="Optional" />
 								</div>
 
 								<div class="form-group">
@@ -303,15 +338,7 @@
 
 								<div class="form-group span-all">
 									<label for="message">How can we help? *</label>
-									<textarea
-										id="message"
-										name="message"
-										rows="6"
-										required
-										autocomplete="on"
-										aria-required="true"
-										placeholder="Tell us what you need to know, who the program is for, and any timing questions."
-									></textarea>
+									<textarea id="message" name="message" rows="6" required autocomplete="on" aria-required="true" placeholder="Tell us what you need to know, who the program is for, and any timing questions."></textarea>
 								</div>
 
 								<div class="form-group span-all">
@@ -358,11 +385,7 @@
 						a Texas nonprofit corporation recognized by the IRS as a tax-exempt public charity under Section 501(c)(3) of the Internal Revenue Code (Federal Tax ID: 27-6601178). Contributions to LifePrep Academy Foundation qualify as tax-deductible to the fullest extent of the law.
 					</p>
 					<div class="footer-bottom">
-						<p>
-							&copy; <span data-auto-year>2026</span> LifePrep Academy Foundation. All rights reserved. |
-							<a href="privacy.html">Privacy Policy</a> |
-							<a href="terms.html">Terms of Service</a>
-						</p>
+						<p>&copy; <span data-auto-year>2026</span> LifePrep Academy Foundation. All rights reserved. | <a href="privacy.html">Privacy Policy</a> | <a href="terms.html">Terms of Service</a></p>
 					</div>
 				</div>
 			</footer>
@@ -372,6 +395,84 @@
 		<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 		<script>
 			(function () {
+				const clinicPhotos = [
+					["125zUNObNE18Y93b97xyXZ12ZJ8IWKf2d", "1Q7A1733"],
+					["1JV6DaxrWark5XIFGWwCkK6DHdx8mw5q8", "1Q7A1826"],
+					["1cASWqcr9GYH4zXoY67DXiZ0ADFShJ3sq", "1Q7A1723"],
+					["1eIApUhqJn3l1T1awN2MPlIjoW-M_Om05", "1Q7A1671"],
+					["1CdDnJxYyKzKsf_d-bMpy0ER4rnLWpeBo", "1Q7A1715"],
+					["1XNTnh5Of6WPNoSJ7U-V0MOw7eHppO-ks", "1Q7A1701"],
+					["1Tia_ww92jcS524KdS9nQ8CcDYZGmkfBF", "1Q7A1797"],
+					["13AD-I5fYw-SjwAgyos6jW3gFjVgvhiL_", "1Q7A1808"],
+					["1QUOlLL1bslfGUGjIAybSD4k9vrSZSID6", "1Q7A1737"],
+					["168Kij2CAubd6khPUUifx1bvpUTr345wK", "1Q7A1770"],
+					["1C4TApJxKhny6AAdKxjdu6LOfF5_Dkhdc", "1Q7A1655"],
+					["1wmdbyGvXt1trJ7ukoMSJ_-iE2H-8m-NM", "1Q7A1662"],
+					["1Gf6BC7hsjCBw2MavsiB-eSkJ8BxZTS8s", "1Q7A1769"],
+					["1fZflyz1033eEng2mQuBNCzguQSfgE94J", "1Q7A1823"],
+					["1B3QAwrcIhL5phJFFWT0E3M-n9E6mo1z-", "1Q7A1709"],
+					["1tLlt84pLlp5MWEJqDoPSxJ--fcuD4gPm", "1Q7A1617"],
+					["1_8s6KF_tVxsfePOSzaB_dUiSBqirS7jq", "1Q7A1616"],
+					["1f8RL2z0C9z5JVsnfxDLZXgiWLpfw6yrx", "1Q7A1795"],
+					["1AgbSdGJfcMFv4DouG5AP7VH5VJlv1Jcr", "1Q7A1721"],
+					["15_cYhdE8ks8d9ldmE2D1dwhmiSCuLcMB", "1Q7A1672"],
+					["1Qn64rS9qybpiJ5C1OF-_OQ-xxW3ucWgY", "1Q7A1799"],
+					["1sYFkHXCYxKO-uTkkoyd-zco34lGiDmlQ", "1Q7A1642"],
+					["1w_GuIljUG4mwpi2Q3eAW1G8JjslgdseV", "1Q7A1816"],
+					["195O9c_olzK6w6t46sJ6g_YkXxWp5CcU4", "1Q7A1719"],
+					["1nvmRs80YlCSdaDy92GerArSirb7XU5_D", "1Q7A1722"],
+					["1BgYCCRvAzybuYANZcIfFK31foKL84hq7", "1Q7A1641"],
+					["10NvWNsBkVa7RYfdWvM0LOYh7qO-asRyk", "1Q7A1708"],
+					["1l_w6gcQswBZEyzN0Kx7wpZX5FVQI3d7z", "1Q7A1686"],
+					["1lp3ywFDahbmCe6UrXmnCIiD8WISB0CDu", "1Q7A1728"],
+					["1-I7uP82f7eLU5vyD-ggL3DPuemZAl0WM", "1Q7A1803"],
+					["1-N3VgafG-EzM3HjQUBXPlszcRglbeiFn", "1Q7A1780"],
+					["1PRI1mKj-ScD-2C_0E_Ga1hVgecGx92VZ", "1Q7A1706"],
+					["1Xiur7prxsCaa7w3nC4CBw6LVCacpY5N1", "1Q7A1631"],
+					["1cwWqSsa3gxes7kemFhrONGSf8Ep_In4Y", "1Q7A1821"],
+					["1uRHVg8K1SMI3kpmvxVH7U0QaUaUw4LBZ", "1Q7A1720"],
+					["1aIMIPoLQ_rih1N_wj3-vvroLYju6PJGi", "1Q7A1717"],
+					["1awhz6zGoKQKsDp6vxNZnJ-LQhcB7puCk", "1Q7A1818"],
+					["1f5MDRvXkBkmsAZMyjuUmEHS0gHfODCgC", "1Q7A1730"],
+					["1CZ2jmLg6oYi_WMJJhqAWOcP7qc5sNzO8", "1Q7A1707"],
+					["1kR4XcelThWac8pj36d0dmzejSKuxo1BJ", "1Q7A1783"]
+				];
+
+				const galleryTrack = document.getElementById("clinic-gallery-track");
+				if (galleryTrack) {
+					function buildGalleryGroup(isDuplicate) {
+						const group = document.createElement("div");
+						group.className = "clinic-gallery-group";
+						if (isDuplicate) group.setAttribute("aria-hidden", "true");
+
+						clinicPhotos.forEach(function (photo, index) {
+							const fileId = photo[0];
+							const fileName = photo[1];
+							const link = document.createElement("a");
+							link.className = "clinic-gallery-item";
+							link.href = "https://drive.google.com/file/d/" + fileId + "/view";
+							link.target = "_blank";
+							link.rel = "noopener noreferrer";
+							link.setAttribute("aria-label", "Open clinic photo " + (index + 1) + " in Google Drive");
+
+							const image = document.createElement("img");
+							image.src = "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w1200";
+							image.alt = isDuplicate ? "" : "Paducah NFL Flag Clinic 2026 photo " + (index + 1);
+							image.loading = index < 4 && !isDuplicate ? "eager" : "lazy";
+							image.decoding = "async";
+							image.addEventListener("error", function () { link.remove(); }, { once: true });
+
+							link.appendChild(image);
+							group.appendChild(link);
+						});
+
+						return group;
+					}
+
+					galleryTrack.appendChild(buildGalleryGroup(false));
+					galleryTrack.appendChild(buildGalleryGroup(true));
+				}
+
 				const toggleButtons = Array.from(document.querySelectorAll("[data-program-trigger]"));
 				const contactSection = document.getElementById("youth-contact");
 				const contactTitle = document.getElementById("youth-contact-title");
