@@ -22,6 +22,8 @@
 // Provide a Sheet ID to enable logging (the long ID in the Sheet URL). Leave blank to disable.
 var SHEET_ID = '1sdiiAAEhOBJIMYj2ZjMrIVABDRHSdV4yzI9t4F-t8VU'; // e.g. '1AbCdEfGhIjKlMnOpQr...'
 var SHEET_NAME = 'ContactForm';
+var CLINIC_GALLERY_FOLDER_ID = '196-fPpsXjmQQ9YRYtK1cHhrW6RrFKSpf';
+var CLINIC_GALLERY_MAX_ITEMS = 150;
 
 // Alias (public) address and primary inbox. If PRIMARY_INBOX left blank, will fallback to effective user.
 var ALIAS_ADDRESS = 'info@lifeprepacademyfoundation.com';
@@ -70,89 +72,6 @@ var YOUTH_CONFIRM_TEXT = function(name){
     + 'Thank you for your interest in LifePrep Academy Foundation\'s Youth Programs. We\'ve received your information request.\n\n'
     + 'Questions? Reply to this email or contact info@lifeprepacademyfoundation.com\n\n'
     + '(This is an automated confirmation.)';
-};
-
-// NFL FLAG specific confirmation (Paducah NFL Flag Football Clinic)
-var NFL_FLAG_CONFIRM_SUBJECT = 'Paducah NFL Flag Football Clinic — Next steps';
-var NFL_FLAG_CONFIRM_HTML = function(name){
-  var n = escapeHtml_(name || 'there');
-  return `<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Paducah NFL Flag Football Clinic</title>
-</head>
-<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;color:#292929;background:#f8f9fa;">
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all">Paducah NFL Flag Football Clinic — Sign-up</div>
-  <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#f8f9fa;padding:24px;">
-    <tr>
-      <td align="center">
-        <table role="presentation" cellpadding="0" cellspacing="0" style="width:720px;max-width:720px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid rgba(40,17,86,0.08);">
-          <tr>
-            <td style="background:linear-gradient(135deg,#281156 0%,#3d1a78 58%,#522b9d 100%);padding:22px;color:#ffffff;">
-              <a href="https://www.lifeprepacademyfoundation.com/" style="text-decoration:none;color:#ffffff;display:inline-block;vertical-align:middle">
-                <img src="https://www.lifeprepacademyfoundation.com/logo.png" alt="logo" width="92" style="display:inline-block;vertical-align:middle;border-radius:8px;background:rgba(255,255,255,0.12);padding:8px;border:1px solid rgba(255,255,255,0.12)">
-              </a>
-              <h1 style="display:inline-block;margin:0 0 0 14px;font-size:22px;vertical-align:middle;font-weight:800">Paducah NFL Flag Football Clinic</h1>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:22px;font-size:15px;line-height:1.6;color:#292929;">
-              <p style="margin:0 0 12px">Hi ${n},</p>
-
-              <p style="margin:0 0 12px">
-                Thank you so much for reaching out! We\’re excited that you\’re interested in the Paducah NFL Flag Football Clinic — it\’s going to be an awesome experience for young athletes who are ready to learn, grow, and have a blast on the field.
-              </p>
-
-              <p style="margin:0 0 12px">
-                To officially reserve your child\’s spot and begin their flag football journey, please sign up through Eventbrite using the link below. Once you complete sign-up, you\’ll automatically receive the electronic player registration form with all the details needed before camp day.
-              </p>
-
-              <p style="margin:0 0 18px">
-                <a href="https://www.eventbrite.com/e/paducah-nfl-flag-football-clinic-tickets-1989860543451?aff=oddtdtcreator&keep_tld=true"
-                   style="display:inline-block;padding:10px 14px;background:#281156;color:#ffffff;border-radius:8px;text-decoration:none;font-weight:700">
-                  Sign Up for the Clinic
-                </a>
-              </p>
-
-              <p style="margin:0 0 12px">
-                We can\’t wait to welcome your child and help them take their first steps into the world of flag football. It\’s going to be fun, energetic, and full of great memories!
-              </p>
-
-              <p style="margin:8px 0 0">
-                Best regards,<br>
-                <span style="font-family:'Brush Script MT','Segoe Script','Lucida Handwriting',cursive;
-                             font-size:20px;display:inline-block;margin-top:6px;">
-                  Bryan Hall
-                </span><br>
-                <strong>Founder</strong><br>
-                LifePrep Academy Foundation
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:16px 22px;background:#281156;text-align:center;">
-              <a href="https://www.lifeprepacademyfoundation.com/" 
-                 style="color:#ffffff;font-weight:700;text-decoration:none;font-size:13px;">
-                 www.lifeprepacademyfoundation.com
-              </a>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-};
-var NFL_FLAG_CONFIRM_TEXT = function(name){
-  return 'Hi ' + (name || 'there') + '\n\n'
-    + 'Thank you so much for reaching out! We\’re excited that you\’re interested in the Paducah NFL Flag Football Clinic — it\’s going to be an awesome experience for young athletes who are ready to learn, grow, and have a blast on the field.\n\n'
-    + 'To officially reserve your child\’s spot and begin their flag football journey, please sign up through Eventbrite using the link below. Once you complete sign-up, you\’ll automatically receive the electronic player registration form with all the details needed before camp day.\n\n'
-    + 'Sign up here: https://www.eventbrite.com/e/paducah-nfl-flag-football-clinic-tickets-1989860543451?aff=oddtdtcreator&keep_tld=true\n\n'
-    + 'We can\’t wait to welcome your child and help them take their first steps into the world of flag football. It\’s going to be fun, energetic, and full of great memories!\n\n'
-    + 'Best regards,\nBryan Hall\nFounder\nLifePrep Academy Foundation';
 };
 
 // Basic rate limit (per IP) configuration (very lightweight / optional)
@@ -344,35 +263,16 @@ function doPost(e) {
       from: sender.email // SendGrid: From email; Gmail fallback: uses alias if available
     });
 
-    // Youth Programs: send confirmation only for NFL Clinic; otherwise send the generic ACK
+    // Youth Programs: send the generic acknowledgement for all youth inquiries.
     if (formType === 'youth' && SEND_YOUTH_CONFIRMATION && isValidEmail_(email)) {
       try {
-        var subj = String(subjectField || '').toLowerCase();
-        var isNfl = subj.indexOf('nfl') !== -1;
-        var isClinic = subj.indexOf('clinic') !== -1;
-        // Debug: log detection values to help diagnose routing issues
-        try { Logger.log('[doPost] formType=' + formType + ' subjectField=' + subjectField + ' subj=' + subj + ' isNfl=' + isNfl + ' isClinic=' + isClinic); } catch (e) {}
-        if (isNfl && isClinic) {
-          // Send NFL clinic template when both 'nfl' and 'clinic' present in subject
-          sendMail_({
-            to: email,
-            subject: NFL_FLAG_CONFIRM_SUBJECT,
-            body: NFL_FLAG_CONFIRM_TEXT(name),
-            htmlBody: NFL_FLAG_CONFIRM_HTML(name),
-            name: sender.name || 'LPAF Youth Programs',
-            from: sender.email,
-            // No attachments to the registrant per request
-          });
-        } else {
-          // For all other program types, use the generic acknowledgement template
-          sendMail_({
-            to: email,
-            subject: ACK_SUBJECT,
-            body: ACK_TEXT(name),
-            htmlBody: ACK_HTML(name),
-            name: 'LifePrep Academy Foundation'
-          });
-        }
+        sendMail_({
+          to: email,
+          subject: ACK_SUBJECT,
+          body: ACK_TEXT(name),
+          htmlBody: ACK_HTML(name),
+          name: 'LifePrep Academy Foundation'
+        });
       } catch (yAckErr) {
         // Do not fail overall if youth confirmation fails
       }
@@ -421,6 +321,22 @@ function doPost(e) {
   } catch (err) {
     return jsonResponse_({ status: 'error', message: err.message, version: SCRIPT_VERSION }, 500);
   }
+}
+
+function doGet(e) {
+  var params = (e && e.parameter) || {};
+  var action = String(params.action || '');
+  if (action === 'clinicGallery') {
+    var callback = sanitizeCallback_(params.callback);
+    var payload;
+    try {
+      payload = getClinicGalleryPayload_();
+    } catch (err) {
+      payload = { ok: false, error: err && err.message ? err.message : String(err) };
+    }
+    return callback ? jsonpResponse_(payload, callback) : jsonResponse_(payload);
+  }
+  return textResponse_('Contact form web app is running. Use HTTP POST for form submissions.', 200);
 }
 
 function successMessage_(formType) {
@@ -994,6 +910,53 @@ function getPrimary_() {
   } catch (e) {
     return '';
   }
+}
+
+function sanitizeCallback_(value) {
+  var callback = String(value || '').trim();
+  if (!callback) return '';
+  callback = callback.replace(/[^a-zA-Z0-9_$.]/g, '');
+  return callback || '';
+}
+
+function jsonpResponse_(obj, callback) {
+  return ContentService
+    .createTextOutput(String(callback) + '(' + JSON.stringify(obj) + ');')
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+function getClinicGalleryPayload_() {
+  var folder = DriveApp.getFolderById(CLINIC_GALLERY_FOLDER_ID);
+  var files = folder.getFiles();
+  var photos = [];
+
+  while (files.hasNext() && photos.length < CLINIC_GALLERY_MAX_ITEMS) {
+    var file = files.next();
+    var mimeType = String(file.getMimeType() || '');
+    if (mimeType.indexOf('image/') !== 0) continue;
+
+    var fileId = file.getId();
+    photos.push({
+      id: fileId,
+      name: file.getName(),
+      createdAt: file.getDateCreated().toISOString(),
+      updatedAt: file.getLastUpdated().toISOString(),
+      thumbUrl: 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1200',
+      highUrl: 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1600'
+    });
+  }
+
+  photos.sort(function(a, b) {
+    return String(b.createdAt).localeCompare(String(a.createdAt));
+  });
+
+  return {
+    ok: true,
+    folderId: CLINIC_GALLERY_FOLDER_ID,
+    count: photos.length,
+    photos: photos,
+    version: SCRIPT_VERSION
+  };
 }
 
 function jsonResponse_(obj, code) {
