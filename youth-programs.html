@@ -830,6 +830,28 @@
         let clinicPhotos = fallbackClinicPhotos.slice();
         const thumbCache = new Map(),
           highCache = new Map();
+        const clinicVideoIframe = document.querySelector(
+          ".clinic-highlights-video-wrap iframe",
+        );
+        if (clinicVideoIframe) {
+          clinicVideoIframe.loading = "eager";
+          try {
+            const isSmallScreen = window.matchMedia("(max-width: 768px)").matches;
+            const currentSrc = clinicVideoIframe.getAttribute("src") || "";
+            if (currentSrc) {
+              const url = new URL(currentSrc, window.location.href);
+              if (isSmallScreen) {
+                url.searchParams.delete("autoplay");
+              } else {
+                url.searchParams.set("autoplay", "1");
+                url.searchParams.set("mute", "1");
+              }
+              clinicVideoIframe.src = url.toString();
+            }
+          } catch (error) {
+            console.warn("Unable to tune clinic video playback mode.", error);
+          }
+        }
         const galleryTrack = document.getElementById("clinic-gallery-track"),
           modal = document.getElementById("clinic-gallery-modal"),
           modalImage = modal
@@ -1007,8 +1029,8 @@
               image.alt = isDuplicate
                 ? ""
                 : "Paducah NFL Flag Clinic 2026 photo " + (index + 1);
-              image.loading = index < 8 && !isDuplicate ? "eager" : "lazy";
-              image.fetchPriority = index < 4 && !isDuplicate ? "high" : "auto";
+              image.loading = isDuplicate ? "lazy" : "eager";
+              image.fetchPriority = index < 6 && !isDuplicate ? "high" : "auto";
               image.decoding = "async";
               image.addEventListener(
                 "load",
