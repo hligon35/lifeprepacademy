@@ -13,3 +13,6 @@ Thumbs.db
 
 # Build output (optional)
 dist/
+
+# Large media that should be hosted externally
+CLINIC_HIGHLIGHTS.mp4
