@@ -111,12 +111,18 @@
         background: #000;
         box-shadow: 0 12px 30px rgba(20, 12, 46, 0.2);
       }
-      .clinic-highlights video {
+      .clinic-highlights video,
+      .clinic-highlights iframe {
         display: block;
         width: 100%;
         height: auto;
         max-height: 720px;
         background: #000;
+      }
+      .clinic-highlights iframe {
+        aspect-ratio: 16 / 9;
+        min-height: clamp(220px, 48vw, 620px);
+        border: 0;
       }
       .clinic-gallery {
         margin-top: 1.5rem;
@@ -402,13 +408,14 @@
                 Paducah NFL Flag Clinic 2026
               </h2>
               <div class="clinic-highlights-video-wrap">
-                <video controls playsinline preload="metadata">
-                  <source
-                    src="https://drive.google.com/uc?export=download&id=1v3Oy96P5Gikf6IyI1P1PpicqLfEx1_Vj"
-                    type="video/mp4"
-                  />
-                  Your browser does not support the video element.
-                </video>
+                <iframe
+                  title="Paducah NFL Flag Clinic 2026 highlights"
+                  src="https://drive.google.com/file/d/1v3Oy96P5Gikf6IyI1P1PpicqLfEx1_Vj/preview"
+                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                  allowfullscreen
+                  loading="lazy"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                ></iframe>
               </div>
               <div
                 class="clinic-gallery"
