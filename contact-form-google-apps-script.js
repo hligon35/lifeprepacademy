@@ -217,12 +217,15 @@ function doPost(e) {
 
     // Optional CAPTCHA verification
     if (REQUIRE_CAPTCHA) {
-      if (!tsToken) {
+      var captchaRequired = shouldRequireTurnstile_(pageUrl);
+      if (captchaRequired && !tsToken) {
         return jsonResponse_({ status: 'error', message: 'CAPTCHA required.' }, 400);
       }
-      var ok = verifyTurnstile_(tsToken, ip);
-      if (!ok) {
-        return jsonResponse_({ status: 'error', message: 'CAPTCHA verification failed.' }, 403);
+      if (captchaRequired) {
+        var ok = verifyTurnstile_(tsToken, ip);
+        if (!ok) {
+          return jsonResponse_({ status: 'error', message: 'CAPTCHA verification failed.' }, 403);
+        }
       }
     }
 
@@ -863,6 +866,20 @@ function containsBlockedPhrases_(text){
     var s = String(text||'').toLowerCase();
     return BLOCK_PHRASES.some(function(p){ return p && s.indexOf(String(p).toLowerCase()) !== -1; });
   }catch(e){ return false; }
+}
+
+function shouldRequireTurnstile_(pageUrl) {
+  var host = '';
+  try {
+    var url = String(pageUrl || '');
+    if (url) {
+      host = url.replace(/^https?:\/\//i, '').split('/')[0].toLowerCase();
+    }
+  } catch (e) {
+    host = '';
+  }
+  var isLocalOrPreview = host.indexOf('localhost') !== -1 || host.indexOf('127.0.0.1') !== -1 || host.indexOf('.pages.dev') !== -1 || host.indexOf('preview') !== -1;
+  return !isLocalOrPreview;
 }
 
 // Optional: Cloudflare Turnstile server-side verification
