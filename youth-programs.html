@@ -150,7 +150,8 @@
       }
       .clinic-highlights iframe {
         aspect-ratio: 16 / 9;
-        min-height: clamp(220px, 48vw, 620px);
+        min-height: 0;
+        height: auto;
         border: 0;
       }
       .clinic-gallery {
@@ -354,6 +355,10 @@
         .clinic-highlights {
           margin-top: 1.75rem;
           border-radius: 18px;
+        }
+        .clinic-highlights iframe {
+          min-height: 0;
+          height: auto;
         }
         .clinic-highlights-video-wrap,
         .clinic-gallery-viewport {
