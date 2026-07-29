@@ -448,11 +448,12 @@
                   type="button"
                   class="btn btn-primary"
                   data-program-trigger="nfl"
-                  data-button-label="More Info"
+                  data-registration-url="https://docs.google.com/forms/d/e/1FAIpQLSccAWEVbd4mBSYcLWx2yRcG1CqR8Np0pg4raUWjwNNx9XjQcg/viewform?usp=sharing&ouid=116491165659523073510"
+                  data-button-label="Register Now"
                   aria-controls="youth-contact"
                   aria-expanded="false"
                 >
-                  More Info
+                  Register Now
                 </button>
               </article>
               <article class="program-card">
@@ -469,11 +470,12 @@
                   type="button"
                   class="btn btn-primary"
                   data-program-trigger="mlsgo"
-                  data-button-label="More Info"
+                  data-registration-url="https://docs.google.com/forms/d/e/1FAIpQLSdiqz3zLze4_WVYYYS4WSsRH1ZkSjMPz07aDWnmEMgzaR5s9A/viewform?usp=sharing&ouid=116491165659523073510"
+                  data-button-label="Register Now"
                   aria-controls="youth-contact"
                   aria-expanded="false"
                 >
-                  More Info
+                  Register Now
                 </button>
               </article>
             </div>
@@ -1101,6 +1103,11 @@
         }
         toggleButtons.forEach((button) =>
           button.addEventListener("click", () => {
+            const registrationUrl = button.getAttribute("data-registration-url");
+            if (registrationUrl) {
+              window.open(registrationUrl, "_blank", "noopener,noreferrer");
+              return;
+            }
             const program =
                 button.getAttribute("data-program-trigger") || "mlsgo",
               isActive =
