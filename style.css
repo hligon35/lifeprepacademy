@@ -1424,7 +1424,7 @@ footer .social-links {
     align-items: flex-start;
 }
 
-.page-youth-programs .program-card {
+    align-items: stretch;
     width: fit-content;
     max-width: 100%;
     flex: 0 0 auto;
@@ -1435,21 +1435,23 @@ footer .social-links {
 }
 
 .page-youth-programs .program-card--nfl {
+    min-height: 371px;
     justify-content: center;
 }
 
 .page-youth-programs .program-card .program-logo {
-    width: 100%;
+    justify-content: flex-start;
     max-width: 360px;
     height: auto;
     display: block;
     margin-inline: auto;
 }
+    margin-top: 42px;
 
 .page-youth-programs .program-card .program-logo--nfl {
     transform: none;
     margin-bottom: 0;
-}
+    min-height: 3rem;
 
 .page-youth-programs .program-card > p {
     min-height: 3rem;
