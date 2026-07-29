@@ -1448,6 +1448,7 @@ footer .social-links {
 
 .page-youth-programs .program-card .program-logo--nfl {
     transform: none;
+    margin-bottom: -10px;
 }
 
 .page-youth-programs .program-card > p {
