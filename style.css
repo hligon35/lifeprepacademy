@@ -1421,7 +1421,7 @@ footer .social-links {
     flex-wrap: wrap;
     justify-content: center;
     gap: 1.25rem;
-    align-items: stretch;
+    align-items: flex-start;
 }
 
 .page-youth-programs .program-card {
@@ -1448,7 +1448,7 @@ footer .social-links {
 
 .page-youth-programs .program-card .program-logo--nfl {
     transform: none;
-    margin-bottom: -10px;
+    margin-bottom: 0;
 }
 
 .page-youth-programs .program-card > p {
@@ -1468,6 +1468,7 @@ footer .social-links {
     width: auto;
     display: inline-flex;
     align-self: center;
+    margin-top: 1rem;
 }
 
 .page-youth-programs .checkbox-label {
