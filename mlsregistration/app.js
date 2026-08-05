@@ -142,15 +142,19 @@
   const form = document.getElementById("registration-form");
   const sectionsRoot = document.getElementById("sections-root");
   const formMessage = document.getElementById("form-message");
-  const submitBtn = document.getElementById("submit-btn");
+  const backBtn = document.getElementById("back-btn");
+  const nextBtn = document.getElementById("next-btn");
+  const progressFill = document.getElementById("progress-fill");
+  const progressText = document.getElementById("progress-text");
   const successPanel = document.getElementById("success-panel");
 
-  const sectionRefs = new Map();
   const playerToggleNames = ["addPlayer2", "addPlayer3", "addPlayer4"];
+  let activeSectionIndex = 0;
 
   buildPage();
   wireEvents();
   applyVisibility();
+  renderWizard();
   initAddressAutocomplete();
 
   function buildPage() {
@@ -170,6 +174,8 @@
     const section = createSection(
       "Parent or Legal Guardian",
       "Primary contact information for the household.",
+      false,
+      "parent-section",
     );
     section.append(
       createGrid([
@@ -192,6 +198,7 @@
       "Emergency Contact",
       "Complete this section if the emergency contact is different from the parent or guardian.",
       true,
+      "emergency-section",
     );
 
     const toggle = createToggle({
@@ -287,6 +294,8 @@
     const section = createSection(
       "MLS GO Agreements",
       "Review and accept the required program terms before submitting.",
+      false,
+      "agreements-section",
     );
 
     const grid = createGrid([
@@ -335,7 +344,6 @@
 
     header.append(heading, helper);
     section.append(header);
-    sectionRefs.set(id || title, section);
     return section;
   }
 
@@ -480,6 +488,8 @@
 
   function wireEvents() {
     form.addEventListener("submit", handleSubmit);
+    backBtn?.addEventListener("click", goBack);
+    nextBtn?.addEventListener("click", goNext);
 
     form.addEventListener("input", (event) => {
       const target = event.target;
@@ -500,6 +510,7 @@
 
       if (playerToggleNames.includes(target.name)) {
         applyVisibility();
+        renderWizard();
       }
     });
 
@@ -509,15 +520,18 @@
 
       if (playerToggleNames.includes(target.name)) {
         applyVisibility();
+        renderWizard();
       }
 
       if (target.name === "emergencySameAsParent") {
         applyVisibility();
+        renderWizard();
       }
     });
   }
 
   function applyVisibility() {
+    const activeId = getActiveSectionId();
     const emergencySameAsParent = getFieldValue("emergencySameAsParent") !== false;
     const emergencyFields = form.querySelector('[data-emergency-fields="true"]');
     if (emergencyFields) emergencyFields.classList.toggle("hidden", emergencySameAsParent);
@@ -534,6 +548,96 @@
     syncConditionalFields("p2Race", getFieldValue("p2Race"));
     syncConditionalFields("p3Race", getFieldValue("p3Race"));
     syncConditionalFields("p4Race", getFieldValue("p4Race"));
+    alignActiveSection(activeId);
+  }
+
+  function getVisibleSections() {
+    return Array.from(sectionsRoot.querySelectorAll(".form-section")).filter(
+      (section) => !section.classList.contains("hidden"),
+    );
+  }
+
+  function getActiveSectionId() {
+    const visible = getVisibleSections();
+    return visible[activeSectionIndex]?.id || "";
+  }
+
+  function alignActiveSection(previousId) {
+    const visible = getVisibleSections();
+    if (!visible.length) {
+      activeSectionIndex = 0;
+      return;
+    }
+
+    if (previousId) {
+      const idx = visible.findIndex((section) => section.id === previousId);
+      if (idx >= 0) {
+        activeSectionIndex = idx;
+        return;
+      }
+    }
+
+    if (activeSectionIndex >= visible.length) {
+      activeSectionIndex = visible.length - 1;
+    }
+    if (activeSectionIndex < 0) {
+      activeSectionIndex = 0;
+    }
+  }
+
+  function renderWizard() {
+    const visible = getVisibleSections();
+    if (!visible.length) return;
+
+    alignActiveSection(getActiveSectionId());
+
+    visible.forEach((section, idx) => {
+      section.classList.toggle("is-current", idx === activeSectionIndex);
+    });
+
+    const current = activeSectionIndex + 1;
+    const total = visible.length;
+    const percentage = Math.max(1, Math.round((current / total) * 100));
+    if (progressFill) progressFill.style.width = `${percentage}%`;
+    if (progressText) progressText.textContent = `Section ${current} of ${total}`;
+
+    if (backBtn) backBtn.disabled = activeSectionIndex === 0;
+    if (nextBtn) {
+      nextBtn.textContent = current === total ? "Submit Registration" : "Next Section";
+    }
+  }
+
+  function goBack() {
+    if (activeSectionIndex > 0) {
+      activeSectionIndex -= 1;
+      formMessage.textContent = "";
+      renderWizard();
+    }
+  }
+
+  function goNext() {
+    formMessage.textContent = "";
+    const visible = getVisibleSections();
+    if (!visible.length) return;
+
+    const currentSection = visible[activeSectionIndex];
+    const invalidField = validateSection(currentSection);
+    if (invalidField) {
+      const label =
+        invalidField.closest(".field-group")?.querySelector("label")?.textContent ||
+        "this field";
+      formMessage.textContent = `Please complete ${label.replace(" *", "")}.`;
+      invalidField.focus?.();
+      return;
+    }
+
+    if (activeSectionIndex >= visible.length - 1) {
+      form.requestSubmit();
+      return;
+    }
+
+    activeSectionIndex += 1;
+    renderWizard();
   }
 
   function setSectionVisibility(id, visible) {
@@ -593,6 +697,23 @@
     return null;
   }
 
+  function validateSection(section) {
+    if (!section) return null;
+    const requiredFields = Array.from(section.querySelectorAll("[required]")).filter(
+      (field) => !field.closest(".hidden"),
+    );
+
+    for (const field of requiredFields) {
+      if (field instanceof HTMLInputElement && field.type === "checkbox") {
+        if (!field.checked) return field;
+      } else if (!field.value || !String(field.value).trim()) {
+        return field;
+      }
+    }
+
+    return null;
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     formMessage.textContent = "";
@@ -605,7 +726,8 @@
       return;
     }
 
-    submitBtn.disabled = true;
+    if (nextBtn) nextBtn.disabled = true;
+    if (backBtn) backBtn.disabled = true;
     formMessage.textContent = "Submitting registration...";
 
     try {
@@ -668,7 +790,9 @@
     } catch (error) {
       formMessage.textContent = "Submission failed. Please retry in a moment.";
     } finally {
-      submitBtn.disabled = false;
+      if (nextBtn) nextBtn.disabled = false;
+      if (backBtn) backBtn.disabled = false;
+      renderWizard();
     }
   }
 

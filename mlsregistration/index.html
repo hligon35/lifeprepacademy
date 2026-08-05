@@ -24,7 +24,7 @@
       <section class="card" aria-live="polite">
         <header class="hero">
           <img
-            src="../LPAFxPGS.PNG"
+            src="./LPAFxPGS.PNG"
             alt="LifePrep Academy Foundation and Paducah GO Soccer header"
             class="hero-image"
           />
@@ -40,17 +40,27 @@
 
         <p id="form-message" class="error-msg" role="alert"></p>
 
+        <div class="progress-wrap" aria-hidden="true">
+          <div class="progress-bar"><span id="progress-fill"></span></div>
+          <p class="progress-text" id="progress-text">Section 1 of 1</p>
+        </div>
+
         <form id="registration-form" novalidate>
           <div id="sections-root"></div>
 
           <div class="form-footer">
+            <div class="wizard-actions">
+              <button type="button" class="btn btn-ghost" id="back-btn">
+                Back
+              </button>
+              <button type="button" class="btn btn-primary" id="next-btn">
+                Next Section
+              </button>
+            </div>
             <p class="footer-note">
               Address autocomplete activates when a Google Maps Places API key
               is added to the page meta tag.
             </p>
-            <button type="submit" class="btn btn-primary" id="submit-btn">
-              Submit Registration
-            </button>
           </div>
         </form>
 

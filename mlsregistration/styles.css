@@ -98,14 +98,39 @@ body {
   font-weight: 600;
 }
 
+.progress-wrap {
+  margin: 12px 2px 0;
+}
+
+.progress-bar {
+  height: 11px;
+  border-radius: 999px;
+  background: #ebeff7;
+  overflow: hidden;
+}
+
+.progress-bar span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--brand));
+  transition: width 160ms ease;
+}
+
+.progress-text {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
 .registration-form,
 #registration-form {
   margin-top: 14px;
 }
 
 .sections-grid {
-  display: grid;
-  gap: 16px;
+  display: block;
 }
 
 .form-section {
@@ -113,6 +138,12 @@ body {
   border-radius: 20px;
   padding: 18px;
   background: linear-gradient(180deg, #ffffff, #fbfcff);
+  display: none;
+  margin-bottom: 16px;
+}
+
+.form-section.is-current {
+  display: block;
 }
 
 .form-section.is-muted {
@@ -227,12 +258,22 @@ body {
 }
 
 .form-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 14px;
+  display: grid;
+  gap: 10px;
   margin-top: 18px;
   padding: 6px 2px 2px;
+}
+
+.wizard-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.btn-ghost {
+  border-color: var(--line);
+  background: #fff;
+  color: var(--ink);
 }
 
 .btn {
@@ -301,8 +342,11 @@ body {
     width: 100%;
   }
 
+  .wizard-actions {
+    flex-direction: column-reverse;
+  }
+
   .form-footer {
-    flex-direction: column;
     align-items: stretch;
   }
 }
