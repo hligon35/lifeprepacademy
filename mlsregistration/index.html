@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MLS GO Registration | LifePrep Academy Foundation</title>
+    <meta
+      name="description"
+      content="MLS GO registration form for LifePrep Academy Foundation."
+    />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="card" aria-live="polite">
+        <header class="card-header">
+          <p class="eyebrow">LifePrep Academy Foundation</p>
+          <h1 id="form-title">MLS GO Registration</h1>
+          <p class="subtitle" id="form-subtitle">
+            One question at a time. It takes about 6-10 minutes.
+          </p>
+        </header>
+
+        <div class="progress-wrap" aria-hidden="true">
+          <div class="progress-bar"><span id="progress-fill"></span></div>
+          <p class="progress-text" id="progress-text">Question 1</p>
+        </div>
+
+        <form id="wizard-form" novalidate>
+          <div id="question-host"></div>
+
+          <p id="error-msg" class="error-msg" role="alert"></p>
+
+          <div class="actions">
+            <button type="button" class="btn btn-ghost" id="back-btn">
+              Back
+            </button>
+            <button type="button" class="btn btn-primary" id="next-btn">
+              Next
+            </button>
+          </div>
+        </form>
+
+        <section id="result-panel" class="result-panel" hidden>
+          <h2>Registration Received</h2>
+          <p>
+            Thank you. Your form was submitted successfully. We will follow up
+            soon with next steps.
+          </p>
+        </section>
+      </section>
+    </main>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
