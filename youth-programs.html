@@ -83,97 +83,313 @@
     />
     <link rel="preconnect" href="https://drive.google.com" crossorigin />
     <style>
-      .page-youth-programs .programs-grid {
+      .page-youth-programs {
+        --yp-surface: #ffffff;
+        --yp-surface-soft: #f5f2fb;
+        --yp-border: rgba(40, 17, 86, 0.14);
+        --yp-shadow: 0 20px 55px rgba(40, 17, 86, 0.14);
+        --yp-radius-lg: 24px;
+        --yp-radius-md: 16px;
+        --yp-detail-width: min(100%, 31rem);
+      }
+
+      .page-youth-programs .programs-section {
+        padding-block: clamp(2rem, 3vw, 3rem);
+      }
+
+      .page-youth-programs .youth-page-stack {
+        display: grid;
+        gap: clamp(1.5rem, 2.4vw, 2.25rem);
+      }
+
+      .page-youth-programs .youth-page-stack > * {
+        min-width: 0;
+      }
+
+      .page-youth-programs .youth-hero,
+      .page-youth-programs .program-features,
+      .page-youth-programs .shared-benefits,
+      .page-youth-programs .clinic-highlights,
+      .page-youth-programs .youth-closing-cta {
+        background: var(--yp-surface);
+        border: 1px solid var(--yp-border);
+        border-radius: var(--yp-radius-lg);
+        box-shadow: var(--yp-shadow);
+        padding: clamp(1rem, 2.5vw, 2rem);
+      }
+
+      .page-youth-programs .youth-hero {
+        text-align: center;
+      }
+
+      .page-youth-programs .youth-hero h1 {
+        margin-bottom: 0.65rem;
+      }
+
+      .page-youth-programs .youth-hero p {
+        max-width: 68ch;
+        margin-inline: auto;
+      }
+
+      .page-youth-programs .youth-hero-split {
+        margin-top: 1.25rem;
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .page-youth-programs .youth-split-lane {
+        min-height: 180px;
+        display: grid;
+        place-content: center;
+        gap: 0.5rem;
+        padding: 1rem;
+        border-radius: var(--yp-radius-md);
+        border: 1px solid var(--yp-border);
+        text-align: center;
+      }
+
+      .page-youth-programs .youth-split-lane .btn {
+        justify-self: center;
+        margin-top: 0.35rem;
+      }
+
+      .page-youth-programs .youth-split-lane img {
+        display: block;
+        width: auto;
+        height: 56px;
+        max-width: 100%;
+        margin-inline: auto;
+        object-fit: contain;
+      }
+
+      .page-youth-programs .youth-split-lane--nfl {
+        background: linear-gradient(
+          140deg,
+          rgba(249, 181, 21, 0.18),
+          rgba(40, 17, 86, 0.06)
+        );
+      }
+
+      .page-youth-programs .youth-split-lane--mls {
+        background: linear-gradient(
+          220deg,
+          rgba(74, 144, 226, 0.2),
+          rgba(40, 17, 86, 0.06)
+        );
+      }
+
+      .page-youth-programs .program-features h2 {
+        margin-bottom: 1rem;
+      }
+
+      .page-youth-programs .program-feature-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         align-items: stretch;
       }
-      .page-youth-programs .program-card {
-        min-height: 371px;
+
+      .page-youth-programs .program-feature-card {
+        border: 1px solid var(--yp-border);
+        border-radius: var(--yp-radius-md);
+        padding: 1rem;
+        background: var(--yp-surface-soft);
+        display: grid;
+        gap: 0.8rem;
+        align-content: start;
+        position: relative;
+        top: auto;
+        z-index: 0;
+        isolation: isolate;
+        overflow: hidden;
       }
+
+      .page-youth-programs .program-feature-header {
+        display: grid;
+        gap: 0.6rem;
+        padding: 0.9rem 1rem;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #281156, #3d1a78);
+      }
+
+      .page-youth-programs .program-feature-header h3 {
+        margin: 0;
+        color: #ffffff;
+      }
+
       .page-youth-programs .program-logo-wrap {
         width: 100%;
-        max-width: 360px;
-        height: 190px;
+        min-height: 96px;
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-inline: auto;
       }
-      .page-youth-programs .program-card > p {
-        min-height: 3rem;
-      }
-      .page-youth-programs .program-card .btn {
-        margin-top: 1rem !important;
-      }
-      .page-youth-programs .program-card .program-logo {
-        display: block;
-        margin-inline: 0;
-        max-width: 100%;
-        max-height: 100%;
+
+      .page-youth-programs .program-logo {
+        max-width: min(300px, 100%);
+        max-height: 88px;
         width: auto;
         height: auto;
+        display: block;
         object-fit: contain;
-        object-position: center;
       }
-      .page-youth-programs .program-card .program-logo--nfl {
-        transform: none;
-        margin-bottom: 0;
-        margin-top: 0;
+
+      .page-youth-programs .program-feature-media {
+        border-radius: 12px;
+        overflow: hidden;
+        aspect-ratio: 16 / 9;
+        background: #ddd;
       }
-      .clinic-highlights {
-        margin: 2.5rem auto 3.5rem;
-        padding: clamp(1rem, 2.5vw, 2rem);
-        max-width: 1080px;
-        border: 1px solid rgba(40, 17, 86, 0.12);
-        border-radius: 24px;
-        background: #fff;
-        box-shadow: 0 20px 55px rgba(40, 17, 86, 0.14);
+
+      .page-youth-programs .program-feature-media img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .page-youth-programs .program-meta {
+        margin: 0;
+        display: grid;
+        gap: 0.5rem;
+        width: var(--yp-detail-width);
+        margin-inline: auto;
+      }
+
+      .page-youth-programs .program-meta div {
+        display: grid;
+        grid-template-columns: minmax(120px, 170px) 1fr;
+        gap: 0.6rem;
+      }
+
+      .page-youth-programs .program-meta dt {
+        font-weight: 700;
+        color: #281156;
+      }
+
+      .page-youth-programs .program-meta dd {
+        margin: 0;
+      }
+
+      .page-youth-programs .program-actions {
+        display: grid;
+        grid-template-columns: minmax(120px, 170px) 1fr;
+        gap: 0.6rem;
+        align-items: start;
+        width: var(--yp-detail-width);
+        margin-inline: auto;
+      }
+
+      .page-youth-programs .program-actions .btn {
+        margin: 0;
+        width: auto;
+        justify-self: center;
+      }
+
+      .page-youth-programs .shared-benefits {
         text-align: center;
       }
-      .clinic-highlights h2 {
-        margin: 0 0 1.25rem;
-        color: #281156;
-        font-size: clamp(1.65rem, 4vw, 2.6rem);
+
+      .page-youth-programs .benefits-list {
+        list-style: none;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin: 0;
+        padding: 0;
       }
-      .clinic-highlights-video-wrap {
+
+      .page-youth-programs .benefits-list li {
+        border: 1px solid var(--yp-border);
+        border-radius: 12px;
+        background: #fff;
+        padding: 0.75rem;
+        font-weight: 600;
+        color: #281156;
+      }
+
+      .page-youth-programs .clinic-highlights {
+        text-align: center;
+      }
+
+      .page-youth-programs .clinic-highlights h2 {
+        margin: 0 0 1rem;
+      }
+
+      .page-youth-programs .clinic-highlights-video-wrap {
         overflow: hidden;
         border-radius: 18px;
         background: #000;
         box-shadow: 0 12px 30px rgba(20, 12, 46, 0.2);
         aspect-ratio: 16 / 9;
       }
-      .clinic-highlights video,
-      .clinic-highlights iframe {
+
+      .page-youth-programs .clinic-highlights video {
         display: block;
         width: 100%;
-        height: auto;
-        max-height: 720px;
+        height: 100%;
         background: #000;
       }
-      .clinic-highlights iframe {
-        width: 100%;
-        height: 100%;
-        min-height: 0;
-        border: 0;
+
+      .page-youth-programs .media-placeholder-note {
+        margin: 0.8rem 0 0;
+        font-size: 0.95rem;
       }
-      .clinic-gallery {
+
+      .page-youth-programs .clinic-gallery {
         margin-top: 1.5rem;
         text-align: left;
       }
-      .clinic-gallery-heading {
-        margin: 0 0 0.85rem;
+
+      .page-youth-programs .clinic-gallery-heading-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 0.85rem;
+      }
+
+      .page-youth-programs .clinic-gallery-heading {
+        margin: 0;
         color: #281156;
         font-size: clamp(1.15rem, 2.5vw, 1.5rem);
-        text-align: center;
       }
-      .clinic-gallery-viewport {
+
+      .page-youth-programs .clinic-gallery-controls {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .page-youth-programs .clinic-gallery-control {
+        border: 1px solid rgba(40, 17, 86, 0.2);
+        background: #fff;
+        color: #281156;
+        border-radius: 999px;
+        width: 2.4rem;
+        height: 2.4rem;
+        font-size: 1.2rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .page-youth-programs .clinic-gallery-view-all {
+        margin: 0;
+      }
+
+      .page-youth-programs .clinic-gallery-viewport {
         position: relative;
         overflow: hidden;
+        width: 100%;
+        min-width: 0;
         border-radius: 16px;
         background: #f5f2fb;
         box-shadow: inset 0 0 0 1px rgba(40, 17, 86, 0.08);
       }
-      .clinic-gallery-viewport:before,
-      .clinic-gallery-viewport:after {
+
+      .page-youth-programs .clinic-gallery-viewport::before,
+      .page-youth-programs .clinic-gallery-viewport::after {
         content: "";
         position: absolute;
         top: 0;
@@ -182,34 +398,43 @@
         width: clamp(28px, 6vw, 80px);
         pointer-events: none;
       }
-      .clinic-gallery-viewport:before {
+
+      .page-youth-programs .clinic-gallery-viewport::before {
         left: 0;
         background: linear-gradient(90deg, #f5f2fb, rgba(245, 242, 251, 0));
       }
-      .clinic-gallery-viewport:after {
+
+      .page-youth-programs .clinic-gallery-viewport::after {
         right: 0;
         background: linear-gradient(270deg, #f5f2fb, rgba(245, 242, 251, 0));
       }
-      .clinic-gallery-track {
+
+      .page-youth-programs .clinic-gallery-track {
         display: flex;
         width: max-content;
         animation: clinic-gallery-scroll 150s linear infinite;
         will-change: transform;
       }
-      .clinic-gallery-viewport:hover .clinic-gallery-track,
-      .clinic-gallery-viewport:focus-within .clinic-gallery-track {
+
+      .page-youth-programs .clinic-gallery-viewport:hover .clinic-gallery-track,
+      .page-youth-programs
+        .clinic-gallery-viewport:focus-within
+        .clinic-gallery-track {
         animation-play-state: paused;
       }
-      .clinic-gallery-group {
+
+      .page-youth-programs .clinic-gallery-group {
         display: flex;
         flex-shrink: 0;
         gap: 1rem;
         padding: 1rem 1rem 1rem 0;
       }
-      .clinic-gallery-group:first-child {
+
+      .page-youth-programs .clinic-gallery-group:first-child {
         padding-left: 1rem;
       }
-      .clinic-gallery-item {
+
+      .page-youth-programs .clinic-gallery-item {
         display: block;
         flex: 0 0 clamp(210px, 28vw, 330px);
         aspect-ratio: 3/2;
@@ -221,21 +446,25 @@
         box-shadow: 0 8px 22px rgba(40, 17, 86, 0.16);
         cursor: pointer;
       }
-      .clinic-gallery-item img {
+
+      .page-youth-programs .clinic-gallery-item img {
         display: block;
         width: 100%;
         height: 100%;
         object-fit: cover;
         transition: transform 300ms ease;
       }
-      .clinic-gallery-item:hover img,
-      .clinic-gallery-item:focus-visible img {
+
+      .page-youth-programs .clinic-gallery-item:hover img,
+      .page-youth-programs .clinic-gallery-item:focus-visible img {
         transform: scale(1.035);
       }
+
       body.modal-open {
         overflow: hidden;
       }
-      .clinic-gallery-modal {
+
+      .page-youth-programs .clinic-gallery-modal {
         position: fixed;
         inset: 0;
         z-index: 3000;
@@ -247,11 +476,13 @@
         opacity: 0;
         transition: opacity 180ms ease;
       }
-      .clinic-gallery-modal.is-open {
+
+      .page-youth-programs .clinic-gallery-modal.is-open {
         display: flex;
         opacity: 1;
       }
-      .clinic-gallery-modal-dialog {
+
+      .page-youth-programs .clinic-gallery-modal-dialog {
         position: relative;
         display: flex;
         align-items: center;
@@ -259,7 +490,8 @@
         width: min(1200px, 100%);
         height: min(88vh, 900px);
       }
-      .clinic-gallery-modal-image {
+
+      .page-youth-programs .clinic-gallery-modal-image {
         display: block;
         max-width: 100%;
         max-height: 100%;
@@ -268,8 +500,9 @@
         box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
         background: #171220;
       }
-      .clinic-gallery-modal-close,
-      .clinic-gallery-modal-nav {
+
+      .page-youth-programs .clinic-gallery-modal-close,
+      .page-youth-programs .clinic-gallery-modal-nav {
         position: absolute;
         z-index: 2;
         border: 0;
@@ -278,7 +511,8 @@
         cursor: pointer;
         box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
       }
-      .clinic-gallery-modal-close {
+
+      .page-youth-programs .clinic-gallery-modal-close {
         top: 0;
         right: 0;
         width: 46px;
@@ -287,7 +521,8 @@
         font-size: 2rem;
         line-height: 1;
       }
-      .clinic-gallery-modal-nav {
+
+      .page-youth-programs .clinic-gallery-modal-nav {
         top: 50%;
         transform: translateY(-50%);
         width: 48px;
@@ -295,13 +530,16 @@
         border-radius: 10px;
         font-size: 2rem;
       }
-      .clinic-gallery-modal-prev {
+
+      .page-youth-programs .clinic-gallery-modal-prev {
         left: 0;
       }
-      .clinic-gallery-modal-next {
+
+      .page-youth-programs .clinic-gallery-modal-next {
         right: 0;
       }
-      .clinic-gallery-modal-counter {
+
+      .page-youth-programs .clinic-gallery-modal-counter {
         position: absolute;
         left: 50%;
         bottom: 0;
@@ -313,7 +551,8 @@
         color: #fff;
         font-weight: 700;
       }
-      .clinic-gallery-loading {
+
+      .page-youth-programs .clinic-gallery-loading {
         position: absolute;
         inset: auto 50% 50% auto;
         transform: translate(50%, 50%);
@@ -323,9 +562,40 @@
         transition: opacity 150ms ease;
         pointer-events: none;
       }
-      .clinic-gallery-modal.is-loading .clinic-gallery-loading {
+
+      .page-youth-programs .clinic-gallery-modal.is-loading .clinic-gallery-loading {
         opacity: 1;
       }
+
+      .page-youth-programs .youth-closing-cta {
+        text-align: center;
+      }
+
+      .page-youth-programs .youth-closing-actions {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.85rem;
+        flex-wrap: wrap;
+      }
+
+      .page-youth-programs .coach-cta-placeholder {
+        margin: 0;
+        padding: 0.6rem 0.95rem;
+        border: 1px dashed rgba(40, 17, 86, 0.35);
+        border-radius: 999px;
+        background: #fff;
+        color: #281156;
+        font-weight: 600;
+      }
+
+      .page-youth-programs a:focus-visible,
+      .page-youth-programs button:focus-visible,
+      .page-youth-programs video:focus-visible {
+        outline: 3px solid #f9b515;
+        outline-offset: 3px;
+      }
+
       @keyframes clinic-gallery-scroll {
         from {
           transform: translateX(0);
@@ -334,45 +604,91 @@
           transform: translateX(-50%);
         }
       }
+
       @media (prefers-reduced-motion: reduce) {
-        .clinic-gallery-track {
+        .page-youth-programs .clinic-gallery-track {
           animation: none;
         }
-        .clinic-gallery-viewport {
+
+        .page-youth-programs .clinic-gallery-viewport {
           overflow-x: auto;
           scroll-snap-type: x proximity;
         }
-        .clinic-gallery-item {
+
+        .page-youth-programs .clinic-gallery-item {
           scroll-snap-align: start;
         }
-        .clinic-gallery-group[aria-hidden="true"] {
+
+        .page-youth-programs .clinic-gallery-group[aria-hidden="true"] {
           display: none;
         }
-        .clinic-gallery-modal {
+
+        .page-youth-programs .clinic-gallery-modal {
+          transition: none;
+        }
+
+        .page-youth-programs .clinic-gallery-item img {
           transition: none;
         }
       }
-      @media (max-width: 640px) {
-        .clinic-highlights {
-          margin-top: 1.75rem;
+
+      @media (max-width: 1024px) {
+        .page-youth-programs .benefits-list {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 768px) {
+        .page-youth-programs .program-feature-grid,
+        .page-youth-programs .youth-hero-split {
+          grid-template-columns: 1fr;
+        }
+
+        .page-youth-programs .program-feature-card {
+          text-align: center;
+          justify-items: center;
+        }
+
+        .page-youth-programs .program-feature-card p {
+          margin-inline: auto;
+        }
+
+        .page-youth-programs .program-meta div {
+          grid-template-columns: 1fr;
+          gap: 0.15rem;
+          justify-items: center;
+          text-align: center;
+        }
+
+        .page-youth-programs .program-actions {
+          justify-content: center;
+        }
+
+        .page-youth-programs .clinic-highlights,
+        .page-youth-programs .program-features,
+        .page-youth-programs .shared-benefits,
+        .page-youth-programs .youth-closing-cta,
+        .page-youth-programs .youth-hero {
           border-radius: 18px;
         }
-        .clinic-highlights iframe {
-          min-height: 0;
-          height: auto;
+      }
+
+      @media (max-width: 640px) {
+        .page-youth-programs .benefits-list {
+          grid-template-columns: 1fr;
         }
-        .clinic-highlights-video-wrap,
-        .clinic-gallery-viewport {
-          border-radius: 12px;
+
+        .page-youth-programs .clinic-gallery-heading-row {
+          justify-content: center;
+          text-align: center;
         }
-        .clinic-gallery-track {
-          animation-duration: 120s;
-        }
-        .clinic-gallery-modal-nav {
+
+        .page-youth-programs .clinic-gallery-modal-nav {
           width: 42px;
           height: 52px;
         }
-        .clinic-gallery-modal-close {
+
+        .page-youth-programs .clinic-gallery-modal-close {
           width: 42px;
           height: 42px;
         }
@@ -431,97 +747,290 @@
       <main id="main-content">
         <section class="programs-section">
           <div class="container">
-            <h1>Youth Programs</h1>
-            <p class="muted">
-              Stay connected. More youth programs are coming soon.
-            </p>
-            <section
-              class="clinic-highlights"
-              aria-labelledby="clinic-highlights-heading"
-            >
-              <h2 id="clinic-highlights-heading">
-                Paducah NFL Flag Clinic 2026
-              </h2>
-              <div class="clinic-highlights-video-wrap">
-                <iframe
-                  title="Paducah NFL Flag Clinic 2026 highlights"
-                  src="https://drive.google.com/file/d/1v3Oy96P5Gikf6IyI1P1PpicqLfEx1_Vj/preview?autoplay=1&mute=1"
-                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-                  allowfullscreen
-                  loading="lazy"
-                  referrerpolicy="strict-origin-when-cross-origin"
-                ></iframe>
-              </div>
-              <div
-                class="clinic-gallery"
-                aria-labelledby="clinic-gallery-heading"
-              >
-                <h3 class="clinic-gallery-heading" id="clinic-gallery-heading">
-                  Clinic Photo Gallery
-                </h3>
-                <div
-                  class="clinic-gallery-viewport"
-                  tabindex="0"
-                  aria-label="Auto-scrolling clinic photo gallery. Hover or focus to pause."
-                >
-                  <div
-                    class="clinic-gallery-track"
-                    id="clinic-gallery-track"
-                  ></div>
-                </div>
-              </div>
-            </section>
-            <div class="programs-grid">
-              <article class="program-card program-card--nfl">
-                <div class="program-logo-wrap">
-                  <img
-                    src="NFLflagLogo.jpg"
-                    alt="NFL FLAG logo"
-                    width="260"
-                    height="160"
-                    decoding="async"
-                    class="program-logo program-logo--nfl"
-                  />
-                </div>
+            <div class="youth-page-stack">
+              <section class="youth-hero" aria-labelledby="youth-hero-heading">
+                <h1 id="youth-hero-heading">Two Sports. One Place to Play.</h1>
                 <p>
-                  <strong>Paducah, KY</strong>
+                  Find a fun place to learn the game, build skills, grow confidence,
+                  work with teammates, and connect with the local community through
+                  youth sports.
                 </p>
-                <button
-                  type="button"
-                  class="btn btn-primary"
-                  data-program-trigger="nfl"
-                  data-registration-url="https://docs.google.com/forms/d/e/1FAIpQLSccAWEVbd4mBSYcLWx2yRcG1CqR8Np0pg4raUWjwNNx9XjQcg/viewform?usp=sharing&ouid=116491165659523073510"
-                  data-button-label="Register Now"
-                  aria-controls="youth-contact"
-                  aria-expanded="false"
-                >
-                  Register Now
-                </button>
-              </article>
-              <article class="program-card">
-                <div class="program-logo-wrap">
-                  <img
-                    src="mlsLogo.png"
-                    alt="MLS GO logo"
-                    width="260"
-                    height="160"
-                    decoding="async"
-                    class="program-logo"
-                  />
+                <div class="youth-hero-split" aria-label="Featured youth programs">
+                  <div class="youth-split-lane youth-split-lane--nfl">
+                    <img
+                      src="NFLFlagBlue.png"
+                      alt="NFL FLAG program logo"
+                      width="220"
+                      height="56"
+                      decoding="async"
+                    />
+                    <p><strong>NFL FLAG</strong> football opportunities in Paducah.</p>
+                    <a href="#nfl-flag-program" class="btn btn-primary"
+                      >Explore NFL FLAG</a
+                    >
+                  </div>
+                  <div class="youth-split-lane youth-split-lane--mls">
+                    <img
+                      src="mlsLogo.png"
+                      alt="MLS GO program logo"
+                      width="220"
+                      height="56"
+                      decoding="async"
+                    />
+                    <p><strong>MLS GO</strong> soccer opportunities in Paducah.</p>
+                    <a href="#mls-go-program" class="btn btn-primary"
+                      >Explore MLS GO</a
+                    >
+                  </div>
                 </div>
-                <p><strong>Paducah, KY</strong></p>
-                <button
-                  type="button"
-                  class="btn btn-primary"
-                  data-program-trigger="mlsgo"
-                  data-registration-url="https://mlsregistration.lifeprepacademyfoundation.com"
-                  data-button-label="Register Now"
-                  aria-controls="youth-contact"
-                  aria-expanded="false"
+              </section>
+
+              <section
+                class="program-features"
+                aria-labelledby="program-features-heading"
+              >
+                <h2 id="program-features-heading">Choose Your Program</h2>
+                <div class="program-feature-grid">
+                  <article
+                    class="program-feature-card"
+                    id="nfl-flag-program"
+                    aria-labelledby="nfl-flag-title"
+                  >
+                    <header class="program-feature-header">
+                      <div class="program-logo-wrap">
+                        <img
+                          src="NFLFlagWhite.png"
+                          alt="NFL FLAG logo"
+                          width="280"
+                          height="90"
+                          decoding="async"
+                          class="program-logo"
+                        />
+                      </div>
+                      <h3 id="nfl-flag-title">NFL FLAG</h3>
+                    </header>
+                    <figure class="program-feature-media">
+                      <!-- Replace with official NFL FLAG action photo when available. -->
+                      <img
+                        src="eventa.avif"
+                        alt="NFL FLAG clinic participants during a drill"
+                        width="1280"
+                        height="720"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </figure>
+                    <p>
+                      Introductory flag football programming focused on learning,
+                      movement, and positive team experiences.
+                    </p>
+                    <dl class="program-meta">
+                      <div>
+                        <dt>Ages or divisions</dt>
+                        <dd>Program details coming soon.</dd>
+                      </div>
+                      <div>
+                        <dt>Season or registration</dt>
+                        <dd>Registration is open.</dd>
+                      </div>
+                      <div>
+                        <dt>Location</dt>
+                        <dd>Paducah, KY</dd>
+                      </div>
+                    </dl>
+                    <div class="program-actions">
+                      <a
+                        href="https://docs.google.com/forms/d/e/1FAIpQLSccAWEVbd4mBSYcLWx2yRcG1CqR8Np0pg4raUWjwNNx9XjQcg/viewform?usp=sharing&ouid=116491165659523073510"
+                        class="btn btn-primary"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Register Now</a
+                      >
+                      <button
+                        type="button"
+                        class="btn"
+                        data-program-trigger="nfl"
+                        data-button-label="Program Details"
+                        aria-controls="youth-contact"
+                        aria-expanded="false"
+                      >
+                        Program Details
+                      </button>
+                    </div>
+                  </article>
+
+                  <article
+                    class="program-feature-card"
+                    id="mls-go-program"
+                    aria-labelledby="mls-go-title"
+                  >
+                    <header class="program-feature-header">
+                      <div class="program-logo-wrap">
+                        <img
+                          src="mlsLogo.png"
+                          alt="MLS GO logo"
+                          width="280"
+                          height="90"
+                          decoding="async"
+                          class="program-logo"
+                        />
+                      </div>
+                      <h3 id="mls-go-title">MLS GO</h3>
+                    </header>
+                    <figure class="program-feature-media">
+                      <!-- Replace with official MLS GO action photo when available. -->
+                      <img
+                        src="groupPhoto.avif"
+                        alt="Youth soccer players and families in a group photo"
+                        width="1280"
+                        height="720"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </figure>
+                    <p>
+                      Recreational youth soccer designed to support skill growth,
+                      confidence, and fun teamwork.
+                    </p>
+                    <dl class="program-meta">
+                      <div>
+                        <dt>Ages or divisions</dt>
+                        <dd>Program details coming soon.</dd>
+                      </div>
+                      <div>
+                        <dt>Season or registration</dt>
+                        <dd>Registration is open.</dd>
+                      </div>
+                      <div>
+                        <dt>Location</dt>
+                        <dd>Paducah, KY</dd>
+                      </div>
+                    </dl>
+                    <div class="program-actions">
+                      <a
+                        href="https://mlsregistration.lifeprepacademyfoundation.com"
+                        class="btn btn-primary"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Register Now</a
+                      >
+                      <button
+                        type="button"
+                        class="btn"
+                        data-program-trigger="mlsgo"
+                        data-button-label="Program Details"
+                        aria-controls="youth-contact"
+                        aria-expanded="false"
+                      >
+                        Program Details
+                      </button>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="shared-benefits" aria-labelledby="shared-benefits-heading">
+                <h2 id="shared-benefits-heading">Shared Benefits</h2>
+                <ul class="benefits-list">
+                  <li>Beginner-friendly play</li>
+                  <li>Skill development</li>
+                  <li>Teamwork and confidence</li>
+                  <li>Local community programming</li>
+                </ul>
+              </section>
+
+              <section
+                class="clinic-highlights"
+                aria-labelledby="clinic-highlights-heading"
+              >
+                <h2 id="clinic-highlights-heading">
+                  2026 Paducah NFL FLAG Clinic Highlights
+                </h2>
+                <div class="clinic-highlights-video-wrap">
+                  <video
+                    controls
+                    preload="none"
+                    playsinline
+                    poster="pffLogo.png"
+                    aria-label="2026 Paducah NFL FLAG Clinic highlights video"
+                  >
+                    <source src="CLINIC_HIGHLIGHTS.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+                <p class="muted media-placeholder-note">
+                  Video poster currently uses a branded placeholder image. Replace
+                  with official NFL FLAG clinic poster media when available.
+                </p>
+                <div
+                  class="clinic-gallery"
+                  aria-labelledby="clinic-gallery-heading"
                 >
-                  Register Now
-                </button>
-              </article>
+                  <div class="clinic-gallery-heading-row">
+                    <h3 class="clinic-gallery-heading" id="clinic-gallery-heading">
+                      Clinic Photo Gallery
+                    </h3>
+                    <div class="clinic-gallery-controls">
+                      <button
+                        type="button"
+                        class="clinic-gallery-control"
+                        id="clinic-gallery-prev-inline"
+                        aria-label="Open previous clinic photo"
+                      >
+                        &#10094;
+                      </button>
+                      <button
+                        type="button"
+                        class="clinic-gallery-control"
+                        id="clinic-gallery-next-inline"
+                        aria-label="Open next clinic photo"
+                      >
+                        &#10095;
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn clinic-gallery-view-all"
+                      id="clinic-gallery-view-all"
+                    >
+                      View All Photos
+                    </button>
+                  </div>
+                  <div
+                    class="clinic-gallery-viewport"
+                    tabindex="0"
+                    aria-label="Auto-scrolling clinic photo gallery. Hover or focus to pause."
+                  >
+                    <div
+                      class="clinic-gallery-track"
+                      id="clinic-gallery-track"
+                    ></div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="youth-closing-cta" aria-labelledby="youth-closing-heading">
+                <h2 id="youth-closing-heading">Need Help Choosing a Program?</h2>
+                <p>
+                  Tell us about your player and goals, and we can help your family
+                  decide between NFL FLAG and MLS GO.
+                </p>
+                <div class="youth-closing-actions">
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    data-program-trigger="general"
+                    data-button-label="Get Help Choosing a Program"
+                    aria-controls="youth-contact"
+                    aria-expanded="false"
+                  >
+                    Get Help Choosing a Program
+                  </button>
+                  <p class="coach-cta-placeholder" aria-label="Coaching call to action status">
+                    Coaching Information Coming Soon
+                  </p>
+                </div>
+              </section>
             </div>
           </div>
         </section>
@@ -830,29 +1339,14 @@
         let clinicPhotos = fallbackClinicPhotos.slice();
         const thumbCache = new Map(),
           highCache = new Map();
-        const clinicVideoIframe = document.querySelector(
-          ".clinic-highlights-video-wrap iframe",
-        );
-        if (clinicVideoIframe) {
-          clinicVideoIframe.loading = "eager";
-          try {
-            const isSmallScreen = window.matchMedia("(max-width: 768px)").matches;
-            const currentSrc = clinicVideoIframe.getAttribute("src") || "";
-            if (currentSrc) {
-              const url = new URL(currentSrc, window.location.href);
-              if (isSmallScreen) {
-                url.searchParams.delete("autoplay");
-              } else {
-                url.searchParams.set("autoplay", "1");
-                url.searchParams.set("mute", "1");
-              }
-              clinicVideoIframe.src = url.toString();
-            }
-          } catch (error) {
-            console.warn("Unable to tune clinic video playback mode.", error);
-          }
-        }
         const galleryTrack = document.getElementById("clinic-gallery-track"),
+          viewAllButton = document.getElementById("clinic-gallery-view-all"),
+          inlinePreviousButton = document.getElementById(
+            "clinic-gallery-prev-inline",
+          ),
+          inlineNextButton = document.getElementById(
+            "clinic-gallery-next-inline",
+          ),
           modal = document.getElementById("clinic-gallery-modal"),
           modalImage = modal
             ? modal.querySelector(".clinic-gallery-modal-image")
@@ -1059,6 +1553,11 @@
           galleryTrack.appendChild(buildGalleryGroup(false));
           galleryTrack.appendChild(buildGalleryGroup(true));
         }
+        function openPhotoFromInlineControls(direction) {
+          if (!clinicPhotos.length) return;
+          const nextIndex = normalizeIndex(activePhotoIndex + direction);
+          openModal(nextIndex, thumbCache.get(nextIndex) || thumbUrl(nextIndex));
+        }
         async function initClinicGallery() {
           if (!galleryTrack) return;
           renderGallery();
@@ -1079,6 +1578,16 @@
           nextButton.addEventListener("click", () =>
             showPhoto(activePhotoIndex + 1),
           );
+        if (inlinePreviousButton)
+          inlinePreviousButton.addEventListener("click", () =>
+            openPhotoFromInlineControls(-1),
+          );
+        if (inlineNextButton)
+          inlineNextButton.addEventListener("click", () =>
+            openPhotoFromInlineControls(1),
+          );
+        if (viewAllButton)
+          viewAllButton.addEventListener("click", () => openModal(0, thumbUrl(0)));
         if (modal)
           modal.addEventListener("click", (e) => {
             if (e.target === modal) closeModal();
@@ -1123,6 +1632,14 @@
             placeholder:
               "Tell us what you want to know about MLS GO, who the program is for, and any timing questions.",
           },
+          general: {
+            title: "Youth Programs Contact",
+            helper:
+              "Share what you are looking for, and we&rsquo;ll help your family choose the best current youth program option.",
+            subject: "General Youth Programs",
+            placeholder:
+              "Tell us about your player and goals, and we can help you compare current program options.",
+          },
         };
         let activeProgram = "";
         function syncButtons() {
@@ -1164,11 +1681,6 @@
         }
         toggleButtons.forEach((button) =>
           button.addEventListener("click", () => {
-            const registrationUrl = button.getAttribute("data-registration-url");
-            if (registrationUrl) {
-              window.open(registrationUrl, "_blank", "noopener,noreferrer");
-              return;
-            }
             const program =
                 button.getAttribute("data-program-trigger") || "mlsgo",
               isActive =
@@ -1177,11 +1689,9 @@
             setOpen(!isActive, program, true);
           }),
         );
-        if (
-          location.hash === "#youth-contact" ||
-          location.hash === "#mlsgo-contact"
-        )
-          setOpen(true, "mlsgo", false);
+        if (location.hash === "#nfl-contact") setOpen(true, "nfl", false);
+        else if (location.hash === "#mlsgo-contact") setOpen(true, "mlsgo", false);
+        else if (location.hash === "#youth-contact") setOpen(true, "general", false);
       })();
     </script>
   </body>

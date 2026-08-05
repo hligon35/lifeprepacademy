@@ -368,6 +368,12 @@ body {
   color: var(--brand);
 }
 
+.agreement-doc-status {
+  margin: 4px 0 0 28px;
+  font-size: 0.85rem;
+  color: #5a4c7e;
+}
+
 .result-panel {
   margin-top: 18px;
   border: 1px solid rgba(111, 45, 189, 0.18);

@@ -6,7 +6,12 @@
     document.querySelector('meta[name="google-maps-api-key"]')?.content.trim() || "";
   const GOOGLE_APPS_SCRIPT_URL =
     document.querySelector('meta[name="google-apps-script-url"]')?.content.trim() || "";
-  const AGREEMENT_PDF_PATH = "./documents/MLS-GO-Data-Requirements.pdf";
+  const MLS_PLAYER_WAIVER_URL =
+    "https://cdn.mediavalet.com/usca/rcx/ViZqxKaKCkOG_lY1tHVXHQ/0NjqRSjMNUKvGw1yBUgd4Q/Original/2.1%20Player%20Registration%20Agreement%20-%20MLS%20GO.pdf";
+  const MLS_PRIVACY_POLICY_URL =
+    "https://www.mlssoccer.com/legal/privacy-policy";
+  const MLS_TERMS_OF_SERVICE_URL =
+    "https://www.mlssoccer.com/legal/terms-of-service";
 
   const FLOW = {
     PLAYER: "player",
@@ -410,12 +415,13 @@
         label: "MLS GO Player Registration Agreement and Waiver",
         name: "agreeWaiver",
         required: true,
+        requireLinksViewed: true,
         description:
           "I have read and understand the MLS GO Player Registration Agreement and Waiver, accept its terms for myself and every participant listed in this registration, and intend to be legally bound.",
         links: [
           {
-            href: AGREEMENT_PDF_PATH,
-            text: "View official MLS GO Data Requirements (PDF)",
+            href: MLS_PLAYER_WAIVER_URL,
+            text: "View MLS GO Player Registration Agreement and Waiver (PDF)",
           },
         ],
       }),
@@ -423,12 +429,17 @@
         label: "MLS GO Privacy Policy and Terms of Service",
         name: "agreePrivacy",
         required: true,
+        requireLinksViewed: true,
         description:
           "I agree to the Terms of Service and consent to the use of my information in accordance with the Privacy Policy.",
         links: [
           {
-            href: AGREEMENT_PDF_PATH,
-            text: "Review required policy document (PDF)",
+            href: MLS_PRIVACY_POLICY_URL,
+            text: "Privacy Policy",
+          },
+          {
+            href: MLS_TERMS_OF_SERVICE_URL,
+            text: "Terms of Service",
           },
         ],
       }),
@@ -774,7 +785,14 @@
   }
 
   function createCheckboxField(options) {
-    const { label, name, required = false, description, links = [] } = options;
+    const {
+      label,
+      name,
+      required = false,
+      description,
+      links = [],
+      requireLinksViewed = false,
+    } = options;
     const wrap = document.createElement("div");
     wrap.className = "field-group";
 
@@ -792,6 +810,12 @@
     input.type = "checkbox";
     if (required) input.required = true;
 
+    let allLinksViewed = !requireLinksViewed;
+    if (requireLinksViewed) {
+      input.disabled = true;
+      input.checked = false;
+    }
+
     const text = document.createElement("span");
     text.textContent = description || "I agree";
 
@@ -800,6 +824,7 @@
     wrap.append(labelEl, choice);
 
     if (Array.isArray(links) && links.length > 0) {
+      const viewedState = new Array(links.length).fill(!requireLinksViewed);
       const linkRow = document.createElement("p");
       linkRow.className = "agreement-doc-links";
 
@@ -809,6 +834,24 @@
         anchor.target = "_blank";
         anchor.rel = "noopener noreferrer";
         anchor.textContent = linkData.text;
+
+        if (requireLinksViewed) {
+          anchor.addEventListener("click", () => {
+            viewedState[index] = true;
+            allLinksViewed = viewedState.every(Boolean);
+            if (allLinksViewed) {
+              input.disabled = false;
+              status.textContent = "All required documents viewed. You can now check this box.";
+            } else {
+              const remaining = viewedState.filter((isViewed) => !isViewed).length;
+              status.textContent =
+                remaining === 1
+                  ? "Open the remaining document to enable this checkbox."
+                  : `Open ${remaining} more documents to enable this checkbox.`;
+            }
+          });
+        }
+
         linkRow.appendChild(anchor);
 
         if (index < links.length - 1) {
@@ -819,6 +862,21 @@
       });
 
       wrap.appendChild(linkRow);
+
+      if (requireLinksViewed) {
+        const status = document.createElement("p");
+        status.className = "agreement-doc-status";
+        status.setAttribute("aria-live", "polite");
+        status.textContent =
+          links.length === 1
+            ? "Open the linked document to enable this checkbox."
+            : "Open each linked document to enable this checkbox.";
+        wrap.appendChild(status);
+      }
+    }
+
+    if (requireLinksViewed && links.length === 0) {
+      input.disabled = false;
     }
 
     return wrap;
