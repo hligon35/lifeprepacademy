@@ -362,8 +362,9 @@
         required: true,
         options: ["Yes", "No"],
       });
-      toggle.classList.add("section-divider");
-      section.append(toggle);
+      const divider = document.createElement("div");
+      divider.className = "section-divider";
+      section.append(divider, toggle);
     }
 
     return section;

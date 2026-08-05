@@ -141,7 +141,7 @@ body {
   padding: 18px;
   background: linear-gradient(180deg, #ffffff, #fbfcff);
   display: none;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .form-section.is-current {
@@ -262,7 +262,7 @@ body {
 .form-footer {
   display: grid;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 26px;
   padding: 6px 2px 2px;
 }
 
@@ -398,11 +398,16 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .form-section {
+    margin-bottom: 36px;
+    padding-bottom: 64px;
+  }
+
   .wizard-actions {
     flex-wrap: nowrap;
     justify-content: space-between;
     gap: 8px;
-    overflow-x: auto;
+    overflow-x: visible;
   }
 
   .wizard-actions .btn {
@@ -415,5 +420,6 @@ body {
 
   .form-footer {
     align-items: stretch;
+    margin-top: 34px;
   }
 }
