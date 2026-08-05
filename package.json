@@ -8,7 +8,9 @@
     "serve": "http-server -p 3000",
     "build": "node build-assets.js && node cache-bust.js",
     "build:prod": "node build-assets.js && node cache-bust.js && node minify-html.js",
-    "format:html": "node format-html.js"
+    "format:html": "node format-html.js",
+    "deploy:mlsregistration": "wrangler deploy --config wrangler.jsonc",
+    "preview:mlsregistration": "wrangler dev --config wrangler.jsonc"
   },
   "devDependencies": {
     "sharp": "^0.32.6",
