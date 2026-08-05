@@ -1,6 +1,11 @@
 (function () {
   const FORM_ACTION =
     "https://docs.google.com/forms/d/e/1FAIpQLScCUTOgeNb7shvYUrpjbNKn5kh_K_U3tEwks8aJ4zvbXFKWLw/formResponse";
+  const FBZX = "-3891024944817654155";
+  const GOOGLE_MAPS_API_KEY =
+    document.querySelector('meta[name="google-maps-api-key"]')?.content.trim() || "";
+  const GOOGLE_APPS_SCRIPT_URL =
+    document.querySelector('meta[name="google-apps-script-url"]')?.content.trim() || "";
 
   const CLUB_OPTIONS = [
     "Atlanta United",
@@ -52,7 +57,7 @@
     "Friend/Family",
   ];
 
-  const playerEntryMap = {
+  const PLAYER_ENTRY_MAP = {
     1: {
       firstName: "925997673",
       lastName: "532782949",
@@ -115,7 +120,7 @@
     },
   };
 
-  const parentEntryMap = {
+  const PARENT_ENTRY_MAP = {
     firstName: "562145774",
     lastName: "1860068040",
     email: "1319950320",
@@ -127,178 +132,124 @@
     zip: "212275520",
   };
 
-  const agreementEntryMap = {
+  const AGREEMENT_ENTRY_MAP = {
     waiver: "1522719395",
     privacy: "481619757",
     marketing: "1538615941",
     signature: "1611060751",
   };
 
-  const state = {};
+  const form = document.getElementById("registration-form");
+  const sectionsRoot = document.getElementById("sections-root");
+  const formMessage = document.getElementById("form-message");
+  const submitBtn = document.getElementById("submit-btn");
+  const successPanel = document.getElementById("success-panel");
 
-  const form = document.getElementById("wizard-form");
-  const questionHost = document.getElementById("question-host");
-  const errorMsg = document.getElementById("error-msg");
-  const backBtn = document.getElementById("back-btn");
-  const nextBtn = document.getElementById("next-btn");
-  const progressFill = document.getElementById("progress-fill");
-  const progressText = document.getElementById("progress-text");
-  const resultPanel = document.getElementById("result-panel");
+  const sectionRefs = new Map();
+  const playerToggleNames = ["addPlayer2", "addPlayer3", "addPlayer4"];
 
-  let currentVisibleIndex = 0;
-  let isSubmitting = false;
+  buildPage();
+  wireEvents();
+  applyVisibility();
+  initAddressAutocomplete();
 
-  const steps = buildSteps();
-
-  function buildSteps() {
-    const base = [
-      textStep("parentFirstName", "Parent/guardian first name", true),
-      textStep("parentLastName", "Parent/guardian last name", true),
-      textStep("parentEmail", "Parent/guardian email", true, "email"),
-      textStep("parentPhone", "Parent/guardian cell phone", true, "tel"),
-      textStep("parentStreet", "Street address", true),
-      textStep("parentApt", "Apartment, suite, or unit"),
-      textStep("parentCity", "City", true),
-      textStep("parentState", "State", true),
-      textStep("parentZip", "ZIP code", true),
-    ];
-
-    base.push(...playerSteps(1));
-
-    base.push(
-      selectStep("addPlayer2", "Would you like to register another player?", [
-        "Yes",
-        "No",
-      ], true),
+  function buildPage() {
+    sectionsRoot.className = "sections-grid";
+    sectionsRoot.append(
+      buildParentSection(),
+      buildEmergencySection(),
+      buildPlayerSection(1),
+      buildPlayerSection(2),
+      buildPlayerSection(3),
+      buildPlayerSection(4),
+      buildAgreementsSection(),
     );
-
-    base.push(...playerSteps(2, () => state.addPlayer2 === "Yes"));
-
-    base.push(
-      selectStep(
-        "addPlayer3",
-        "Would you like to register another player?",
-        ["Yes", "No"],
-        true,
-        () => state.addPlayer2 === "Yes",
-      ),
-    );
-
-    base.push(
-      ...playerSteps(3, () => state.addPlayer2 === "Yes" && state.addPlayer3 === "Yes"),
-    );
-
-    base.push(
-      selectStep(
-        "addPlayer4",
-        "Would you like to register another player?",
-        ["Yes", "No"],
-        true,
-        () => state.addPlayer2 === "Yes" && state.addPlayer3 === "Yes",
-      ),
-    );
-
-    base.push(
-      ...playerSteps(
-        4,
-        () =>
-          state.addPlayer2 === "Yes" &&
-          state.addPlayer3 === "Yes" &&
-          state.addPlayer4 === "Yes",
-      ),
-    );
-
-    base.push(
-      checkboxStep(
-        "agreeWaiver",
-        "MLS GO Player Registration Agreement and Waiver",
-        "I have read and understand the MLS GO Player Registration Agreement and Waiver, accept its terms for myself and every participant listed in this registration, and intend to be legally bound.",
-        true,
-      ),
-    );
-    base.push(
-      checkboxStep(
-        "agreePrivacy",
-        "MLS GO Privacy Policy and Terms of Service",
-        "I agree to the Terms of Service and consent to the use of my information in accordance with the Privacy Policy.",
-        true,
-      ),
-    );
-    base.push(
-      checkboxStep(
-        "agreeMarketing",
-        "MLS GO Marketing Opt-In",
-        "I agree that MLS GO, Major League Soccer, the MLS Clubs, Soccer United Marketing, MLS NEXT Pro, MLS NEXT and each of their respective clubs, affiliates and partners, can use my information to send me newsletters, offers, additional information and other communications about their products and initiatives in accordance with the Privacy Policy and Terms of Use.",
-        false,
-      ),
-    );
-    base.push(
-      textStep(
-        "signature",
-        "Electronic signature - parent/legal guardian full name",
-        true,
-      ),
-    );
-
-    return base;
   }
 
-  function playerSteps(playerIndex, conditionFn) {
-    const prefix = "p" + String(playerIndex);
-    return [
-      textStep(prefix + "FirstName", "Player " + playerIndex + " - first name", true, "text", conditionFn),
-      textStep(prefix + "LastName", "Player " + playerIndex + " - last name", true, "text", conditionFn),
-      textStep(prefix + "Dob", "Player " + playerIndex + " - date of birth", true, "date", conditionFn),
-      selectStep(
-        prefix + "Gender",
-        "Player " + playerIndex + " - gender identity",
-        ["Female", "Male", "Non-binary", "Prefer not to specify"],
-        true,
-        conditionFn,
-      ),
-      selectStep(
-        prefix + "Grade",
-        "Player " + playerIndex + " - grade",
-        [
-          "Pre-K",
-          "Kindergarten",
-          "1st",
-          "2nd",
-          "3rd",
-          "4th",
-          "5th",
-          "6th",
-          "7th",
-          "8th",
-        ],
-        true,
-        conditionFn,
-      ),
-      selectStep(
-        prefix + "Jersey",
-        "Player " + playerIndex + " - jersey size",
-        ["YXXS", "YXS", "YS", "YM", "YL", "YXL/AS", "AM", "AL", "AXL"],
-        true,
-        conditionFn,
-      ),
-      selectStep(
-        prefix + "Shorts",
-        "Player " + playerIndex + " - shorts size",
-        ["YXXS", "YXS", "YS", "YM", "YL", "YXL/AS", "AM", "AL", "AXL"],
-        true,
-        conditionFn,
-      ),
-      selectStep(
-        prefix + "Socks",
-        "Player " + playerIndex + " - sock size",
-        ["YS/YM", "YL/YXL", "A"],
-        true,
-        conditionFn,
-      ),
-      selectStep(
-        prefix + "Race",
-        "Player " + playerIndex + " - race/ethnicity",
-        [
+  function buildParentSection() {
+    const section = createSection(
+      "Parent or Legal Guardian",
+      "Primary contact information for the household.",
+    );
+    section.append(
+      createGrid([
+        createTextField({ label: "Parent/guardian first name", name: "parentFirstName", required: true }),
+        createTextField({ label: "Parent/guardian last name", name: "parentLastName", required: true }),
+        createTextField({ label: "Parent/guardian email", name: "parentEmail", required: true, type: "email", autocomplete: "email" }),
+        createTextField({ label: "Parent/guardian cell phone", name: "parentPhone", required: true, type: "tel", inputMode: "tel", autocomplete: "tel" }),
+        createTextField({ label: "Street address", name: "parentStreet", required: true, autocomplete: "street-address", addressField: true, placeholder: "Start typing the address" }),
+        createTextField({ label: "Apartment, suite, or unit", name: "parentApt", autocomplete: "address-line2" }),
+        createTextField({ label: "City", name: "parentCity", required: true, autocomplete: "address-level2" }),
+        createTextField({ label: "State", name: "parentState", required: true, autocomplete: "address-level1" }),
+        createTextField({ label: "ZIP code", name: "parentZip", required: true, inputMode: "numeric", autocomplete: "postal-code" }),
+      ]),
+    );
+    return section;
+  }
+
+  function buildEmergencySection() {
+    const section = createSection(
+      "Emergency Contact",
+      "Complete this section if the emergency contact is different from the parent or guardian.",
+      true,
+    );
+
+    const toggle = createToggle({
+      label: "Emergency contact is the same as the parent/guardian",
+      name: "emergencySameAsParent",
+      checked: true,
+    });
+
+    const fields = document.createElement("div");
+    fields.className = "hidden";
+    fields.dataset.emergencyFields = "true";
+    fields.append(
+      createGrid([
+        createTextField({ label: "Emergency contact first name", name: "emergencyFirstName" }),
+        createTextField({ label: "Emergency contact last name", name: "emergencyLastName" }),
+        createTextField({ label: "Relationship", name: "emergencyRelationship", placeholder: "Grandparent, aunt, coach, etc." }),
+        createTextField({ label: "Emergency contact email", name: "emergencyEmail", type: "email", autocomplete: "email" }),
+        createTextField({ label: "Emergency contact phone", name: "emergencyPhone", type: "tel", inputMode: "tel", autocomplete: "tel" }),
+        createTextField({ label: "Street address", name: "emergencyStreet", autocomplete: "street-address", addressField: true, placeholder: "Start typing the address" }),
+        createTextField({ label: "Apartment, suite, or unit", name: "emergencyApt", autocomplete: "address-line2" }),
+        createTextField({ label: "City", name: "emergencyCity", autocomplete: "address-level2" }),
+        createTextField({ label: "State", name: "emergencyState", autocomplete: "address-level1" }),
+        createTextField({ label: "ZIP code", name: "emergencyZip", inputMode: "numeric", autocomplete: "postal-code" }),
+      ]),
+    );
+
+    toggle.querySelector('input')?.addEventListener('change', (event) => {
+      fields.classList.toggle("hidden", Boolean(event.target.checked));
+    });
+
+    section.append(toggle, fields);
+    return section;
+  }
+
+  function buildPlayerSection(playerIndex) {
+    const section = createSection(
+      `Player ${playerIndex}`,
+      playerIndex === 1
+        ? "Enter the first player details. Use the toggle below to add another player if needed."
+        : "Enter details for the additional player.",
+      playerIndex > 1,
+      `player-section-${playerIndex}`,
+    );
+
+    const grid = createGrid([
+      createTextField({ label: `Player ${playerIndex} - first name`, name: `p${playerIndex}FirstName`, required: true }),
+      createTextField({ label: `Player ${playerIndex} - last name`, name: `p${playerIndex}LastName`, required: true }),
+      createTextField({ label: `Player ${playerIndex} - date of birth`, name: `p${playerIndex}Dob`, required: true, type: "date" }),
+      createSelectField({ label: `Player ${playerIndex} - gender identity`, name: `p${playerIndex}Gender`, required: true, options: ["Female", "Male", "Non-binary", "Prefer not to specify"] }),
+      createSelectField({ label: `Player ${playerIndex} - grade`, name: `p${playerIndex}Grade`, required: true, options: ["Pre-K", "Kindergarten", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"] }),
+      createSelectField({ label: `Player ${playerIndex} - jersey size`, name: `p${playerIndex}Jersey`, required: true, options: ["YXXS", "YXS", "YS", "YM", "YL", "YXL/AS", "AM", "AL", "AXL"] }),
+      createSelectField({ label: `Player ${playerIndex} - shorts size`, name: `p${playerIndex}Shorts`, required: true, options: ["YXXS", "YXS", "YS", "YM", "YL", "YXL/AS", "AM", "AL", "AXL"] }),
+      createSelectField({ label: `Player ${playerIndex} - sock size`, name: `p${playerIndex}Socks`, required: true, options: ["YS/YM", "YL/YXL", "A"] }),
+      createSelectField({
+        label: `Player ${playerIndex} - race/ethnicity`,
+        name: `p${playerIndex}Race`,
+        required: true,
+        options: [
           "Black or African American",
           "Arab/Middle Eastern",
           "American Indian/Alaska Native",
@@ -309,234 +260,589 @@
           "Other (write in)",
           "I do not wish to disclose",
         ],
-        true,
-        conditionFn,
-      ),
-      textStep(
-        prefix + "RaceOther",
-        "Player " + playerIndex + " - race/ethnicity - if Other, please specify",
-        false,
-        "text",
-        function () {
-          const visible = conditionFn ? conditionFn() : true;
-          return visible && state[prefix + "Race"] === "Other (write in)";
-        },
-      ),
-      selectStep(
-        prefix + "FavoriteClub",
-        "Player " + playerIndex + " - favorite MLS club",
-        CLUB_OPTIONS,
-        true,
-        conditionFn,
-      ),
-      selectStep(
-        prefix + "HearAbout",
-        "Player " + playerIndex + " - how did you hear about MLS GO?",
-        HEAR_ABOUT_OPTIONS,
-        true,
-        conditionFn,
-      ),
-    ];
+      }),
+      createTextField({ label: `Player ${playerIndex} - race/ethnicity - if Other, please specify`, name: `p${playerIndex}RaceOther`, conditionalOn: `p${playerIndex}Race`, conditionalValue: "Other (write in)" }),
+      createSelectField({ label: `Player ${playerIndex} - favorite MLS club`, name: `p${playerIndex}FavoriteClub`, required: true, options: CLUB_OPTIONS }),
+      createSelectField({ label: `Player ${playerIndex} - how did you hear about MLS GO?`, name: `p${playerIndex}HearAbout`, required: true, options: HEAR_ABOUT_OPTIONS }),
+    ]);
+
+    section.append(grid);
+
+    if (playerIndex < 4) {
+      const toggleName = `addPlayer${playerIndex + 1}`;
+      const toggle = createSelectField({
+        label: "Would you like to register another player?",
+        name: toggleName,
+        required: true,
+        options: ["Yes", "No"],
+      });
+      toggle.classList.add("section-divider");
+      section.append(toggle);
+    }
+
+    return section;
   }
 
-  function textStep(key, title, required, inputType, conditionFn) {
-    return {
-      key,
-      title,
-      type: "text",
-      inputType: inputType || "text",
-      required: Boolean(required),
-      showIf: conditionFn || null,
-    };
+  function buildAgreementsSection() {
+    const section = createSection(
+      "MLS GO Agreements",
+      "Review and accept the required program terms before submitting.",
+    );
+
+    const grid = createGrid([
+      createCheckboxField({
+        label: "MLS GO Player Registration Agreement and Waiver",
+        name: "agreeWaiver",
+        required: true,
+        description:
+          "I have read and understand the MLS GO Player Registration Agreement and Waiver, accept its terms for myself and every participant listed in this registration, and intend to be legally bound.",
+      }),
+      createCheckboxField({
+        label: "MLS GO Privacy Policy and Terms of Service",
+        name: "agreePrivacy",
+        required: true,
+        description:
+          "I agree to the Terms of Service and consent to the use of my information in accordance with the Privacy Policy.",
+      }),
+      createCheckboxField({
+        label: "MLS GO Marketing Opt-In",
+        name: "agreeMarketing",
+        description:
+          "I agree that MLS GO, Major League Soccer, the MLS Clubs, Soccer United Marketing, MLS NEXT Pro, MLS NEXT and each of their respective clubs, affiliates and partners, can use my information to send me newsletters, offers, additional information and other communications about their products and initiatives in accordance with the Privacy Policy and Terms of Use.",
+      }),
+      createTextField({ label: "Electronic signature - parent/legal guardian full name", name: "signature", required: true }),
+    ]);
+    grid.classList.add("form-grid--one");
+
+    section.append(grid);
+    return section;
   }
 
-  function selectStep(key, title, options, required, conditionFn) {
-    return {
-      key,
-      title,
-      type: "select",
-      options,
-      required: Boolean(required),
-      showIf: conditionFn || null,
-    };
+  function createSection(title, description, muted, id) {
+    const section = document.createElement("section");
+    section.className = `form-section${muted ? " is-muted" : ""}`;
+    if (id) section.id = id;
+
+    const header = document.createElement("div");
+    header.className = "section-header";
+
+    const heading = document.createElement("h2");
+    heading.textContent = title;
+
+    const helper = document.createElement("p");
+    helper.className = "section-helper";
+    helper.textContent = description;
+
+    header.append(heading, helper);
+    section.append(header);
+    sectionRefs.set(id || title, section);
+    return section;
   }
 
-  function checkboxStep(key, title, label, required, conditionFn) {
-    return {
-      key,
-      title,
-      type: "checkbox",
+  function createGrid(children) {
+    const grid = document.createElement("div");
+    grid.className = "form-grid";
+    children.forEach((child) => grid.appendChild(child));
+    return grid;
+  }
+
+  function createFieldWrap(labelText, name, required) {
+    const wrap = document.createElement("div");
+    wrap.className = "field-group";
+    wrap.dataset.fieldWrap = name;
+
+    const label = document.createElement("label");
+    label.htmlFor = name;
+    label.innerHTML = `${labelText}${required ? ' <span class="required">*</span>' : ""}`;
+
+    wrap.appendChild(label);
+    return wrap;
+  }
+
+  function createTextField(options) {
+    const {
       label,
-      required: Boolean(required),
-      showIf: conditionFn || null,
-    };
+      name,
+      required = false,
+      type = "text",
+      inputMode,
+      autocomplete,
+      placeholder,
+      addressField = false,
+      conditionalOn,
+      conditionalValue,
+    } = options;
+
+    const wrap = createFieldWrap(label, name, required);
+    const input = document.createElement("input");
+    input.id = name;
+    input.name = name;
+    input.type = type;
+    input.placeholder = placeholder || "";
+    if (inputMode) input.inputMode = inputMode;
+    if (autocomplete) input.autocomplete = autocomplete;
+    if (required) input.required = true;
+    input.className = "text-input";
+
+    if (addressField) {
+      input.dataset.addressField = "true";
+      input.dataset.autocompleteTarget = name;
+    }
+
+    if (conditionalOn && conditionalValue) {
+      input.dataset.conditionalOn = conditionalOn;
+      input.dataset.conditionalValue = conditionalValue;
+      wrap.classList.add("hidden");
+    }
+
+    if (name.toLowerCase().includes("phone")) {
+      input.dataset.phoneField = "true";
+      input.inputMode = input.inputMode || "tel";
+    }
+
+    wrap.appendChild(input);
+    return wrap;
   }
 
-  function visibleSteps() {
-    return steps.filter((step) => {
-      if (typeof step.showIf !== "function") return true;
-      return Boolean(step.showIf());
+  function createSelectField(options) {
+    const { label, name, required = false, options: selectOptions } = options;
+    const wrap = createFieldWrap(label, name, required);
+    const select = document.createElement("select");
+    select.id = name;
+    select.name = name;
+    select.className = "select-input";
+    if (required) select.required = true;
+
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Select an option";
+    select.appendChild(placeholder);
+
+    selectOptions.forEach((optionValue) => {
+      const option = document.createElement("option");
+      option.value = optionValue;
+      option.textContent = optionValue;
+      select.appendChild(option);
+    });
+
+    wrap.appendChild(select);
+    return wrap;
+  }
+
+  function createCheckboxField(options) {
+    const { label, name, required = false, description } = options;
+    const wrap = document.createElement("div");
+    wrap.className = "field-group";
+
+    const labelEl = document.createElement("label");
+    labelEl.className = "toggle-label";
+    labelEl.htmlFor = name;
+    labelEl.textContent = label;
+
+    const choice = document.createElement("label");
+    choice.className = "inline-toggle";
+
+    const input = document.createElement("input");
+    input.id = name;
+    input.name = name;
+    input.type = "checkbox";
+    if (required) input.required = true;
+
+    const text = document.createElement("span");
+    text.textContent = description || "I agree";
+
+    choice.append(input, text);
+    wrap.append(labelEl, choice);
+    return wrap;
+  }
+
+  function createToggle(options) {
+    const { label, name, checked = false } = options;
+    const wrap = document.createElement("div");
+    wrap.className = "field-group";
+
+    const choice = document.createElement("label");
+    choice.className = "inline-toggle";
+
+    const input = document.createElement("input");
+    input.id = name;
+    input.name = name;
+    input.type = "checkbox";
+    input.checked = checked;
+
+    const text = document.createElement("span");
+    text.textContent = label;
+
+    choice.append(input, text);
+    wrap.append(choice);
+    return wrap;
+  }
+
+  function wireEvents() {
+    form.addEventListener("submit", handleSubmit);
+
+    form.addEventListener("input", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) return;
+
+      if (target.dataset.phoneField === "true") {
+        formatPhoneField(target);
+      }
+
+      if (target.name === "emergencySameAsParent") {
+        const emergencyFields = form.querySelector('[data-emergency-fields="true"]');
+        if (emergencyFields) emergencyFields.classList.toggle("hidden", target.checked);
+      }
+
+      if (target.name === "p1Race" || target.name === "p2Race" || target.name === "p3Race" || target.name === "p4Race") {
+        syncConditionalFields(target.name, target.value);
+      }
+
+      if (playerToggleNames.includes(target.name)) {
+        applyVisibility();
+      }
+    });
+
+    form.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) return;
+
+      if (playerToggleNames.includes(target.name)) {
+        applyVisibility();
+      }
+
+      if (target.name === "emergencySameAsParent") {
+        applyVisibility();
+      }
     });
   }
 
-  function currentStep() {
-    const list = visibleSteps();
-    if (currentVisibleIndex < 0) currentVisibleIndex = 0;
-    if (currentVisibleIndex > list.length - 1) currentVisibleIndex = list.length - 1;
-    return { list, step: list[currentVisibleIndex] };
+  function applyVisibility() {
+    const emergencySameAsParent = getFieldValue("emergencySameAsParent") !== false;
+    const emergencyFields = form.querySelector('[data-emergency-fields="true"]');
+    if (emergencyFields) emergencyFields.classList.toggle("hidden", emergencySameAsParent);
+
+    const player2Visible = getFieldValue("addPlayer2") === "Yes";
+    const player3Visible = player2Visible && getFieldValue("addPlayer3") === "Yes";
+    const player4Visible = player3Visible && getFieldValue("addPlayer4") === "Yes";
+
+    setSectionVisibility("player-section-2", player2Visible);
+    setSectionVisibility("player-section-3", player3Visible);
+    setSectionVisibility("player-section-4", player4Visible);
+
+    syncConditionalFields("p1Race", getFieldValue("p1Race"));
+    syncConditionalFields("p2Race", getFieldValue("p2Race"));
+    syncConditionalFields("p3Race", getFieldValue("p3Race"));
+    syncConditionalFields("p4Race", getFieldValue("p4Race"));
   }
 
-  function render() {
-    const current = currentStep();
-    const list = current.list;
-    const step = current.step;
-    if (!step) return;
-
-    const position = currentVisibleIndex + 1;
-    const total = list.length;
-    const percent = Math.max(1, Math.round((position / total) * 100));
-    progressFill.style.width = String(percent) + "%";
-    progressText.textContent = "Question " + position + " of " + total;
-
-    backBtn.disabled = currentVisibleIndex === 0 || isSubmitting;
-    nextBtn.textContent = position === total ? "Submit" : "Next";
-    nextBtn.disabled = isSubmitting;
-
-    questionHost.innerHTML = "";
-    errorMsg.textContent = "";
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "question";
-
-    const title = document.createElement("h2");
-    title.textContent = step.title;
-    wrapper.appendChild(title);
-
-    if (!step.required) {
-      const helper = document.createElement("p");
-      helper.textContent = "Optional";
-      wrapper.appendChild(helper);
-    }
-
-    if (step.type === "text") {
-      const input = document.createElement("input");
-      input.className = "field";
-      input.type = step.inputType;
-      input.name = step.key;
-      input.value = state[step.key] || "";
-      input.autocomplete = "off";
-      input.addEventListener("input", () => {
-        state[step.key] = input.value;
-      });
-      wrapper.appendChild(input);
-      setTimeout(() => input.focus(), 0);
-    } else if (step.type === "select") {
-      const select = document.createElement("select");
-      select.className = "select";
-      select.name = step.key;
-
-      const optionPlaceholder = document.createElement("option");
-      optionPlaceholder.value = "";
-      optionPlaceholder.textContent = "Select an option";
-      select.appendChild(optionPlaceholder);
-
-      step.options.forEach((opt) => {
-        const option = document.createElement("option");
-        option.value = opt;
-        option.textContent = opt;
-        select.appendChild(option);
-      });
-
-      select.value = state[step.key] || "";
-      select.addEventListener("change", () => {
-        state[step.key] = select.value;
-      });
-
-      wrapper.appendChild(select);
-      setTimeout(() => select.focus(), 0);
-    } else if (step.type === "checkbox") {
-      const choices = document.createElement("div");
-      choices.className = "choices";
-
-      const choice = document.createElement("label");
-      choice.className = "choice";
-
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.name = step.key;
-      checkbox.checked = Boolean(state[step.key]);
-      checkbox.addEventListener("change", () => {
-        state[step.key] = checkbox.checked;
-      });
-
-      const text = document.createElement("span");
-      text.textContent = step.label;
-
-      choice.appendChild(checkbox);
-      choice.appendChild(text);
-      choices.appendChild(choice);
-      wrapper.appendChild(choices);
-      setTimeout(() => checkbox.focus(), 0);
-    }
-
-    questionHost.appendChild(wrapper);
+  function setSectionVisibility(id, visible) {
+    const section = document.getElementById(id);
+    if (section) section.classList.toggle("hidden", !visible);
   }
 
-  function validateStep(step) {
-    const value = state[step.key];
-    if (!step.required) return true;
-
-    if (step.type === "checkbox") {
-      return Boolean(value);
-    }
-
-    if (typeof value !== "string") return false;
-    if (!value.trim()) return false;
-
-    if (step.key === "parentEmail") {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-    }
-
-    if (step.key === "parentZip") {
-      return /^\d{5}(?:-\d{4})?$/.test(value.trim());
-    }
-
-    return true;
+  function syncConditionalFields(controllerName, controllerValue) {
+    form.querySelectorAll(`[data-conditional-on="${controllerName}"]`).forEach((wrap) => {
+      const expectedValue = wrap.querySelector("input")?.dataset.conditionalValue;
+      const match = controllerValue === expectedValue;
+      wrap.classList.toggle("hidden", !match);
+      wrap.querySelector("input")?.toggleAttribute("required", false);
+    });
   }
 
-  function next() {
-    const current = currentStep();
-    const step = current.step;
-    const list = current.list;
-    if (!step || isSubmitting) return;
+  function getFieldValue(name) {
+    const element = form.elements.namedItem(name);
+    if (!element) return "";
+    if (element instanceof RadioNodeList) {
+      const first = element[0];
+      return first && first instanceof HTMLInputElement && first.type === "checkbox" ? first.checked : first?.value || "";
+    }
+    if (element instanceof HTMLInputElement && element.type === "checkbox") return element.checked;
+    return element.value;
+  }
 
-    if (!validateStep(step)) {
-      errorMsg.textContent = "Please answer this question before continuing.";
+  function formatPhoneField(input) {
+    const digits = input.value.replace(/\D/g, "").slice(0, 10);
+    let formatted = digits;
+    if (digits.length > 6) {
+      formatted = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+    } else if (digits.length > 3) {
+      formatted = `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    } else if (digits.length > 0) {
+      formatted = `(${digits}`;
+    }
+    input.value = formatted;
+  }
+
+  function getRequiredFields() {
+    return Array.from(form.querySelectorAll("[required]"));
+  }
+
+  function validateVisibleFields() {
+    const requiredFields = getRequiredFields().filter((field) => {
+      return !field.closest(".hidden");
+    });
+
+    for (const field of requiredFields) {
+      if (field instanceof HTMLInputElement && field.type === "checkbox") {
+        if (!field.checked) return field;
+      } else if (!field.value || !String(field.value).trim()) {
+        return field;
+      }
+    }
+    return null;
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    formMessage.textContent = "";
+
+    const invalidField = validateVisibleFields();
+    if (invalidField) {
+      const label = invalidField.closest(".field-group")?.querySelector("label")?.textContent || "this field";
+      formMessage.textContent = `Please complete ${label.replace(" *", "")}.`;
+      invalidField.focus?.();
       return;
     }
 
-    errorMsg.textContent = "";
-    if (currentVisibleIndex >= list.length - 1) {
-      submitForm();
-      return;
-    }
+    submitBtn.disabled = true;
+    formMessage.textContent = "Submitting registration...";
 
-    currentVisibleIndex += 1;
-    render();
+    try {
+      const registrationData = collectRegistrationData();
+      const params = new URLSearchParams();
+
+      appendIfPresent(params, PARENT_ENTRY_MAP.firstName, registrationData.parent.firstName);
+      appendIfPresent(params, PARENT_ENTRY_MAP.lastName, registrationData.parent.lastName);
+      appendIfPresent(params, PARENT_ENTRY_MAP.email, registrationData.parent.email);
+      appendIfPresent(params, PARENT_ENTRY_MAP.phone, registrationData.parent.phone);
+      appendIfPresent(params, PARENT_ENTRY_MAP.street, registrationData.parent.street);
+      appendIfPresent(params, PARENT_ENTRY_MAP.apt, registrationData.parent.apt);
+      appendIfPresent(params, PARENT_ENTRY_MAP.city, registrationData.parent.city);
+      appendIfPresent(params, PARENT_ENTRY_MAP.state, registrationData.parent.state);
+      appendIfPresent(params, PARENT_ENTRY_MAP.zip, registrationData.parent.zip);
+
+      registrationData.players.forEach((player, playerIndex) => {
+        const entryMap = PLAYER_ENTRY_MAP[playerIndex + 1];
+        if (!entryMap) return;
+
+        appendIfPresent(params, entryMap.firstName, player.firstName);
+        appendIfPresent(params, entryMap.lastName, player.lastName);
+        appendIfPresent(params, entryMap.dob, player.dob);
+        appendIfPresent(params, entryMap.gender, player.gender);
+        appendIfPresent(params, entryMap.grade, player.grade);
+        appendIfPresent(params, entryMap.jersey, player.jersey);
+        appendIfPresent(params, entryMap.shorts, player.shorts);
+        appendIfPresent(params, entryMap.socks, player.socks);
+        appendIfPresent(params, entryMap.race, player.race);
+        appendIfPresent(params, entryMap.raceOther, player.raceOther);
+        appendIfPresent(params, entryMap.favoriteClub, player.favoriteClub);
+        appendIfPresent(params, entryMap.hearAbout, player.hearAbout);
+
+        if (entryMap.addAnother) {
+          appendIfPresent(params, entryMap.addAnother, player.addAnother || "No");
+        }
+      });
+
+      appendIfPresent(params, AGREEMENT_ENTRY_MAP.waiver, registrationData.agreements.waiver ? "I have read and understand the MLS GO Player Registration Agreement and Waiver, accept its terms for myself and every participant listed in this registration, and intend to be legally bound." : "");
+      appendIfPresent(params, AGREEMENT_ENTRY_MAP.privacy, registrationData.agreements.privacy ? "I agree to the Terms of Service and consent to the use of my information in accordance with the Privacy Policy." : "");
+      appendIfPresent(params, AGREEMENT_ENTRY_MAP.marketing, registrationData.agreements.marketing ? "I agree that MLS GO, Major League Soccer, the MLS Clubs, Soccer United Marketing, MLS NEXT Pro, MLS NEXT and each of their respective clubs, affiliates and partners, can use my information to send me newsletters, offers, additional information and other communications about their products and initiatives in accordance with the Privacy Policy and Terms of Use." : "");
+      appendIfPresent(params, AGREEMENT_ENTRY_MAP.signature, registrationData.signature);
+
+      params.append("fvv", "1");
+      params.append("draftResponse", "[]");
+      params.append("pageHistory", "0");
+      params.append("partialResponse", `[null,null,\"${FBZX}\"]`);
+      params.append("fbzx", FBZX);
+
+      const requests = [postFormResponse(params)];
+      if (GOOGLE_APPS_SCRIPT_URL) {
+        requests.push(postRegistrationCopy(registrationData));
+      }
+
+      await Promise.all(requests);
+
+      form.hidden = true;
+      successPanel.hidden = false;
+      formMessage.textContent = "";
+    } catch (error) {
+      formMessage.textContent = "Submission failed. Please retry in a moment.";
+    } finally {
+      submitBtn.disabled = false;
+    }
   }
 
-  function previous() {
-    if (isSubmitting) return;
-    currentVisibleIndex -= 1;
-    if (currentVisibleIndex < 0) currentVisibleIndex = 0;
-    errorMsg.textContent = "";
-    render();
+  function collectRegistrationData() {
+    const emergencySameAsParent = getCheckboxValue("emergencySameAsParent");
+    const playerCount = selectedPlayerCount();
+    const players = [];
+
+    for (let playerIndex = 1; playerIndex <= playerCount; playerIndex += 1) {
+      players.push({
+        firstName: getTextValue(`p${playerIndex}FirstName`),
+        lastName: getTextValue(`p${playerIndex}LastName`),
+        dob: getTextValue(`p${playerIndex}Dob`),
+        gender: getTextValue(`p${playerIndex}Gender`),
+        grade: getTextValue(`p${playerIndex}Grade`),
+        jersey: getTextValue(`p${playerIndex}Jersey`),
+        shorts: getTextValue(`p${playerIndex}Shorts`),
+        socks: getTextValue(`p${playerIndex}Socks`),
+        race: getTextValue(`p${playerIndex}Race`),
+        raceOther: getTextValue(`p${playerIndex}RaceOther`),
+        favoriteClub: getTextValue(`p${playerIndex}FavoriteClub`),
+        hearAbout: getTextValue(`p${playerIndex}HearAbout`),
+        addAnother: getTextValue(`addPlayer${playerIndex + 1}`),
+      });
+    }
+
+    return {
+      submittedAt: new Date().toISOString(),
+      pageUrl: window.location.href,
+      parent: {
+        firstName: getTextValue("parentFirstName"),
+        lastName: getTextValue("parentLastName"),
+        email: getTextValue("parentEmail"),
+        phone: getTextValue("parentPhone"),
+        street: getTextValue("parentStreet"),
+        apt: getTextValue("parentApt"),
+        city: getTextValue("parentCity"),
+        state: getTextValue("parentState"),
+        zip: getTextValue("parentZip"),
+      },
+      emergency: emergencySameAsParent
+        ? {
+            sameAsParent: true,
+            firstName: "",
+            lastName: "",
+            relationship: "",
+            email: "",
+            phone: "",
+            street: "",
+            apt: "",
+            city: "",
+            state: "",
+            zip: "",
+          }
+        : {
+            sameAsParent: false,
+            firstName: getTextValue("emergencyFirstName"),
+            lastName: getTextValue("emergencyLastName"),
+            relationship: getTextValue("emergencyRelationship"),
+            email: getTextValue("emergencyEmail"),
+            phone: getTextValue("emergencyPhone"),
+            street: getTextValue("emergencyStreet"),
+            apt: getTextValue("emergencyApt"),
+            city: getTextValue("emergencyCity"),
+            state: getTextValue("emergencyState"),
+            zip: getTextValue("emergencyZip"),
+          },
+      players,
+      agreements: {
+        waiver: getCheckboxValue("agreeWaiver"),
+        privacy: getCheckboxValue("agreePrivacy"),
+        marketing: getCheckboxValue("agreeMarketing"),
+      },
+      signature: getTextValue("signature"),
+    };
+  }
+
+  async function postFormResponse(params) {
+    await fetch(FORM_ACTION, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      },
+      body: params.toString(),
+    });
+  }
+
+  async function postRegistrationCopy(data) {
+    const params = new URLSearchParams();
+    params.append("form_type", "mls_registration");
+    params.append("submitted_at", data.submittedAt);
+    params.append("page_url", data.pageUrl);
+
+    appendValue(params, "parent_first_name", data.parent.firstName);
+    appendValue(params, "parent_last_name", data.parent.lastName);
+    appendValue(params, "parent_email", data.parent.email);
+    appendValue(params, "parent_phone", data.parent.phone);
+    appendValue(params, "parent_street", data.parent.street);
+    appendValue(params, "parent_apt", data.parent.apt);
+    appendValue(params, "parent_city", data.parent.city);
+    appendValue(params, "parent_state", data.parent.state);
+    appendValue(params, "parent_zip", data.parent.zip);
+
+    appendValue(params, "emergency_same_as_parent", data.emergency.sameAsParent ? "yes" : "no");
+    appendValue(params, "emergency_first_name", data.emergency.firstName);
+    appendValue(params, "emergency_last_name", data.emergency.lastName);
+    appendValue(params, "emergency_relationship", data.emergency.relationship);
+    appendValue(params, "emergency_email", data.emergency.email);
+    appendValue(params, "emergency_phone", data.emergency.phone);
+    appendValue(params, "emergency_street", data.emergency.street);
+    appendValue(params, "emergency_apt", data.emergency.apt);
+    appendValue(params, "emergency_city", data.emergency.city);
+    appendValue(params, "emergency_state", data.emergency.state);
+    appendValue(params, "emergency_zip", data.emergency.zip);
+
+    appendValue(params, "player_count", String(data.players.length));
+    data.players.forEach((player, index) => {
+      const prefix = `player_${index + 1}`;
+      appendValue(params, `${prefix}_first_name`, player.firstName);
+      appendValue(params, `${prefix}_last_name`, player.lastName);
+      appendValue(params, `${prefix}_dob`, player.dob);
+      appendValue(params, `${prefix}_gender`, player.gender);
+      appendValue(params, `${prefix}_grade`, player.grade);
+      appendValue(params, `${prefix}_jersey`, player.jersey);
+      appendValue(params, `${prefix}_shorts`, player.shorts);
+      appendValue(params, `${prefix}_socks`, player.socks);
+      appendValue(params, `${prefix}_race`, player.race);
+      appendValue(params, `${prefix}_race_other`, player.raceOther);
+      appendValue(params, `${prefix}_favorite_club`, player.favoriteClub);
+      appendValue(params, `${prefix}_hear_about`, player.hearAbout);
+      appendValue(params, `${prefix}_add_another`, player.addAnother);
+    });
+
+    appendValue(params, "agree_waiver", data.agreements.waiver ? "yes" : "no");
+    appendValue(params, "agree_privacy", data.agreements.privacy ? "yes" : "no");
+    appendValue(params, "agree_marketing", data.agreements.marketing ? "yes" : "no");
+    appendValue(params, "signature", data.signature);
+
+    await fetch(GOOGLE_APPS_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      },
+      body: params.toString(),
+    });
+  }
+
+  function appendValue(params, key, value) {
+    if (value === undefined || value === null) return;
+    if (typeof value === "string" && !value.trim()) return;
+    params.append(key, String(value));
+  }
+
+  function getTextValue(name) {
+    const element = form.elements.namedItem(name);
+    if (!element) return "";
+    if (element instanceof RadioNodeList) return element[0]?.value || "";
+    return element.value || "";
+  }
+
+  function getCheckboxValue(name) {
+    const element = form.elements.namedItem(name);
+    if (!element) return false;
+    if (element instanceof RadioNodeList) return Boolean(element[0]?.checked);
+    if (element instanceof HTMLInputElement) return Boolean(element.checked);
+    return false;
   }
 
   function selectedPlayerCount() {
-    if (state.addPlayer2 !== "Yes") return 1;
-    if (state.addPlayer3 !== "Yes") return 2;
-    if (state.addPlayer4 !== "Yes") return 3;
+    if (getTextValue("addPlayer2") !== "Yes") return 1;
+    if (getTextValue("addPlayer3") !== "Yes") return 2;
+    if (getTextValue("addPlayer4") !== "Yes") return 3;
     return 4;
   }
 
@@ -544,114 +850,71 @@
     if (!entryId) return;
     if (value === undefined || value === null) return;
     if (typeof value === "string" && !value.trim()) return;
-    params.append("entry." + entryId, String(value));
+    params.append(`entry.${entryId}`, String(value));
   }
 
-  async function submitForm() {
-    isSubmitting = true;
-    nextBtn.disabled = true;
-    backBtn.disabled = true;
-    errorMsg.textContent = "Submitting...";
+  function loadGooglePlacesScript() {
+    if (!GOOGLE_MAPS_API_KEY || window.google?.maps?.places) return Promise.resolve(false);
+    return new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[data-google-places="true"]');
+      if (existing) {
+        existing.addEventListener("load", () => resolve(true), { once: true });
+        existing.addEventListener("error", () => reject(new Error("Google Places failed to load")), { once: true });
+        return;
+      }
 
+      const script = document.createElement("script");
+      script.dataset.googlePlaces = "true";
+      script.async = true;
+      script.defer = true;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&libraries=places`;
+      script.onload = () => resolve(true);
+      script.onerror = () => reject(new Error("Google Places failed to load"));
+      document.head.appendChild(script);
+    });
+  }
+
+  async function initAddressAutocomplete() {
     try {
-      const params = new URLSearchParams();
+      const loaded = await loadGooglePlacesScript();
+      if (!loaded || !window.google?.maps?.places) return;
 
-      appendIfPresent(params, parentEntryMap.firstName, state.parentFirstName);
-      appendIfPresent(params, parentEntryMap.lastName, state.parentLastName);
-      appendIfPresent(params, parentEntryMap.email, state.parentEmail);
-      appendIfPresent(params, parentEntryMap.phone, state.parentPhone);
-      appendIfPresent(params, parentEntryMap.street, state.parentStreet);
-      appendIfPresent(params, parentEntryMap.apt, state.parentApt);
-      appendIfPresent(params, parentEntryMap.city, state.parentCity);
-      appendIfPresent(params, parentEntryMap.state, state.parentState);
-      appendIfPresent(params, parentEntryMap.zip, state.parentZip);
+      const addressFields = Array.from(form.querySelectorAll('[data-address-field="true"]'));
+      addressFields.forEach((field) => {
+        const input = field;
+        const autocomplete = new google.maps.places.Autocomplete(input, {
+          types: ["address"],
+          fields: ["address_components", "formatted_address", "geometry", "name"],
+          componentRestrictions: { country: "us" },
+        });
 
-      const players = selectedPlayerCount();
+        autocomplete.addListener("place_changed", () => {
+          const place = autocomplete.getPlace();
+          if (!place.address_components) return;
 
-      for (let i = 1; i <= players; i += 1) {
-        const map = playerEntryMap[i];
-        const prefix = "p" + String(i);
+          const parsed = parsePlaceAddress(place.address_components);
+          const prefix = input.name.startsWith("emergency") ? "emergency" : "parent";
 
-        appendIfPresent(params, map.firstName, state[prefix + "FirstName"]);
-        appendIfPresent(params, map.lastName, state[prefix + "LastName"]);
-        appendIfPresent(params, map.dob, state[prefix + "Dob"]);
-        appendIfPresent(params, map.gender, state[prefix + "Gender"]);
-        appendIfPresent(params, map.grade, state[prefix + "Grade"]);
-        appendIfPresent(params, map.jersey, state[prefix + "Jersey"]);
-        appendIfPresent(params, map.shorts, state[prefix + "Shorts"]);
-        appendIfPresent(params, map.socks, state[prefix + "Socks"]);
-        appendIfPresent(params, map.race, state[prefix + "Race"]);
-        appendIfPresent(params, map.raceOther, state[prefix + "RaceOther"]);
-        appendIfPresent(params, map.favoriteClub, state[prefix + "FavoriteClub"]);
-        appendIfPresent(params, map.hearAbout, state[prefix + "HearAbout"]);
-
-        if (map.addAnother) {
-          appendIfPresent(
-            params,
-            map.addAnother,
-            state["addPlayer" + String(i + 1)] || "No",
-          );
-        }
-      }
-
-      if (state.agreeWaiver) {
-        appendIfPresent(
-          params,
-          agreementEntryMap.waiver,
-          "I have read and understand the MLS GO Player Registration Agreement and Waiver, accept its terms for myself and every participant listed in this registration, and intend to be legally bound.",
-        );
-      }
-
-      if (state.agreePrivacy) {
-        appendIfPresent(
-          params,
-          agreementEntryMap.privacy,
-          "I agree to the Terms of Service and consent to the use of my information in accordance with the Privacy Policy.",
-        );
-      }
-
-      if (state.agreeMarketing) {
-        appendIfPresent(
-          params,
-          agreementEntryMap.marketing,
-          "I agree that MLS GO, Major League Soccer, the MLS Clubs, Soccer United Marketing, MLS NEXT Pro, MLS NEXT and each of their respective clubs, affiliates and partners, can use my information to send me newsletters, offers, additional information and other communications about their products and initiatives in accordance with the Privacy Policy and Terms of Use.",
-        );
-      }
-
-      appendIfPresent(params, agreementEntryMap.signature, state.signature);
-
-      params.append("fvv", "1");
-      params.append("draftResponse", "[]");
-      params.append("pageHistory", "0");
-
-      await fetch(FORM_ACTION, {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        },
-        body: params.toString(),
+          if (parsed.street) form.elements.namedItem(`${prefix}Street`).value = parsed.street;
+          if (parsed.city) form.elements.namedItem(`${prefix}City`).value = parsed.city;
+          if (parsed.state) form.elements.namedItem(`${prefix}State`).value = parsed.state;
+          if (parsed.zip) form.elements.namedItem(`${prefix}Zip`).value = parsed.zip;
+        });
       });
-
-      form.hidden = true;
-      resultPanel.hidden = false;
-      errorMsg.textContent = "";
     } catch (error) {
-      errorMsg.textContent =
-        "Submission failed. Please retry, or use the backup Google Form link.";
-      nextBtn.disabled = false;
-      backBtn.disabled = false;
-    } finally {
-      isSubmitting = false;
+      // Silent fallback to manual entry.
     }
   }
 
-  backBtn.addEventListener("click", previous);
-  nextBtn.addEventListener("click", next);
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    next();
-  });
-
-  render();
+  function parsePlaceAddress(components) {
+    const result = { street: "", city: "", state: "", zip: "" };
+    const lookup = (type) => components.find((component) => component.types.includes(type));
+    const streetNumber = lookup("street_number")?.long_name || "";
+    const route = lookup("route")?.long_name || "";
+    result.street = [streetNumber, route].filter(Boolean).join(" ");
+    result.city = lookup("locality")?.long_name || lookup("postal_town")?.long_name || lookup("administrative_area_level_2")?.long_name || "";
+    result.state = lookup("administrative_area_level_1")?.short_name || lookup("administrative_area_level_1")?.long_name || "";
+    result.zip = lookup("postal_code")?.long_name || "";
+    return result;
+  }
 })();

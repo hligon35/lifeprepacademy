@@ -7,6 +7,7 @@ This folder contains a Cloudflare Pages-ready MLS GO registration application th
 - index.html: App shell
 - styles.css: Visual design and responsive layout
 - app.js: Wizard logic and Google Form submission mapping
+- google-apps-script/Code.gs: Spreadsheet logging endpoint for emergency/contact data
 
 ## Deploy To Cloudflare Pages
 
@@ -24,9 +25,20 @@ This folder contains a Cloudflare Pages-ready MLS GO registration application th
 3. If prompted for DNS record, create:
    - Type: CNAME
    - Name: mlsregistration
-   - Target: <your-pages-project>.pages.dev
+   - Target: your-pages-project.pages.dev
 4. Enable Proxied in Cloudflare DNS if available.
 5. Wait for SSL issuance.
+
+## Spreadsheet Logging
+
+The page still submits the original MLS GO data to the Google Form, and it also supports a secondary Google Apps Script webhook that appends the complete registration, including emergency-contact fields, into the linked spreadsheet.
+
+1. Open the spreadsheet from your Google Sheet link.
+2. Go to Extensions > Apps Script.
+3. Paste the contents of [google-apps-script/Code.gs](google-apps-script/Code.gs).
+4. Deploy it as a Web App with Execute as: Me and Access: Anyone.
+5. Copy the Web App URL into the `google-apps-script-url` meta tag in [index.html](index.html).
+6. The script writes into a tab named `MLS Registration`.
 
 ## Verify
 

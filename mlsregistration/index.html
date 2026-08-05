@@ -9,6 +9,8 @@
       content="MLS GO registration form for LifePrep Academy Foundation."
     />
     <meta name="robots" content="noindex,nofollow" />
+    <meta name="google-maps-api-key" content="" />
+    <meta name="google-apps-script-url" content="https://script.google.com/macros/s/AKfycbzbTtECyk8jWMEq-BbhfhLU6h-zJT92Av36QW49qopGQsMFWeAKYXuCRWQcHRFjpQL9/exec" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -20,35 +22,39 @@
   <body>
     <main class="page-shell">
       <section class="card" aria-live="polite">
-        <header class="card-header">
-          <p class="eyebrow">LifePrep Academy Foundation</p>
-          <h1 id="form-title">MLS GO Registration</h1>
-          <p class="subtitle" id="form-subtitle">
-            One question at a time. It takes about 6-10 minutes.
-          </p>
+        <header class="hero">
+          <img
+            src="../LPAFxPGS.PNG"
+            alt="LifePrep Academy Foundation and Paducah GO Soccer header"
+            class="hero-image"
+          />
+          <div class="hero-copy">
+            <p class="eyebrow">LifePrep Academy Foundation</p>
+            <h1 id="form-title">MLS GO Registration</h1>
+            <p class="subtitle" id="form-subtitle">
+              Complete the registration in sections. Parent and player details
+              are grouped together for a faster experience.
+            </p>
+          </div>
         </header>
 
-        <div class="progress-wrap" aria-hidden="true">
-          <div class="progress-bar"><span id="progress-fill"></span></div>
-          <p class="progress-text" id="progress-text">Question 1</p>
-        </div>
+        <p id="form-message" class="error-msg" role="alert"></p>
 
-        <form id="wizard-form" novalidate>
-          <div id="question-host"></div>
+        <form id="registration-form" novalidate>
+          <div id="sections-root"></div>
 
-          <p id="error-msg" class="error-msg" role="alert"></p>
-
-          <div class="actions">
-            <button type="button" class="btn btn-ghost" id="back-btn">
-              Back
-            </button>
-            <button type="button" class="btn btn-primary" id="next-btn">
-              Next
+          <div class="form-footer">
+            <p class="footer-note">
+              Address autocomplete activates when a Google Maps Places API key
+              is added to the page meta tag.
+            </p>
+            <button type="submit" class="btn btn-primary" id="submit-btn">
+              Submit Registration
             </button>
           </div>
         </form>
 
-        <section id="result-panel" class="result-panel" hidden>
+        <section id="success-panel" class="result-panel" hidden>
           <h2>Registration Received</h2>
           <p>
             Thank you. Your form was submitted successfully. We will follow up
