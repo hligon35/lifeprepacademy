@@ -6,7 +6,7 @@
     <title>Youth Programs | LifePrep Academy Foundation</title>
     <meta
       name="description"
-      content="Explore LifePrep Academy Foundation youth programs, including NFL FLAG and MLS GO, and watch highlights from the 2026 Paducah NFL Flag Clinic."
+      content="View 2026 Paducah youth clinic highlights and stay tuned for upcoming youth programs from LifePrep Academy Foundation."
     />
     <meta name="robots" content="index, follow" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
@@ -38,7 +38,7 @@
     />
     <meta
       property="og:description"
-      content="Watch highlights from the 2026 Paducah NFL Flag Clinic and learn more about upcoming youth programs."
+      content="View 2026 Paducah youth clinic highlights and stay tuned for upcoming youth programs."
     />
     <meta
       property="og:image"
@@ -57,7 +57,7 @@
     />
     <meta
       name="twitter:description"
-      content="Watch highlights from the 2026 Paducah NFL Flag Clinic and learn more about upcoming youth programs."
+      content="View 2026 Paducah youth clinic highlights and stay tuned for upcoming youth programs."
     />
     <meta
       name="twitter:image"
@@ -131,53 +131,6 @@
         margin-inline: auto;
       }
 
-      .page-youth-programs .youth-hero-split {
-        margin-top: 1.25rem;
-        display: grid;
-        gap: 1rem;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .page-youth-programs .youth-split-lane {
-        min-height: 180px;
-        display: grid;
-        place-content: center;
-        gap: 0.5rem;
-        padding: 1rem;
-        border-radius: var(--yp-radius-md);
-        border: 1px solid var(--yp-border);
-        text-align: center;
-      }
-
-      .page-youth-programs .youth-split-lane .btn {
-        justify-self: center;
-        margin-top: 0.35rem;
-      }
-
-      .page-youth-programs .youth-split-lane img {
-        display: block;
-        width: auto;
-        height: 56px;
-        max-width: 100%;
-        margin-inline: auto;
-        object-fit: contain;
-      }
-
-      .page-youth-programs .youth-split-lane--nfl {
-        background: linear-gradient(
-          140deg,
-          rgba(249, 181, 21, 0.18),
-          rgba(40, 17, 86, 0.06)
-        );
-      }
-
-      .page-youth-programs .youth-split-lane--mls {
-        background: linear-gradient(
-          220deg,
-          rgba(74, 144, 226, 0.2),
-          rgba(40, 17, 86, 0.06)
-        );
-      }
 
       .page-youth-programs .program-features h2 {
         margin-bottom: 1rem;
@@ -325,11 +278,16 @@
         aspect-ratio: 16 / 9;
       }
 
-      .page-youth-programs .clinic-highlights video {
+      .page-youth-programs .clinic-highlights video,
+      .page-youth-programs .clinic-highlights iframe {
         display: block;
         width: 100%;
         height: 100%;
         background: #000;
+      }
+
+      .page-youth-programs .clinic-highlights iframe {
+        border: 0;
       }
 
       .page-youth-programs .media-placeholder-note {
@@ -639,8 +597,7 @@
       }
 
       @media (max-width: 768px) {
-        .page-youth-programs .program-feature-grid,
-        .page-youth-programs .youth-hero-split {
+        .page-youth-programs .program-feature-grid {
           grid-template-columns: 1fr;
         }
 
@@ -749,194 +706,11 @@
           <div class="container">
             <div class="youth-page-stack">
               <section class="youth-hero" aria-labelledby="youth-hero-heading">
-                <h1 id="youth-hero-heading">Two Sports. One Place to Play.</h1>
+                <h1 id="youth-hero-heading">Youth Programs Hub</h1>
                 <p>
-                  Find a fun place to learn the game, build skills, grow confidence,
-                  work with teammates, and connect with the local community through
-                  youth sports.
+                  Clinic highlights are live below, and more youth opportunities are
+                  on the way. Stay tuned.
                 </p>
-                <div class="youth-hero-split" aria-label="Featured youth programs">
-                  <div class="youth-split-lane youth-split-lane--nfl">
-                    <img
-                      src="NFLFlagBlue.png"
-                      alt="NFL FLAG program logo"
-                      width="220"
-                      height="56"
-                      decoding="async"
-                    />
-                    <p><strong>NFL FLAG</strong> football opportunities in Paducah.</p>
-                    <a href="#nfl-flag-program" class="btn btn-primary"
-                      >Explore NFL FLAG</a
-                    >
-                  </div>
-                  <div class="youth-split-lane youth-split-lane--mls">
-                    <img
-                      src="mlsLogo.png"
-                      alt="MLS GO program logo"
-                      width="220"
-                      height="56"
-                      decoding="async"
-                    />
-                    <p><strong>MLS GO</strong> soccer opportunities in Paducah.</p>
-                    <a href="#mls-go-program" class="btn btn-primary"
-                      >Explore MLS GO</a
-                    >
-                  </div>
-                </div>
-              </section>
-
-              <section
-                class="program-features"
-                aria-labelledby="program-features-heading"
-              >
-                <h2 id="program-features-heading">Choose Your Program</h2>
-                <div class="program-feature-grid">
-                  <article
-                    class="program-feature-card"
-                    id="nfl-flag-program"
-                    aria-labelledby="nfl-flag-title"
-                  >
-                    <header class="program-feature-header">
-                      <div class="program-logo-wrap">
-                        <img
-                          src="NFLFlagWhite.png"
-                          alt="NFL FLAG logo"
-                          width="280"
-                          height="90"
-                          decoding="async"
-                          class="program-logo"
-                        />
-                      </div>
-                      <h3 id="nfl-flag-title">NFL FLAG</h3>
-                    </header>
-                    <figure class="program-feature-media">
-                      <!-- Replace with official NFL FLAG action photo when available. -->
-                      <img
-                        src="eventa.avif"
-                        alt="NFL FLAG clinic participants during a drill"
-                        width="1280"
-                        height="720"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </figure>
-                    <p>
-                      Introductory flag football programming focused on learning,
-                      movement, and positive team experiences.
-                    </p>
-                    <dl class="program-meta">
-                      <div>
-                        <dt>Ages or divisions</dt>
-                        <dd>Program details coming soon.</dd>
-                      </div>
-                      <div>
-                        <dt>Season or registration</dt>
-                        <dd>Registration is open.</dd>
-                      </div>
-                      <div>
-                        <dt>Location</dt>
-                        <dd>Paducah, KY</dd>
-                      </div>
-                    </dl>
-                    <div class="program-actions">
-                      <a
-                        href="https://docs.google.com/forms/d/e/1FAIpQLSccAWEVbd4mBSYcLWx2yRcG1CqR8Np0pg4raUWjwNNx9XjQcg/viewform?usp=sharing&ouid=116491165659523073510"
-                        class="btn btn-primary"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        >Register Now</a
-                      >
-                      <button
-                        type="button"
-                        class="btn"
-                        data-program-trigger="nfl"
-                        data-button-label="Program Details"
-                        aria-controls="youth-contact"
-                        aria-expanded="false"
-                      >
-                        Program Details
-                      </button>
-                    </div>
-                  </article>
-
-                  <article
-                    class="program-feature-card"
-                    id="mls-go-program"
-                    aria-labelledby="mls-go-title"
-                  >
-                    <header class="program-feature-header">
-                      <div class="program-logo-wrap">
-                        <img
-                          src="mlsLogo.png"
-                          alt="MLS GO logo"
-                          width="280"
-                          height="90"
-                          decoding="async"
-                          class="program-logo"
-                        />
-                      </div>
-                      <h3 id="mls-go-title">MLS GO</h3>
-                    </header>
-                    <figure class="program-feature-media">
-                      <!-- Replace with official MLS GO action photo when available. -->
-                      <img
-                        src="groupPhoto.avif"
-                        alt="Youth soccer players and families in a group photo"
-                        width="1280"
-                        height="720"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </figure>
-                    <p>
-                      Recreational youth soccer designed to support skill growth,
-                      confidence, and fun teamwork.
-                    </p>
-                    <dl class="program-meta">
-                      <div>
-                        <dt>Ages or divisions</dt>
-                        <dd>Program details coming soon.</dd>
-                      </div>
-                      <div>
-                        <dt>Season or registration</dt>
-                        <dd>Registration is open.</dd>
-                      </div>
-                      <div>
-                        <dt>Location</dt>
-                        <dd>Paducah, KY</dd>
-                      </div>
-                    </dl>
-                    <div class="program-actions">
-                      <a
-                        href="https://mlsregistration.lifeprepacademyfoundation.com"
-                        class="btn btn-primary"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        >Register Now</a
-                      >
-                      <button
-                        type="button"
-                        class="btn"
-                        data-program-trigger="mlsgo"
-                        data-button-label="Program Details"
-                        aria-controls="youth-contact"
-                        aria-expanded="false"
-                      >
-                        Program Details
-                      </button>
-                    </div>
-                  </article>
-                </div>
-              </section>
-
-              <section class="shared-benefits" aria-labelledby="shared-benefits-heading">
-                <h2 id="shared-benefits-heading">Shared Benefits</h2>
-                <ul class="benefits-list">
-                  <li>Beginner-friendly play</li>
-                  <li>Skill development</li>
-                  <li>Teamwork and confidence</li>
-                  <li>Local community programming</li>
-                </ul>
               </section>
 
               <section
@@ -944,23 +718,22 @@
                 aria-labelledby="clinic-highlights-heading"
               >
                 <h2 id="clinic-highlights-heading">
-                  2026 Paducah NFL FLAG Clinic Highlights
+                  2026 Paducah Youth Clinic Highlights
                 </h2>
                 <div class="clinic-highlights-video-wrap">
-                  <video
-                    controls
-                    preload="none"
-                    playsinline
-                    poster="pffLogo.png"
-                    aria-label="2026 Paducah NFL FLAG Clinic highlights video"
-                  >
-                    <source src="CLINIC_HIGHLIGHTS.mp4" type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
+                  <iframe
+                    title="2026 Paducah youth clinic highlights video"
+                    src="https://drive.google.com/file/d/1v3Oy96P5Gikf6IyI1P1PpicqLfEx1_Vj/preview"
+                    loading="lazy"
+                    allow="encrypted-media; picture-in-picture; fullscreen"
+                    allowfullscreen
+                    referrerpolicy="strict-origin-when-cross-origin"
+                  ></iframe>
                 </div>
                 <p class="muted media-placeholder-note">
-                  Video poster currently uses a branded placeholder image. Replace
-                  with official NFL FLAG clinic poster media when available.
+                  Clinic video is currently embedded from the existing hosted source
+                  so preview deployments stay within Cloudflare Pages file size
+                  limits.
                 </p>
                 <div
                   class="clinic-gallery"
@@ -1010,21 +783,21 @@
               </section>
 
               <section class="youth-closing-cta" aria-labelledby="youth-closing-heading">
-                <h2 id="youth-closing-heading">Need Help Choosing a Program?</h2>
+                <h2 id="youth-closing-heading">Stay Tuned for More Youth Programs</h2>
                 <p>
-                  Tell us about your player and goals, and we can help your family
-                  decide between NFL FLAG and MLS GO.
+                  Clinic season was just the beginning. More youth opportunities are
+                  on the way, and we cannot wait to share what is next.
                 </p>
                 <div class="youth-closing-actions">
                   <button
                     type="button"
                     class="btn btn-primary"
                     data-program-trigger="general"
-                    data-button-label="Get Help Choosing a Program"
+                    data-button-label="Get Youth Program Updates"
                     aria-controls="youth-contact"
                     aria-expanded="false"
                   >
-                    Get Help Choosing a Program
+                    Get Youth Program Updates
                   </button>
                   <p class="coach-cta-placeholder" aria-label="Coaching call to action status">
                     Coaching Information Coming Soon
@@ -1038,8 +811,8 @@
           <div class="container">
             <h2>Youth Programs Contact</h2>
             <p class="muted">
-              Use the form below to ask about NFL FLAG or MLS GO. We&rsquo;ll
-              follow up with next steps and availability.
+              Use the form below to ask about youth programs and future offerings.
+              We&rsquo;ll follow up with next steps and availability.
             </p>
             <form
               class="contact-form"
@@ -1053,8 +826,8 @@
                 Youth Programs Inquiry
               </h3>
               <p class="muted" id="youth-contact-helper">
-                Choose a program and send us your question. We&rsquo;ll reply
-                with details on enrollment, timing, and next steps.
+                Share your question and we&rsquo;ll reply with details on enrollment,
+                timing, and next steps.
               </p>
               <input type="hidden" name="form_type" value="youth" />
               <div class="hp-wrapper" aria-hidden="true">
@@ -1128,11 +901,8 @@
                     class="select-fit select-fit-lg"
                   >
                     <option value="" disabled selected>Select a program</option>
-                    <option value="MLS GO / Youth Programs Information">
-                      MLS GO / Youth Programs Information
-                    </option>
-                    <option value="NFL FLAG / Youth Programs Information">
-                      NFL FLAG / Youth Programs Information
+                    <option value="Future Youth Programs Information">
+                      Future Youth Programs Information
                     </option>
                     <option value="General Youth Programs">
                       General Youth Programs
@@ -1454,7 +1224,7 @@
               activePhotoIndex + 1 + " of " + clinicPhotos.length;
           if (modalImage) {
             modalImage.alt =
-              "Paducah NFL Flag Clinic 2026 photo " + (activePhotoIndex + 1);
+              "Paducah Youth Clinic 2026 photo " + (activePhotoIndex + 1);
             modalImage.src =
               instantSrc ||
               thumbCache.get(activePhotoIndex) ||
@@ -1522,7 +1292,7 @@
               image.src = thumbUrl(index);
               image.alt = isDuplicate
                 ? ""
-                : "Paducah NFL Flag Clinic 2026 photo " + (index + 1);
+                : "Paducah Youth Clinic 2026 photo " + (index + 1);
               image.loading = isDuplicate ? "lazy" : "eager";
               image.fetchPriority = index < 6 && !isDuplicate ? "high" : "auto";
               image.decoding = "async";
@@ -1616,29 +1386,13 @@
         )
           return;
         const programConfig = {
-          nfl: {
-            title: "More Info: NFL FLAG",
-            helper:
-              "Complete the form below and we&rsquo;ll follow up with NFL FLAG program details and next steps.",
-            subject: "NFL FLAG / Youth Programs Information",
-            placeholder:
-              "Tell us what you want to know about NFL FLAG, your participant age range, and any timing questions.",
-          },
-          mlsgo: {
-            title: "More Info: MLS GO",
-            helper:
-              "Complete the form below and we&rsquo;ll follow up with MLS GO program details and next steps.",
-            subject: "MLS GO / Youth Programs Information",
-            placeholder:
-              "Tell us what you want to know about MLS GO, who the program is for, and any timing questions.",
-          },
           general: {
             title: "Youth Programs Contact",
             helper:
-              "Share what you are looking for, and we&rsquo;ll help your family choose the best current youth program option.",
+              "Share what you are looking for, and we&rsquo;ll keep you posted on upcoming youth program opportunities.",
             subject: "General Youth Programs",
             placeholder:
-              "Tell us about your player and goals, and we can help you compare current program options.",
+              "Tell us what youth opportunities you are interested in and we&rsquo;ll share updates as new programs launch.",
           },
         };
         let activeProgram = "";
@@ -1655,7 +1409,7 @@
           });
         }
         function applyProgram(program) {
-          const config = programConfig[program] || programConfig.mlsgo;
+          const config = programConfig[program] || programConfig.general;
           activeProgram = program;
           contactTitle.textContent = config.title;
           contactHelper.innerHTML = config.helper;
@@ -1682,16 +1436,14 @@
         toggleButtons.forEach((button) =>
           button.addEventListener("click", () => {
             const program =
-                button.getAttribute("data-program-trigger") || "mlsgo",
+                button.getAttribute("data-program-trigger") || "general",
               isActive =
                 !contactSection.hasAttribute("hidden") &&
                 activeProgram === program;
             setOpen(!isActive, program, true);
           }),
         );
-        if (location.hash === "#nfl-contact") setOpen(true, "nfl", false);
-        else if (location.hash === "#mlsgo-contact") setOpen(true, "mlsgo", false);
-        else if (location.hash === "#youth-contact") setOpen(true, "general", false);
+        if (location.hash === "#youth-contact") setOpen(true, "general", false);
       })();
     </script>
   </body>
