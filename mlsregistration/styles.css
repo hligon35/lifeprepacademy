@@ -77,11 +77,13 @@ body {
 
 .eyebrow {
   margin: 0 0 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  text-transform: none;
+  letter-spacing: 0.02em;
   font-weight: 700;
-  font-size: 0.8rem;
-  color: var(--brand);
+  font-size: 0.76rem;
+  color: #000;
+  font-style: italic;
+  text-align: center;
 }
 
 .subtitle {
@@ -266,8 +268,20 @@ body {
 
 .wizard-actions {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
+}
+
+.wizard-actions .btn {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 44px;
+}
+
+.skip-btn {
+  border-style: dashed;
 }
 
 .btn-ghost {
@@ -308,6 +322,52 @@ body {
   max-width: 70ch;
 }
 
+.flow-status {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(111, 45, 189, 0.22);
+  background: rgba(111, 45, 189, 0.08);
+  color: #2f2457;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.checkbox-group {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.checkbox-group-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.checkbox-group-option input {
+  margin-top: 3px;
+}
+
+.agreement-doc-links {
+  margin: 6px 0 0 28px;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.agreement-doc-links a {
+  color: var(--brand-2);
+  font-weight: 600;
+  text-underline-offset: 2px;
+}
+
+.agreement-doc-links a:hover {
+  color: var(--brand);
+}
+
 .result-panel {
   margin-top: 18px;
   border: 1px solid rgba(111, 45, 189, 0.18);
@@ -338,12 +398,19 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .btn {
-    width: 100%;
+  .wizard-actions {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 8px;
+    overflow-x: auto;
   }
 
-  .wizard-actions {
-    flex-direction: column-reverse;
+  .wizard-actions .btn {
+    flex: 0 0 auto;
+    width: auto;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    white-space: nowrap;
   }
 
   .form-footer {

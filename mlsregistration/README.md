@@ -1,6 +1,6 @@
 # MLS Registration App (Cloudflare Pages)
 
-This folder contains a Cloudflare Pages-ready MLS GO registration application that uses a one-question-per-screen flow and submits to your existing Google Form.
+This folder contains a Cloudflare Pages-ready MLS GO registration application that uses a section-by-section wizard and submits to your existing Google Form.
 
 ## Files
 
@@ -49,5 +49,7 @@ The page still submits the original MLS GO data to the Google Form, and it also 
 ## Notes
 
 - The app posts to Google Forms formResponse endpoint.
+- After player registration, the wizard can optionally continue into volunteer and/or coaching follow-up flows.
+- Standalone follow-up modes are available with query params: `?flow=volunteer` or `?flow=coach`.
 - If you change fields in Google Form, update the entry IDs in app.js.
 - To reduce spam, add Cloudflare Turnstile before production launch.

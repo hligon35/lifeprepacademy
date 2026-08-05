@@ -29,7 +29,10 @@
             class="hero-image"
           />
           <div class="hero-copy">
-            <p class="eyebrow">LifePrep Academy Foundation</p>
+            <p class="eyebrow">
+              An MLS GO recreational youth soccer program<br />
+              Locally operated by LifePrep Academy Foundation
+            </p>
             <h1 id="form-title">MLS GO Registration</h1>
             <p class="subtitle" id="form-subtitle">
               Complete the registration in sections. Parent and player details
@@ -56,11 +59,11 @@
               <button type="button" class="btn btn-primary" id="next-btn">
                 Next Section
               </button>
+              <button type="button" class="btn btn-ghost skip-btn" id="skip-btn" hidden>
+                Skip and Finish
+              </button>
             </div>
-            <p class="footer-note">
-              Address autocomplete activates when a Google Maps Places API key
-              is added to the page meta tag.
-            </p>
+            <p id="flow-status" class="flow-status" hidden></p>
           </div>
         </form>
 
