@@ -28,21 +28,40 @@ export default {
     if (url.pathname === "/api/public-config" && request.method === "GET") {
       return handlePublicConfig(env, request);
     }
+    if (url.pathname === "/api/public-config") {
+      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+    }
 
     if (url.pathname === "/api/sign-agreement" && request.method === "POST") {
       return handleSignAgreement(request, env, ctx);
+    }
+    if (url.pathname === "/api/sign-agreement") {
+      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
     }
 
     if (url.pathname === "/api/payment-webhook/cornerstone" && request.method === "POST") {
       return handlePaymentWebhook(request, env);
     }
+    if (url.pathname === "/api/payment-webhook/cornerstone") {
+      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+    }
 
     if (url.pathname.startsWith("/api/signer/agreement/") && request.method === "GET") {
       return handleSignerDownload(request, env);
     }
+    if (url.pathname.startsWith("/api/signer/agreement/")) {
+      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+    }
 
     if (url.pathname.startsWith("/api/admin/agreement/") && request.method === "GET") {
       return handleAdminDownload(request, env);
+    }
+    if (url.pathname.startsWith("/api/admin/agreement/")) {
+      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+    }
+
+    if (url.pathname.startsWith("/api/")) {
+      return json({ ok: false, error: "Not found" }, 404, request, env);
     }
 
     return env.ASSETS.fetch(request);

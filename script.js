@@ -1054,19 +1054,6 @@ function debounce(func, wait) {
 window.addEventListener('load', function() {
     // Remove loading classes and show content
     document.body.classList.add('loaded');
-    
-    // Preload critical images (only preload hero background if hero actually exists on page)
-    const criticalImages = ['logo.png'];
-    if (document.querySelector('.hero-section')) {
-        criticalImages.push('groupPhoto.avif');
-    }
-    criticalImages.forEach(src => {
-        const link = document.createElement('link');
-        link.rel = 'preload';
-        link.as = 'image';
-        link.href = src;
-        document.head.appendChild(link);
-    });
 });
 
 // Error handling
