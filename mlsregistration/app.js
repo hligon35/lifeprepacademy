@@ -1782,9 +1782,6 @@
     if (heading) heading.textContent = "Submission Complete";
     if (copy) copy.textContent = message || "Thank you. Your submission was received.";
 
-    const existingLink = successPanel.querySelector('[data-signer-copy-link="true"]');
-    if (existingLink) existingLink.remove();
-
     const existingDonationCta = successPanel.querySelector('[data-donation-cta="true"]');
     if (existingDonationCta) existingDonationCta.remove();
 
@@ -1794,16 +1791,8 @@
     const existingDonationHint = successPanel.querySelector('[data-donation-hint="true"]');
     if (existingDonationHint) existingDonationHint.remove();
 
-    if (signerDownloadUrl) {
-      const link = document.createElement("a");
-      link.href = signerDownloadUrl;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.className = "btn btn-primary";
-      link.dataset.signerCopyLink = "true";
-      link.textContent = "Download Signed Agreement Copy";
-      successPanel.appendChild(link);
-    }
+    const existingDonationTaxSubtitle = successPanel.querySelector('[data-donation-tax-subtitle="true"]');
+    if (existingDonationTaxSubtitle) existingDonationTaxSubtitle.remove();
 
     if (options.redirectToDonation) {
       const donateUrl = buildDonateUrl();
@@ -1811,8 +1800,14 @@
       const donationNote = document.createElement("p");
       donationNote.dataset.donationNote = "true";
       donationNote.textContent =
-        "LifePrep Academy Foundation is a nonprofit organization. Your registration fee payment may be tax-deductible to the extent permitted by law. After payment is confirmed, we will email your final registration confirmation and signed-document download link.";
+        "After payment is confirmed, we will email your final registration confirmation and signed-document download link.";
       successPanel.appendChild(donationNote);
+
+      const donationTaxSubtitle = document.createElement("p");
+      donationTaxSubtitle.dataset.donationTaxSubtitle = "true";
+      donationTaxSubtitle.textContent =
+        "LifePrep Academy Foundation is a nonprofit organization. Your registration fee payment may be tax-deductible to the extent permitted by law.";
+      successPanel.appendChild(donationTaxSubtitle);
 
       const donationHint = document.createElement("p");
       donationHint.dataset.donationHint = "true";

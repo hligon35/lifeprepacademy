@@ -226,6 +226,9 @@ function doPost(e) {
   if (action === 'get_registration_context') {
     return handleRegistrationContextLookup_(e.parameter);
   }
+  if (action === 'send_registration_receipt_email') {
+    return handleRegistrationReceiptEmail_(e.parameter);
+  }
   if (action === 'send_registration_paid_email') {
     return handleRegistrationPaidEmail_(e.parameter);
   }
@@ -322,7 +325,7 @@ function handleAgreementMetadataUpdate_(values) {
   }
 }
 
-function handleRegistrationReceiptEmail_(values) {
+function handleRegistrationPaidEmail_(values) {
   const expected = PropertiesService.getScriptProperties().getProperty('AGREEMENT_UPDATE_TOKEN') || '';
   const provided = normalizeValue_(values.update_token);
   if (!expected || provided !== expected) {
@@ -347,7 +350,7 @@ function handleRegistrationReceiptEmail_(values) {
   };
 
   try {
-    sendRegistrationPaidEmail_(payload);
+    sendRegistrationEmailByStage_(payload, Boolean(payload.paymentPaidAt || payload.paymentReceiptUrl));
     return json_({ ok: true, emailed: true });
   } catch (error) {
     writeError_('mls_registration', 'Registration receipt email failed', {
@@ -356,6 +359,10 @@ function handleRegistrationReceiptEmail_(values) {
     });
     return json_({ ok: false, error: String(error && error.message ? error.message : error) }, 500);
   }
+}
+
+function handleRegistrationReceiptEmail_(values) {
+  return handleRegistrationPaidEmail_(values);
 }
 
 function handlePaymentMetadataUpdate_(values) {
@@ -573,10 +580,16 @@ function safeStringify_(value) {
   }
 }
 
-function sendRegistrationPaidEmail_(payload) {
-  const subject = 'Thank you for completing your MLS GO registration';
-  const htmlBody = buildRegistrationPaidEmailHtml_(payload);
-  const body = buildRegistrationPaidEmailText_(payload);
+function sendRegistrationEmailByStage_(payload, paymentConfirmed) {
+  const subject = paymentConfirmed
+    ? 'Thank you for completing your MLS GO registration'
+    : 'Thank you for registering for MLS GO';
+  const htmlBody = paymentConfirmed
+    ? buildRegistrationPaidEmailHtml_(payload)
+    : buildRegistrationSubmissionEmailHtml_(payload);
+  const body = paymentConfirmed
+    ? buildRegistrationPaidEmailText_(payload)
+    : buildRegistrationSubmissionEmailText_(payload);
 
   MailApp.sendEmail({
     to: payload.parentEmail,
@@ -586,6 +599,67 @@ function sendRegistrationPaidEmail_(payload) {
     name: 'LifePrep Academy Foundation',
     replyTo: 'info@lifeprepacademyfoundation.com',
   });
+}
+
+function buildRegistrationSubmissionEmailHtml_(payload) {
+  const parentName = escapeHtml_(payload.parentName || 'Parent/Guardian');
+  const participantNames = escapeHtml_(payload.participantNames || 'Your registered participant(s)');
+  const signedAt = escapeHtml_(payload.signedAt || '');
+  const signedDocumentUrl = escapeHtml_(payload.signedDocumentUrl || BRAND_URL);
+  const paymentUrl = escapeHtml_(payload.paymentUrl || BRAND_URL);
+  const fee = escapeHtml_(payload.registrationFeeAmount || '75');
+
+  return ''
+    + '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+    + '<body style="margin:0;padding:0;background:#f5f2ea;font-family:Arial,sans-serif;color:#22313f">'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#f5f2ea">'
+    + '<tr><td style="padding:24px 12px">'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:720px;margin:0 auto;border-collapse:collapse">'
+    + '<tr><td style="background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid rgba(34,49,63,0.12)">'
+    + '<img src="' + REGISTRATION_BANNER_URL + '" alt="LifePrep Academy Foundation MLS GO" style="display:block;width:100%;height:auto">'
+    + '<div style="padding:32px 30px 24px">'
+    + '<div style="font-size:12px;line-height:1.2;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#c16a2b;margin:0 0 12px">MLS GO Registration</div>'
+    + '<h1 style="margin:0 0 16px;font-size:30px;line-height:1.1;color:#1d2f40">Thank you for registering</h1>'
+    + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">Hello ' + parentName + ',</p>'
+    + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">We received your MLS GO registration for ' + participantNames + '. A signed document copy is available below.</p>'
+    + (signedAt ? '<p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#586574"><strong style="color:#1d2f40">Signed:</strong> ' + signedAt + '</p>' : '')
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px"><tr>'
+    + '<td style="border-radius:999px;background:#1d2f40">'
+    + '<a href="' + signedDocumentUrl + '" style="display:inline-block;padding:14px 24px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none">Download Signed Documents</a>'
+    + '</td></tr></table>'
+    + '<p style="margin:0 0 12px;font-size:15px;line-height:1.7">To complete registration, please submit the program fee of $' + fee + '.</p>'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px"><tr>'
+    + '<td style="border-radius:999px;background:#c16a2b">'
+    + '<a href="' + paymentUrl + '" style="display:inline-block;padding:14px 24px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none">Pay Registration Fee</a>'
+    + '</td></tr></table>'
+    + '<p style="margin:0 0 12px;font-size:15px;line-height:1.7">LifePrep Academy Foundation is a nonprofit organization. Your payment may be tax-deductible to the extent permitted by law, and you will receive a payment receipt by email.</p>'
+    + '<p style="margin:0;font-size:15px;line-height:1.7">If you have any questions, reply to this email or contact <a href="mailto:info@lifeprepacademyfoundation.com" style="color:#1d2f40;font-weight:700;text-decoration:none">info@lifeprepacademyfoundation.com</a>.</p>'
+    + '</div>'
+    + '</td></tr>'
+    + '<tr><td style="padding:16px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#6b7280">'
+    + '<a href="' + BRAND_URL + '" style="color:#1d2f40;font-weight:700;text-decoration:none">' + BRAND_DOMAIN + '</a>'
+    + '</td></tr>'
+    + '</table>'
+    + '</td></tr>'
+    + '</table>'
+    + '</body></html>';
+}
+
+function buildRegistrationSubmissionEmailText_(payload) {
+  const lines = [];
+  lines.push('Thank you for registering for MLS GO.');
+  lines.push('');
+  if (payload.parentName) lines.push('Parent/Guardian: ' + payload.parentName);
+  if (payload.participantNames) lines.push('Participant(s): ' + payload.participantNames);
+  if (payload.signedAt) lines.push('Signed At: ' + payload.signedAt);
+  lines.push('');
+  lines.push('Download signed documents: ' + (payload.signedDocumentUrl || BRAND_URL));
+  lines.push('Complete payment: ' + (payload.paymentUrl || BRAND_URL));
+  lines.push('');
+  lines.push('LifePrep Academy Foundation is a nonprofit organization. Your payment may be tax-deductible to the extent permitted by law, and you will receive a payment receipt by email.');
+  lines.push('');
+  lines.push(BRAND_DOMAIN);
+  return lines.join('\n');
 }
 
 function buildRegistrationPaidEmailHtml_(payload) {

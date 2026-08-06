@@ -232,6 +232,24 @@ async function handleSignAgreement(request, env) {
       return json({ ok: false, error: "Sheet update failed", details: sheetUpdate.error }, 502);
     }
 
+    if (agreementType === "player") {
+      const submissionEmail = await sendRegistrationSubmissionEmail(env, {
+        parentEmail: payload.fields?.guardianEmail,
+        parentName: payload.fields?.guardianName || payload.signer?.printedName,
+        participantNames: payload.fields?.participantNames || "",
+        signedAt: payload.audit?.signedAtUtc || "",
+        signedDocumentUrl: emailDownloadUrl,
+        paymentUrl: PLAYER_REGISTRATION_PAYMENT_URL,
+      });
+      if (!submissionEmail.ok) {
+        console.warn("registration-submission-email-failed", {
+          txId,
+          submissionId,
+          error: submissionEmail.error,
+        });
+      }
+    }
+
     await doFetch(env, "/transaction", {
       method: "POST",
       body: JSON.stringify({
@@ -776,6 +794,61 @@ async function sendRegistrationPaidEmail(env, input) {
     const parsed = safeJsonParse(text);
     if (!parsed?.ok) {
       return { ok: false, error: parsed?.error || "Apps Script email send failed" };
+    }
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: String(error?.message || error) };
+  }
+}
+
+async function sendRegistrationSubmissionEmail(env, input) {
+  if (!env.APPS_SCRIPT_URL || !env.APPS_SCRIPT_UPDATE_TOKEN) {
+    return { ok: false, error: "Missing Apps Script email configuration" };
+  }
+
+  const parentEmail = String(input.parentEmail || "").trim();
+  if (!parentEmail) {
+    return { ok: false, error: "Missing parent email" };
+  }
+
+  const payload = {
+    parent_email: parentEmail,
+    parent_name: String(input.parentName || "").trim(),
+    participant_names: String(input.participantNames || "").trim(),
+    signed_at: String(input.signedAt || "").trim(),
+    signed_document_url: String(input.signedDocumentUrl || "").trim(),
+    payment_url: String(input.paymentUrl || "").trim(),
+    registration_fee_amount: "75",
+  };
+
+  const primary = await postRegistrationEmailAction(env, "send_registration_receipt_email", payload);
+  if (primary.ok) return primary;
+
+  // Backward-compatible fallback for scripts only supporting the newer action name.
+  return postRegistrationEmailAction(env, "send_registration_paid_email", payload);
+}
+
+async function postRegistrationEmailAction(env, action, payload) {
+  const params = new URLSearchParams();
+  params.append("action", action);
+  params.append("update_token", env.APPS_SCRIPT_UPDATE_TOKEN);
+
+  Object.entries(payload).forEach(([key, value]) => {
+    params.append(key, String(value || "").trim());
+  });
+
+  try {
+    const res = await fetch(env.APPS_SCRIPT_URL, {
+      method: "POST",
+      body: params,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      },
+    });
+    const text = await res.text();
+    const parsed = safeJsonParse(text);
+    if (!parsed?.ok) {
+      return { ok: false, error: parsed?.error || `Apps Script ${action} failed` };
     }
     return { ok: true };
   } catch (error) {
