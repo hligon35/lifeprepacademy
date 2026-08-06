@@ -274,9 +274,21 @@ async function handleSignAgreement(request, env) {
     let registrationEmail = null;
     if (agreementType === "player") {
       const submissionEmail = await sendRegistrationSubmissionEmail(env, {
+        submissionId,
         parentEmail: payload.fields?.guardianEmail,
         parentName: payload.fields?.guardianName || payload.signer?.printedName,
         participantNames: payload.fields?.participantNames || "",
+        relationshipToChild: payload.fields?.relationshipToChild || "",
+        primaryPhone: payload.fields?.primaryPhone || payload.fields?.parentPhone || "",
+        alternatePhone: payload.fields?.alternatePhone || "",
+        emergencyContactName: payload.fields?.emergencyContactName || "",
+        emergencyRelationship: payload.fields?.emergencyRelationship || "",
+        emergencyEmail: payload.fields?.emergencyEmail || "",
+        emergencyPhone: payload.fields?.emergencyPhone || "",
+        emergencyStreet: payload.fields?.emergencyStreet || "",
+        emergencyCity: payload.fields?.emergencyCity || "",
+        emergencyState: payload.fields?.emergencyState || "",
+        emergencyZip: payload.fields?.emergencyZip || "",
         signedAt: payload.audit?.signedAtUtc || "",
         signedDocumentUrl: emailDownloadUrl,
         paymentUrl: PLAYER_REGISTRATION_PAYMENT_URL,
@@ -451,6 +463,7 @@ async function handlePaymentWebhook(request, env) {
   }
 
   const emailResult = await sendRegistrationPaidEmail(env, {
+    submissionId: normalized.submissionId,
     parentEmail: context.parentEmail,
     parentName: context.parentName,
     participantNames: context.participantNames,
@@ -853,6 +866,7 @@ async function sendRegistrationPaidEmail(env, input) {
   params.append("action", "send_registration_paid_email");
   appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
   params.append("form_type", "mls_registration");
+  params.append("registration_submission_id", String(input.submissionId || "").trim());
   params.append("parent_email", parentEmail);
   params.append("parent_name", String(input.parentName || "").trim());
   params.append("participant_names", String(input.participantNames || "").trim());
@@ -886,9 +900,21 @@ async function sendRegistrationSubmissionEmail(env, input) {
   }
 
   const payload = {
+    registration_submission_id: String(input.submissionId || "").trim(),
     parent_email: parentEmail,
     parent_name: String(input.parentName || "").trim(),
     participant_names: String(input.participantNames || "").trim(),
+    relationship_to_child: String(input.relationshipToChild || "").trim(),
+    primary_phone: String(input.primaryPhone || "").trim(),
+    alternate_phone: String(input.alternatePhone || "").trim(),
+    emergency_contact_name: String(input.emergencyContactName || "").trim(),
+    emergency_relationship: String(input.emergencyRelationship || "").trim(),
+    emergency_email: String(input.emergencyEmail || "").trim(),
+    emergency_phone: String(input.emergencyPhone || "").trim(),
+    emergency_street: String(input.emergencyStreet || "").trim(),
+    emergency_city: String(input.emergencyCity || "").trim(),
+    emergency_state: String(input.emergencyState || "").trim(),
+    emergency_zip: String(input.emergencyZip || "").trim(),
     signed_at: String(input.signedAt || "").trim(),
     signed_document_url: String(input.signedDocumentUrl || "").trim(),
     payment_url: String(input.paymentUrl || "").trim(),

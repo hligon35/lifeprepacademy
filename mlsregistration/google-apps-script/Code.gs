@@ -351,9 +351,21 @@ function handleRegistrationPaidEmail_(values) {
   }
 
   const payload = {
+    registrationSubmissionId: normalizeValue_(values.registration_submission_id || values.submission_id),
     parentEmail,
     parentName: normalizeValue_(values.parent_name),
     participantNames: normalizeValue_(values.participant_names),
+    relationshipToChild: normalizeValue_(values.relationship_to_child),
+    primaryPhone: normalizeValue_(values.primary_phone),
+    alternatePhone: normalizeValue_(values.alternate_phone),
+    emergencyContactName: normalizeValue_(values.emergency_contact_name),
+    emergencyRelationship: normalizeValue_(values.emergency_relationship),
+    emergencyEmail: normalizeValue_(values.emergency_email),
+    emergencyPhone: normalizeValue_(values.emergency_phone),
+    emergencyStreet: normalizeValue_(values.emergency_street),
+    emergencyCity: normalizeValue_(values.emergency_city),
+    emergencyState: normalizeValue_(values.emergency_state),
+    emergencyZip: normalizeValue_(values.emergency_zip),
     signedAt: normalizeValue_(values.signed_at),
     signedDocumentUrl: normalizeValue_(values.signed_document_url),
     paymentUrl: normalizeValue_(values.payment_url),
@@ -680,6 +692,13 @@ function buildRegistrationSubmissionEmailHtml_(payload) {
   const signedDocumentUrl = escapeHtml_(payload.signedDocumentUrl || BRAND_URL);
   const paymentUrl = escapeHtml_(payload.paymentUrl || BRAND_URL);
   const fee = escapeHtml_(payload.registrationFeeAmount || '75');
+  const responseRows = buildRegistrationResponseRows_(payload);
+  const responseRowsHtml = responseRows.map((row) => ''
+    + '<tr>'
+    + '<td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;font-weight:700;color:#1d2f40;vertical-align:top">' + escapeHtml_(row.label) + '</td>'
+    + '<td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#22313f;vertical-align:top">' + escapeHtml_(row.value) + '</td>'
+    + '</tr>'
+  ).join('');
 
   return ''
     + '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
@@ -695,6 +714,12 @@ function buildRegistrationSubmissionEmailHtml_(payload) {
     + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">Hello ' + parentName + ',</p>'
     + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">We received your MLS GO registration for ' + participantNames + '. A signed document copy is available below.</p>'
     + (signedAt ? '<p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#586574"><strong style="color:#1d2f40">Signed:</strong> ' + signedAt + '</p>' : '')
+    + (responseRowsHtml
+      ? '<h2 style="margin:0 0 10px;font-size:18px;line-height:1.3;color:#1d2f40">Submitted Responses</h2>'
+        + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 18px;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">'
+        + responseRowsHtml
+        + '</table>'
+      : '')
     + '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px"><tr>'
     + '<td style="border-radius:999px;background:#1d2f40">'
     + '<a href="' + signedDocumentUrl + '" style="display:inline-block;padding:14px 24px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none">Download Signed Documents</a>'
@@ -724,6 +749,14 @@ function buildRegistrationSubmissionEmailText_(payload) {
   if (payload.parentName) lines.push('Parent/Guardian: ' + payload.parentName);
   if (payload.participantNames) lines.push('Participant(s): ' + payload.participantNames);
   if (payload.signedAt) lines.push('Signed At: ' + payload.signedAt);
+  const responseRows = buildRegistrationResponseRows_(payload);
+  if (responseRows.length) {
+    lines.push('');
+    lines.push('Submitted Responses:');
+    responseRows.forEach((row) => {
+      lines.push('- ' + row.label + ': ' + row.value);
+    });
+  }
   lines.push('');
   lines.push('Download signed documents: ' + (payload.signedDocumentUrl || BRAND_URL));
   lines.push('If you have not already paid your registration fee, complete payment: ' + (payload.paymentUrl || BRAND_URL));
@@ -742,6 +775,13 @@ function buildRegistrationPaidEmailHtml_(payload) {
   const paymentReceiptUrl = escapeHtml_(payload.paymentReceiptUrl || '');
   const paymentPaidAt = escapeHtml_(payload.paymentPaidAt || '');
   const fee = escapeHtml_(payload.registrationFeeAmount || '75');
+  const responseRows = buildRegistrationResponseRows_(payload);
+  const responseRowsHtml = responseRows.map((row) => ''
+    + '<tr>'
+    + '<td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;font-weight:700;color:#1d2f40;vertical-align:top">' + escapeHtml_(row.label) + '</td>'
+    + '<td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#22313f;vertical-align:top">' + escapeHtml_(row.value) + '</td>'
+    + '</tr>'
+  ).join('');
 
   return ''
     + '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
@@ -758,6 +798,12 @@ function buildRegistrationPaidEmailHtml_(payload) {
     + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">We have confirmed payment for the MLS GO registration for ' + participantNames + '. Your signed registration document is ready to download below.</p>'
     + (signedAt ? '<p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#586574"><strong style="color:#1d2f40">Signed:</strong> ' + signedAt + '</p>' : '')
     + (paymentPaidAt ? '<p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#586574"><strong style="color:#1d2f40">Payment Confirmed:</strong> ' + paymentPaidAt + '</p>' : '')
+    + (responseRowsHtml
+      ? '<h2 style="margin:0 0 10px;font-size:18px;line-height:1.3;color:#1d2f40">Submitted Responses</h2>'
+        + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 18px;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">'
+        + responseRowsHtml
+        + '</table>'
+      : '')
     + '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px"><tr>'
     + '<td style="border-radius:999px;background:#1d2f40">'
     + '<a href="' + signedDocumentUrl + '" style="display:inline-block;padding:14px 24px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none">Download Signed Documents</a>'
@@ -789,6 +835,14 @@ function buildRegistrationPaidEmailText_(payload) {
   if (payload.participantNames) lines.push('Participant(s): ' + payload.participantNames);
   if (payload.signedAt) lines.push('Signed At: ' + payload.signedAt);
   if (payload.paymentPaidAt) lines.push('Payment Confirmed: ' + payload.paymentPaidAt);
+  const responseRows = buildRegistrationResponseRows_(payload);
+  if (responseRows.length) {
+    lines.push('');
+    lines.push('Submitted Responses:');
+    responseRows.forEach((row) => {
+      lines.push('- ' + row.label + ': ' + row.value);
+    });
+  }
   lines.push('');
   lines.push('Download signed documents: ' + (payload.signedDocumentUrl || BRAND_URL));
   if (payload.paymentReceiptUrl) {
@@ -800,6 +854,32 @@ function buildRegistrationPaidEmailText_(payload) {
   lines.push('');
   lines.push(BRAND_DOMAIN);
   return lines.join('\n');
+}
+
+function buildRegistrationResponseRows_(payload) {
+  const emergencyAddress = [
+    normalizeValue_(payload.emergencyStreet),
+    normalizeValue_(payload.emergencyCity),
+    normalizeValue_(payload.emergencyState),
+    normalizeValue_(payload.emergencyZip),
+  ].filter(Boolean).join(', ');
+
+  const rows = [
+    { label: 'Registration ID', value: normalizeValue_(payload.registrationSubmissionId) },
+    { label: 'Parent/Guardian Full Name', value: normalizeValue_(payload.parentName) },
+    { label: 'Relationship to Child', value: normalizeValue_(payload.relationshipToChild) },
+    { label: 'Email Address', value: normalizeValue_(payload.parentEmail) },
+    { label: 'Primary Phone Number', value: normalizeValue_(payload.primaryPhone) },
+    { label: 'Alternate Phone Number', value: normalizeValue_(payload.alternatePhone) },
+    { label: 'Emergency Contact Name', value: normalizeValue_(payload.emergencyContactName) },
+    { label: 'Emergency Relationship', value: normalizeValue_(payload.emergencyRelationship) },
+    { label: 'Emergency Contact Email', value: normalizeValue_(payload.emergencyEmail) },
+    { label: 'Emergency Contact Phone', value: normalizeValue_(payload.emergencyPhone) },
+    { label: 'Emergency Contact Address', value: emergencyAddress },
+    { label: 'Participant(s)', value: normalizeValue_(payload.participantNames) },
+  ];
+
+  return rows.filter((row) => normalizeValue_(row.value));
 }
 
 function escapeHtml_(value) {

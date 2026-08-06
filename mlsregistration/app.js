@@ -2224,11 +2224,15 @@
         consentVersion: E_CONSENT_TEXT_VERSION,
       },
       fields: {
+        registrationSubmissionId: registrationData.registrationSubmissionId,
         printedFullName: signer.printedName,
+        relationshipToChild: "Parent/Legal Guardian",
         participantNames: registrationData.players
           .map((p) => `${p.firstName} ${p.lastName}`.trim())
           .filter(Boolean)
           .join(", "),
+        primaryPhone: registrationData.parent.phone,
+        alternatePhone: registrationData.emergency?.sameAsParent ? "" : registrationData.emergency?.phone || "",
         parentStreet: registrationData.parent.street,
         parentCity: registrationData.parent.city,
         parentState: registrationData.parent.state,
@@ -2243,6 +2247,30 @@
         guardianZip: registrationData.parent.zip,
         guardianPhone: registrationData.parent.phone,
         guardianEmail: registrationData.parent.email,
+        emergencyContactName: registrationData.emergency?.sameAsParent
+          ? `${registrationData.parent.firstName} ${registrationData.parent.lastName}`.trim()
+          : `${registrationData.emergency?.firstName || ""} ${registrationData.emergency?.lastName || ""}`.trim(),
+        emergencyRelationship: registrationData.emergency?.sameAsParent
+          ? "Same as parent/guardian"
+          : registrationData.emergency?.relationship || "",
+        emergencyEmail: registrationData.emergency?.sameAsParent
+          ? registrationData.parent.email
+          : registrationData.emergency?.email || "",
+        emergencyPhone: registrationData.emergency?.sameAsParent
+          ? registrationData.parent.phone
+          : registrationData.emergency?.phone || "",
+        emergencyStreet: registrationData.emergency?.sameAsParent
+          ? registrationData.parent.street
+          : registrationData.emergency?.street || "",
+        emergencyCity: registrationData.emergency?.sameAsParent
+          ? registrationData.parent.city
+          : registrationData.emergency?.city || "",
+        emergencyState: registrationData.emergency?.sameAsParent
+          ? registrationData.parent.state
+          : registrationData.emergency?.state || "",
+        emergencyZip: registrationData.emergency?.sameAsParent
+          ? registrationData.parent.zip
+          : registrationData.emergency?.zip || "",
         signingDate: new Date().toISOString().slice(0, 10),
       },
     };
