@@ -178,7 +178,7 @@
     [FLOW.COACH]: {
       title: "Coaching Application",
       subtitle:
-        "Complete volunteer intake and coaching supplements for coaching consideration.",
+        "Complete the coaching application for program consideration. Contact details are collected first, followed by coaching-specific sections.",
       progressLabel: "Coaching application",
       submitLabel: "Submit Coaching Application",
     },
@@ -457,9 +457,12 @@
   }
 
   function buildVolunteerContactSection() {
+    const isStandaloneCoach = standaloneFlow === FLOW.COACH;
     const section = createSection(
-      "Volunteer Contact",
-      "Tell us how to reach you about volunteer opportunities.",
+      isStandaloneCoach ? "Coaching Contact" : "Volunteer Contact",
+      isStandaloneCoach
+        ? "Tell us how to reach you about coaching opportunities."
+        : "Tell us how to reach you about volunteer opportunities.",
       false,
       "volunteer-contact-section",
       FLOW.VOLUNTEER,
@@ -1003,8 +1006,14 @@
   }
 
   function getVisibleSections() {
+    const currentStage = getCurrentStageFlow();
     return Array.from(sectionsRoot.querySelectorAll(".form-section")).filter((section) => {
       const sectionFlow = section.dataset.flow;
+      if (standaloneFlow === FLOW.COACH && currentStage === FLOW.COACH) {
+        const includeInStandaloneCoach =
+          section.id === "volunteer-contact-section" || sectionFlow === FLOW.COACH;
+        if (!includeInStandaloneCoach) return false;
+      }
       if (!flowIncludes(sectionFlow)) return false;
       if (sectionFlow === FLOW.PLAYER && !includePlayerSectionByCondition(section.id)) return false;
       if (section.classList.contains("hidden")) return false;
@@ -1104,7 +1113,7 @@
   function getFlowStatusMessage() {
     const stageFlow = getCurrentStageFlow();
     if (stageFlow === FLOW.PLAYER) return "";
-    if (standaloneFlow) return "Standalone application mode is active.";
+    if (standaloneFlow === FLOW.VOLUNTEER || standaloneFlow === FLOW.COACH) return "";
     if (activeFlow === FLOW.VOLUNTEER_AND_COACH) {
       return volunteerSubmitted
         ? "Volunteer application submitted. Continue with the coaching supplement."

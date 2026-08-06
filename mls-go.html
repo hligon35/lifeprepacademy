@@ -36,6 +36,21 @@
     <link rel="stylesheet" href="style.min.css?v=9e84f9012f" />
     <noscript><link rel="stylesheet" href="style.min.css?v=9e84f9012f" /></noscript>
     <style>
+      body {
+        background-color: #1f143d;
+        background-image:
+          linear-gradient(rgba(23, 13, 46, 0.74), rgba(23, 13, 46, 0.74)),
+          url("assets/MLS GO/MLS_AD_AL_05072023_DA__0700.jpg");
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+      }
+
+      .programs-section {
+        background: transparent;
+      }
+
       .program-subpage-card {
         max-width: 1000px;
         margin: 0 auto;
@@ -76,6 +91,108 @@
         max-width: 72ch;
         margin: 0 auto;
         text-align: center;
+      }
+      .program-hero-media {
+        margin: 1rem 0 0;
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid rgba(40, 17, 86, 0.16);
+        box-shadow: 0 12px 26px rgba(40, 17, 86, 0.16);
+      }
+      .program-hero-media img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .program-intro-block {
+        margin-top: 1rem;
+        border: 1px solid rgba(40, 17, 86, 0.14);
+        border-radius: 14px;
+        background: #fcfbff;
+        padding: 1rem;
+      }
+      .program-intro-block p {
+        margin: 0;
+      }
+      .program-intro-note {
+        margin-top: 0.65rem;
+        font-size: 0.92rem;
+      }
+      .program-trust-bar {
+        margin-top: 0.95rem;
+        display: grid;
+        gap: 0.6rem;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        list-style: none;
+        padding: 0;
+      }
+      .program-trust-bar li {
+        border-radius: 999px;
+        background: #281156;
+        color: #fff;
+        font-weight: 700;
+        text-align: center;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.92rem;
+      }
+      .program-expect-section {
+        margin-top: 1.35rem;
+      }
+      .program-expect-section h2 {
+        margin: 0 0 0.75rem;
+        color: #281156;
+        font-size: clamp(1.2rem, 2.3vw, 1.55rem);
+      }
+      .program-expect-grid {
+        display: grid;
+        gap: 0.8rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .program-expect-card {
+        border: 1px solid rgba(40, 17, 86, 0.16);
+        border-radius: 12px;
+        background: #fff;
+        padding: 0.85rem;
+      }
+      .program-expect-card h3 {
+        margin: 0 0 0.3rem;
+        color: #281156;
+        font-size: 1.05rem;
+      }
+      .program-expect-card p {
+        margin: 0;
+      }
+      .program-rulebook-note {
+        margin-top: 0.75rem;
+        font-size: 0.95rem;
+      }
+      .program-safety-section {
+        margin-top: 1.3rem;
+        border: 1px solid rgba(40, 17, 86, 0.18);
+        border-radius: 14px;
+        background: #f7f3ff;
+        padding: 1rem;
+      }
+      .program-safety-section h2 {
+        margin: 0 0 0.55rem;
+        color: #281156;
+      }
+      .program-safety-quote {
+        margin: 0;
+        border-left: 4px solid #281156;
+        background: #fff;
+        padding: 0.75rem;
+        border-radius: 8px;
+      }
+      .program-safety-list {
+        margin: 0.75rem 0 0;
+        padding-left: 1.1rem;
+        display: grid;
+        gap: 0.35rem;
+      }
+      .program-safety-disclaimer {
+        margin: 0.6rem 0 0;
+        font-size: 0.9rem;
       }
       .program-story-flow {
         margin-top: 1.35rem;
@@ -146,7 +263,9 @@
         .program-subpage-grid,
         .program-story-item,
         .program-story-item--reverse,
-        .program-subpage-facts {
+        .program-subpage-facts,
+        .program-trust-bar,
+        .program-expect-grid {
           grid-template-columns: 1fr;
         }
         .program-story-item--reverse .program-story-copy,
@@ -192,10 +311,89 @@
                 is ready.
               </p>
 
+              <figure class="program-hero-media">
+                <img
+                  src="assets/MLS GO/oneteam.png"
+                  alt="Paducah GO Soccer players standing together as one team"
+                  width="1672"
+                  height="941"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </figure>
+
+              <div class="program-intro-block" aria-label="Program overview">
+                <p>
+                  Paducah GO Soccer, locally operated by LifePrep Academy
+                  Foundation, gives children ages 4-14 an inclusive, structured,
+                  and exciting place to learn the game. With age-appropriate
+                  small-sided play, MLS GO coaching resources, official uniforms,
+                  and a no-cut approach, every player gets an opportunity to
+                  learn, participate, and belong.
+                </p>
+                <p class="program-intro-note muted">
+                  If your executed operator agreement confirms designation, this
+                  language can be upgraded to <strong>Official MLS GO League
+                  Operator</strong>.
+                </p>
+              </div>
+
+              <ul class="program-trust-bar" aria-label="Program trust highlights">
+                <li>Ages 4-14</li>
+                <li>All skill levels welcome</li>
+                <li>No cuts</li>
+                <li>Meaningful playing time</li>
+                <li>Age-appropriate coaching</li>
+                <li>Athlete-safety standards</li>
+              </ul>
+
+              <section class="program-expect-section" aria-labelledby="what-families-can-expect-heading">
+                <h2 id="what-families-can-expect-heading">What Families Can Expect</h2>
+                <div class="program-expect-grid">
+                  <article class="program-expect-card">
+                    <h3>Everyone gets to play</h3>
+                    <p>
+                      MLS GO has a no-cut approach, and team sizes are designed
+                      to provide every player with meaningful time on the field.
+                    </p>
+                  </article>
+                  <article class="program-expect-card">
+                    <h3>Built for development</h3>
+                    <p>
+                      Age-appropriate small-sided games give players more touches
+                      on the ball and more opportunities to learn.
+                    </p>
+                  </article>
+                  <article class="program-expect-card">
+                    <h3>More than the score</h3>
+                    <p>
+                      For younger divisions, the emphasis is on fundamentals,
+                      confidence, teamwork, and enjoying the game, not standings.
+                    </p>
+                  </article>
+                  <article class="program-expect-card">
+                    <h3>The MLS GO experience</h3>
+                    <p>
+                      Players can receive an official kit with an MLS GO
+                      reversible jersey, shorts, and socks. Coaches are supported
+                      with age-specific MLS GO curriculum and resources.
+                    </p>
+                  </article>
+                </div>
+                <p class="program-rulebook-note muted">
+                  The official rulebook supports the no-cut, playing-time,
+                  age-format, and development-first statements:
+                  <a
+                    href="mls-go-rulebook.html"
+                    >MLS GO Rulebook</a
+                  >.
+                </p>
+              </section>
+
               <div class="program-story-flow">
                 <article class="program-story-item">
                   <figure class="program-subpage-media">
-                    <img src="assets/MLS GO/ChatGPT Image Aug 5, 2026, 06_18_37 PM.png" alt="MLS GO player lineup and event showcase" width="1672" height="941" loading="lazy" decoding="async" />
+                    <img src="assets/MLS GO/soccerstartshere.png" alt="MLS GO player lineup and event showcase" width="1672" height="941" loading="lazy" decoding="async" />
                   </figure>
                   <div class="program-story-copy">
                     <h2>Built for New and Developing Players</h2>
@@ -209,7 +407,7 @@
 
                 <article class="program-story-item program-story-item--reverse">
                   <figure class="program-subpage-media">
-                    <img src="assets/MLS GO/ChatGPT Image Aug 5, 2026, 06_38_06 PM (1).png" alt="MLS GO event details and registration info" width="1691" height="930" loading="lazy" decoding="async" />
+                    <img src="assets/MLS GO/yourseason.png" alt="MLS GO event details and registration info" width="1691" height="930" loading="lazy" decoding="async" />
                   </figure>
                   <div class="program-story-copy">
                     <h2>Structured Sessions, Real Progress</h2>
@@ -223,7 +421,7 @@
 
                 <article class="program-story-item">
                   <figure class="program-subpage-media">
-                    <img src="assets/MLS GO/ChatGPT Image Aug 5, 2026, 06_38_06 PM (2).png" alt="MLS GO youth soccer action graphic" width="1254" height="1254" loading="lazy" decoding="async" />
+                    <img src="assets/MLS GO/playgrowbelong.png" alt="MLS GO youth soccer action graphic" width="1254" height="1254" loading="lazy" decoding="async" />
                   </figure>
                   <div class="program-story-copy">
                     <h2>Community-Centered Experience</h2>
@@ -237,7 +435,7 @@
 
                 <article class="program-story-item program-story-item--reverse">
                   <figure class="program-subpage-media">
-                    <img src="assets/MLS GO/ChatGPT Image Aug 5, 2026, 06_38_06 PM (3).png" alt="MLS GO community and skills development visual" width="1774" height="887" loading="lazy" decoding="async" />
+                    <img src="assets/MLS GO/paducahplays.png" alt="MLS GO community and skills development visual" width="1774" height="887" loading="lazy" decoding="async" />
                   </figure>
                   <div class="program-story-copy">
                     <h2>Next Step: Join the Program</h2>
@@ -265,15 +463,46 @@
                 </article>
               </div>
 
+              <section class="program-safety-section" aria-labelledby="safety-commitment-heading">
+                <h2 id="safety-commitment-heading">Our Commitment to Player Safety</h2>
+                <p class="program-safety-quote">
+                  Paducah GO Soccer is committed to a positive, inclusive, and
+                  safe environment. Coaches, volunteers, and other covered adults
+                  are subject to MLS GO screening and training requirements.
+                  Program activities follow athlete-protection,
+                  emergency-response, and weather-safety procedures.
+                </p>
+                <ul class="program-safety-list">
+                  <li>Background screening for coaches, volunteers, officials, staff, and other adults with regular participant access</li>
+                  <li>Annual SafeSport training and applicable state training</li>
+                  <li>No isolated one-on-one adult/minor interactions outside an observable and interruptible setting</li>
+                  <li>A written emergency action plan for each venue</li>
+                  <li>AED and first-aid locations documented</li>
+                  <li>Coaches educated on emergency response</li>
+                  <li>Concussion and cardiac-response protocols</li>
+                  <li>Lightning suspension using the 30/30 rule</li>
+                  <li>Heat decisions based on heat index, hydration, shade, and cooling access</li>
+                </ul>
+                <p class="program-safety-disclaimer muted">
+                  Publish and refine each safety item as local implementation
+                  procedures are confirmed.
+                </p>
+              </section>
+
               <p class="program-subpage-note muted">
                 Scheduling updates and additional session information are shared
                 through the registration pathway and youth program announcements.
               </p>
               <div class="program-subpage-actions">
-                <a href="https://mlsregistration.lifeprepacademyfoundation.com" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                <a href="mlsregistration/" class="btn btn-primary">
                   Register for MLS GO
                 </a>
-                <a href="mlsregistration/index.html" class="btn btn-outline">Open Registration Experience</a>
+                <a href="mlsregistration/?flow=volunteer" class="btn btn-outline">
+                  Volunteer Form
+                </a>
+                <a href="mlsregistration/?flow=coach" class="btn btn-outline">
+                  Coaching Application
+                </a>
               </div>
             </div>
           </div>
