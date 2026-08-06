@@ -10,6 +10,8 @@ const EMAIL_SIGNER_LINK_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 const PRIMARY_APP_ORIGIN = "https://mlsregistration.lifeprepacademyfoundation.com";
 const DEFAULT_ALLOWED_ORIGINS = [
   PRIMARY_APP_ORIGIN,
+  "https://lifeprepacademyfoundation.com",
+  "https://www.lifeprepacademyfoundation.com",
   "https://preview.lifeprepacademyfoundation.com",
   "https://lpaf-mls.hligon.workers.dev",
   "http://127.0.0.1:3000",
