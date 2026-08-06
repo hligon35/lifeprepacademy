@@ -39,6 +39,13 @@ export default {
       return json({ ok: false, error: "Method not allowed" }, 405, request, env);
     }
 
+    if (url.pathname === "/api/forms/upsert" && request.method === "POST") {
+      return handleFormUpsert(request, env);
+    }
+    if (url.pathname === "/api/forms/upsert") {
+      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+    }
+
     if (url.pathname === "/api/payment-webhook/cornerstone" && request.method === "POST") {
       return handlePaymentWebhook(request, env);
     }
@@ -253,10 +260,13 @@ async function handleSignAgreement(request, env) {
       status: "Signed",
       agreementVersion: template.version,
     });
-
     if (!sheetUpdate.ok) {
-      await markTransactionFailed(env, txId, "Sheet update failed");
-      return json({ ok: false, error: "Sheet update failed", details: sheetUpdate.error }, 502, request, env);
+      console.warn("agreement-sheet-update-failed", {
+        txId,
+        submissionId,
+        formType,
+        error: sheetUpdate.error,
+      });
     }
 
     let registrationEmail = null;
@@ -308,6 +318,10 @@ async function handleSignAgreement(request, env) {
       signedAt: payload.audit.signedAtUtc,
       signerDownloadUrl: signerUrl,
       emailDownloadUrl,
+      sheetUpdate: {
+        ok: Boolean(sheetUpdate.ok),
+        error: sheetUpdate.ok ? "" : String(sheetUpdate.error || "Sheet update failed"),
+      },
       registrationEmail,
     }, 200, request, env);
   } catch (error) {
@@ -334,6 +348,58 @@ async function handleSignAgreement(request, env) {
       agreementVersion: template.version,
     });
     return json({ ok: false, error: "Agreement generation failed" }, 500, request, env);
+  }
+}
+
+async function handleFormUpsert(request, env) {
+  const origin = request.headers.get("Origin") || "";
+  if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "")) {
+    return json({ ok: false, error: "Origin not allowed" }, 403, request, env);
+  }
+
+  if (!env.APPS_SCRIPT_URL) {
+    return json({ ok: false, error: "Apps Script URL is not configured" }, 500, request, env);
+  }
+
+  const payload = await request.json().catch(() => null);
+  if (!payload || typeof payload !== "object") {
+    return json({ ok: false, error: "Invalid JSON" }, 400, request, env);
+  }
+
+  const formType = String(payload.formType || "").trim();
+  const values = payload.values && typeof payload.values === "object" ? payload.values : null;
+  if (!formType || !values) {
+    return json({ ok: false, error: "Missing formType or values" }, 400, request, env);
+  }
+
+  const params = new URLSearchParams();
+  params.append("form_type", formType);
+  Object.entries(values).forEach(([key, value]) => {
+    if (!key) return;
+    if (value === undefined || value === null) return;
+    if (Array.isArray(value)) {
+      if (value.length) params.append(key, value.join(", "));
+      return;
+    }
+    const text = String(value).trim();
+    if (text) params.append(key, text);
+  });
+
+  try {
+    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
+    const parsed = safeJsonParse(text);
+
+    if (!parsed?.ok) {
+      return json({
+        ok: false,
+        error: parsed?.error || "Apps Script upsert failed",
+        details: parsed || text.slice(0, 500),
+      }, 502, request, env);
+    }
+
+    return json({ ok: true, result: parsed }, 200, request, env);
+  } catch (error) {
+    return json({ ok: false, error: String(error?.message || error) }, 502, request, env);
   }
 }
 
@@ -671,14 +737,7 @@ async function updateAgreementInSheets(env, input) {
   params.append("agreement_transaction_id", input.transactionId);
 
   try {
-    const res = await fetch(env.APPS_SCRIPT_URL, {
-      method: "POST",
-      body: params,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      },
-    });
-    const text = await res.text();
+    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
     const parsed = safeJsonParse(text);
     if (!parsed?.ok) {
       return { ok: false, error: parsed?.error || "Apps Script update failed" };
@@ -707,14 +766,7 @@ async function updatePaymentInSheets(env, input) {
   params.append("payment_receipt_url", String(input.paymentReceiptUrl || ""));
 
   try {
-    const res = await fetch(env.APPS_SCRIPT_URL, {
-      method: "POST",
-      body: params,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      },
-    });
-    const text = await res.text();
+    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
     const parsed = safeJsonParse(text);
     if (!parsed?.ok) {
       return { ok: false, error: parsed?.error || "Apps Script payment update failed" };
@@ -737,14 +789,7 @@ async function getRegistrationContext(env, submissionId) {
   params.append("submission_id", submissionId);
 
   try {
-    const res = await fetch(env.APPS_SCRIPT_URL, {
-      method: "POST",
-      body: params,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      },
-    });
-    const text = await res.text();
+    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
     const parsed = safeJsonParse(text);
     if (!parsed?.ok) {
       return { ok: false, error: parsed?.error || "Apps Script context lookup failed" };
@@ -816,14 +861,7 @@ async function sendRegistrationPaidEmail(env, input) {
   params.append("registration_fee_amount", String(input.registrationFeeAmount || "75").trim());
 
   try {
-    const res = await fetch(env.APPS_SCRIPT_URL, {
-      method: "POST",
-      body: params,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      },
-    });
-    const text = await res.text();
+    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
     const parsed = safeJsonParse(text);
     if (!parsed?.ok) {
       return { ok: false, error: parsed?.error || "Apps Script email send failed" };
@@ -871,14 +909,7 @@ async function postRegistrationEmailAction(env, action, payload) {
   });
 
   try {
-    const res = await fetch(env.APPS_SCRIPT_URL, {
-      method: "POST",
-      body: params,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      },
-    });
-    const text = await res.text();
+    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
     const parsed = safeJsonParse(text);
     if (!parsed?.ok) {
       return { ok: false, error: parsed?.error || `Apps Script ${action} failed` };
@@ -1036,6 +1067,33 @@ function timingSafeEq(a, b) {
     out |= a.charCodeAt(i) ^ b.charCodeAt(i);
   }
   return out === 0;
+}
+
+function isRedirectStatus(status) {
+  return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
+}
+
+async function postAppsScriptForm(url, params) {
+  const body = typeof params === "string" ? params : params.toString();
+  const init = {
+    method: "POST",
+    body,
+    redirect: "manual",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+    },
+  };
+
+  let res = await fetch(url, init);
+  if (isRedirectStatus(res.status)) {
+    const location = res.headers.get("Location");
+    if (location) {
+      const followUrl = new URL(location, url).toString();
+      res = await fetch(followUrl, init);
+    }
+  }
+
+  return res.text();
 }
 
 function safeJsonParse(text) {

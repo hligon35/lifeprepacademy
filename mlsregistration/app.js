@@ -9,6 +9,7 @@
     ? ""
     : REGISTRATION_API_ORIGIN;
   const PUBLIC_CONFIG_ENDPOINT = `${API_ORIGIN}/api/public-config`;
+  const FORM_UPSERT_ENDPOINT = `${API_ORIGIN}/api/forms/upsert`;
   const GOOGLE_APPS_SCRIPT_URL =
     document.querySelector('meta[name="google-apps-script-url"]')?.content.trim() || "";
   const MLS_PLAYER_WAIVER_URL =
@@ -17,8 +18,8 @@
     "https://www.mlssoccer.com/legal/privacy-policy";
   const MLS_TERMS_OF_SERVICE_URL =
     "https://www.mlssoccer.com/legal/terms-of-service";
-  const PLAYER_AGREEMENT_TEMPLATE_URL = "./documents/MLS GO Player Registration Agreement.pdf";
-  const VOLUNTEER_AGREEMENT_TEMPLATE_URL = "./documents/MLS GO Volunteer Agreement.pdf";
+  const PLAYER_AGREEMENT_TEMPLATE_URL = `${REGISTRATION_API_ORIGIN}/documents/MLS GO Player Registration Agreement.pdf`;
+  const VOLUNTEER_AGREEMENT_TEMPLATE_URL = `${REGISTRATION_API_ORIGIN}/documents/MLS GO Volunteer Agreement.pdf`;
   const SIGNING_ENDPOINT = `${API_ORIGIN}/api/sign-agreement`;
   const E_CONSENT_TEXT_VERSION = "v1-2026-08-06";
   const ELECTRONIC_CONSENT_TEXT =
@@ -246,6 +247,7 @@
   let playerAgreementTransactionId = "";
   let signerDownloadUrl = "";
   let registrationEmailWarning = "";
+  let registrationSyncWarning = "";
   let googleMapsApiKeyPromise;
   let donationRedirectTimer = 0;
 
@@ -1613,8 +1615,13 @@
     params.append("partialResponse", `[null,null,"${FBZX}"]`);
     params.append("fbzx", FBZX);
 
-    if (GOOGLE_APPS_SCRIPT_URL) {
+    try {
       await postRegistrationCopy(registrationData);
+      registrationSyncWarning = "";
+    } catch (error) {
+      console.warn("registration-upsert-failed", error);
+      registrationSyncWarning =
+        "Your registration completed, but we could not sync all form details to our records right now. Please contact info@lifeprepacademyfoundation.com so we can verify your entry.";
     }
 
     if (ENABLE_GOOGLE_FORM_MIRROR) {
@@ -1791,11 +1798,21 @@
     const existingEmailWarning = successPanel.querySelector('[data-email-warning="true"]');
     if (existingEmailWarning) existingEmailWarning.remove();
 
+    const existingSyncWarning = successPanel.querySelector('[data-sync-warning="true"]');
+    if (existingSyncWarning) existingSyncWarning.remove();
+
     if (registrationEmailWarning) {
       const emailWarning = document.createElement("p");
       emailWarning.dataset.emailWarning = "true";
       emailWarning.textContent = registrationEmailWarning;
       successPanel.appendChild(emailWarning);
+    }
+
+    if (registrationSyncWarning) {
+      const syncWarning = document.createElement("p");
+      syncWarning.dataset.syncWarning = "true";
+      syncWarning.textContent = registrationSyncWarning;
+      successPanel.appendChild(syncWarning);
     }
 
     const existingDonationCta = successPanel.querySelector('[data-donation-cta="true"]');
@@ -2250,6 +2267,10 @@
     } else {
       registrationEmailWarning = "";
     }
+    if (result?.sheetUpdate && result.sheetUpdate.ok === false) {
+      registrationSyncWarning =
+        "Your registration was signed, but we could not sync agreement details to our records right now. Please contact info@lifeprepacademyfoundation.com so we can verify your entry.";
+    }
   }
 
   async function signVolunteerAgreement(data, formType, submissionId) {
@@ -2367,93 +2388,78 @@
   }
 
   async function postRegistrationCopy(data) {
-    const params = new URLSearchParams();
-    params.append("form_type", "mls_registration");
-    params.append("registration_submission_id", data.registrationSubmissionId || "");
-    params.append("submitted_at", data.submittedAt);
-    params.append("page_url", data.pageUrl);
+    const values = {
+      registration_submission_id: data.registrationSubmissionId || "",
+      submitted_at: data.submittedAt,
+      page_url: data.pageUrl,
+      parent_first_name: data.parent.firstName,
+      parent_last_name: data.parent.lastName,
+      parent_email: data.parent.email,
+      parent_phone: data.parent.phone,
+      parent_guardian_dob: data.parent.dob,
+      parent_street: data.parent.street,
+      parent_apt: data.parent.apt,
+      parent_city: data.parent.city,
+      parent_state: data.parent.state,
+      parent_zip: data.parent.zip,
+      emergency_same_as_parent: data.emergency.sameAsParent ? "yes" : "no",
+      emergency_first_name: data.emergency.firstName,
+      emergency_last_name: data.emergency.lastName,
+      emergency_relationship: data.emergency.relationship,
+      emergency_email: data.emergency.email,
+      emergency_phone: data.emergency.phone,
+      emergency_street: data.emergency.street,
+      emergency_apt: data.emergency.apt,
+      emergency_city: data.emergency.city,
+      emergency_state: data.emergency.state,
+      emergency_zip: data.emergency.zip,
+      player_count: String(data.players.length),
+      help_choice: data.helpChoice,
+      agree_waiver: data.agreements.waiver ? "yes" : "no",
+      agree_privacy: data.agreements.privacy ? "yes" : "no",
+      agree_marketing: data.agreements.marketing ? "yes" : "no",
+      signature: data.signature,
+    };
 
-    appendValue(params, "parent_first_name", data.parent.firstName);
-    appendValue(params, "parent_last_name", data.parent.lastName);
-    appendValue(params, "parent_email", data.parent.email);
-    appendValue(params, "parent_phone", data.parent.phone);
-    appendValue(params, "parent_guardian_dob", data.parent.dob);
-    appendValue(params, "parent_street", data.parent.street);
-    appendValue(params, "parent_apt", data.parent.apt);
-    appendValue(params, "parent_city", data.parent.city);
-    appendValue(params, "parent_state", data.parent.state);
-    appendValue(params, "parent_zip", data.parent.zip);
-
-    appendValue(params, "emergency_same_as_parent", data.emergency.sameAsParent ? "yes" : "no");
-    appendValue(params, "emergency_first_name", data.emergency.firstName);
-    appendValue(params, "emergency_last_name", data.emergency.lastName);
-    appendValue(params, "emergency_relationship", data.emergency.relationship);
-    appendValue(params, "emergency_email", data.emergency.email);
-    appendValue(params, "emergency_phone", data.emergency.phone);
-    appendValue(params, "emergency_street", data.emergency.street);
-    appendValue(params, "emergency_apt", data.emergency.apt);
-    appendValue(params, "emergency_city", data.emergency.city);
-    appendValue(params, "emergency_state", data.emergency.state);
-    appendValue(params, "emergency_zip", data.emergency.zip);
-
-    appendValue(params, "player_count", String(data.players.length));
     data.players.forEach((player, index) => {
       const prefix = `player_${index + 1}`;
-      appendValue(params, `${prefix}_first_name`, player.firstName);
-      appendValue(params, `${prefix}_last_name`, player.lastName);
-      appendValue(params, `${prefix}_dob`, player.dob);
-      appendValue(params, `${prefix}_gender`, player.gender);
-      appendValue(params, `${prefix}_grade`, player.grade);
-      appendValue(params, `${prefix}_jersey`, player.jersey);
-      appendValue(params, `${prefix}_shorts`, player.shorts);
-      appendValue(params, `${prefix}_socks`, player.socks);
-      appendValue(params, `${prefix}_race`, player.race);
-      appendValue(params, `${prefix}_race_other`, player.raceOther);
-      appendValue(params, `${prefix}_favorite_club`, player.favoriteClub);
-      appendValue(params, `${prefix}_hear_about`, player.hearAbout);
-      appendValue(params, `${prefix}_add_another`, player.addAnother);
+      values[`${prefix}_first_name`] = player.firstName;
+      values[`${prefix}_last_name`] = player.lastName;
+      values[`${prefix}_dob`] = player.dob;
+      values[`${prefix}_gender`] = player.gender;
+      values[`${prefix}_grade`] = player.grade;
+      values[`${prefix}_jersey`] = player.jersey;
+      values[`${prefix}_shorts`] = player.shorts;
+      values[`${prefix}_socks`] = player.socks;
+      values[`${prefix}_race`] = player.race;
+      values[`${prefix}_race_other`] = player.raceOther;
+      values[`${prefix}_favorite_club`] = player.favoriteClub;
+      values[`${prefix}_hear_about`] = player.hearAbout;
+      values[`${prefix}_add_another`] = player.addAnother;
     });
 
-    appendValue(params, "help_choice", data.helpChoice);
-    appendValue(params, "agree_waiver", data.agreements.waiver ? "yes" : "no");
-    appendValue(params, "agree_privacy", data.agreements.privacy ? "yes" : "no");
-    appendValue(params, "agree_marketing", data.agreements.marketing ? "yes" : "no");
-    appendValue(params, "signature", data.signature);
-
-    await fetchWithTimeout(GOOGLE_APPS_SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      },
-      body: params.toString(),
-    }, 12000);
+    await postUpsertViaWorker("mls_registration", values);
   }
 
   async function postAuxFlow(formType, data) {
-    if (!GOOGLE_APPS_SCRIPT_URL) {
-      throw new Error("Google Apps Script URL is not configured.");
-    }
+    await postUpsertViaWorker(formType, data);
+  }
 
-    const params = new URLSearchParams();
-    params.append("form_type", formType);
-    if (data.submission_id) params.append("submission_id", data.submission_id);
-    Object.entries(data).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        if (value.length) params.append(key, value.join(", "));
-      } else {
-        appendValue(params, key, value);
-      }
-    });
-
-    await fetchWithTimeout(GOOGLE_APPS_SCRIPT_URL, {
+  async function postUpsertViaWorker(formType, values) {
+    const res = await fetchWithTimeout(FORM_UPSERT_ENDPOINT, {
       method: "POST",
-      mode: "no-cors",
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        "Content-Type": "application/json",
+        Accept: "application/json",
       },
-      body: params.toString(),
-    }, 12000);
+      body: JSON.stringify({ formType, values }),
+    }, 20000);
+
+    const payload = await res.json().catch(() => null);
+    if (!res.ok || !payload?.ok) {
+      const error = String(payload?.error || `Form upsert failed (${res.status})`).trim();
+      throw new Error(error || "Form upsert failed");
+    }
   }
 
   async function fetchWithTimeout(url, init, timeoutMs) {
