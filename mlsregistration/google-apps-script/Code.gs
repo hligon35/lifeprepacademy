@@ -267,7 +267,20 @@ function handleSubmissionUpsert_(values) {
     }
 
     sheet.appendRow(rowValues);
-    return json_({ ok: true, upserted: true, updatedExistingRow: false, row: sheet.getLastRow() });
+    const insertedRow = sheet.getLastRow();
+
+    if (formType === 'volunteer_application' || formType === 'coaching_application') {
+      try {
+        sendVolunteerCoachConfirmationEmail_(formType, values);
+      } catch (error) {
+        writeError_(formType, 'Volunteer/Coach confirmation email failed', {
+          submission_id: submissionId,
+          error: String(error && error.message ? error.message : error),
+        });
+      }
+    }
+
+    return json_({ ok: true, upserted: true, updatedExistingRow: false, row: insertedRow });
   } finally {
     lock.releaseLock();
   }
@@ -601,6 +614,65 @@ function sendRegistrationEmailByStage_(payload, paymentConfirmed) {
   });
 }
 
+function sendVolunteerCoachConfirmationEmail_(formType, values) {
+  const email = normalizeValue_(values.email).toLowerCase();
+  if (!email || !isValidEmail_(email)) {
+    throw new Error('Invalid email for volunteer/coach confirmation');
+  }
+
+  const firstName = normalizeValue_(values.firstName);
+  const lastName = normalizeValue_(values.lastName);
+  const fullName = `${firstName} ${lastName}`.trim() || 'Applicant';
+  const isCoach = formType === 'coaching_application';
+  const programLabel = isCoach ? 'coaching' : 'volunteer';
+
+  const subject = 'Thank you for your MLS GO application';
+  const htmlBody = ''
+    + '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+    + '<body style="margin:0;padding:0;background:#f5f2ea;font-family:Arial,sans-serif;color:#22313f">'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#f5f2ea">'
+    + '<tr><td style="padding:24px 12px">'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:720px;margin:0 auto;border-collapse:collapse">'
+    + '<tr><td style="background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid rgba(34,49,63,0.12)">'
+    + '<img src="' + REGISTRATION_BANNER_URL + '" alt="LifePrep Academy Foundation MLS GO" style="display:block;width:100%;height:auto">'
+    + '<div style="padding:32px 30px 24px">'
+    + '<div style="font-size:12px;line-height:1.2;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#c16a2b;margin:0 0 12px">MLS GO</div>'
+    + '<h1 style="margin:0 0 16px;font-size:30px;line-height:1.1;color:#1d2f40">Thank you for applying</h1>'
+    + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">Hello ' + escapeHtml_(fullName) + ',</p>'
+    + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">Thank you for submitting your MLS GO ' + programLabel + ' application. We received your information successfully.</p>'
+    + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">Please keep an eye on your email for updates and next steps from our team.</p>'
+    + '<p style="margin:0;font-size:15px;line-height:1.7">If you have any questions, reply to this email or contact <a href="mailto:info@lifeprepacademyfoundation.com" style="color:#1d2f40;font-weight:700;text-decoration:none">info@lifeprepacademyfoundation.com</a>.</p>'
+    + '</div>'
+    + '</td></tr>'
+    + '<tr><td style="padding:16px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#6b7280">'
+    + '<a href="' + BRAND_URL + '" style="color:#1d2f40;font-weight:700;text-decoration:none">' + BRAND_DOMAIN + '</a>'
+    + '</td></tr>'
+    + '</table>'
+    + '</td></tr>'
+    + '</table>'
+    + '</body></html>';
+
+  const body = [
+    'Thank you for your MLS GO application.',
+    '',
+    `Hello ${fullName},`,
+    '',
+    `Thank you for submitting your MLS GO ${programLabel} application. We received your information successfully.`,
+    'Please keep an eye on your email for updates and next steps from our team.',
+    '',
+    BRAND_DOMAIN,
+  ].join('\n');
+
+  MailApp.sendEmail({
+    to: email,
+    subject,
+    body,
+    htmlBody,
+    name: 'LifePrep Academy Foundation',
+    replyTo: 'info@lifeprepacademyfoundation.com',
+  });
+}
+
 function buildRegistrationSubmissionEmailHtml_(payload) {
   const parentName = escapeHtml_(payload.parentName || 'Parent/Guardian');
   const participantNames = escapeHtml_(payload.participantNames || 'Your registered participant(s)');
@@ -627,7 +699,7 @@ function buildRegistrationSubmissionEmailHtml_(payload) {
     + '<td style="border-radius:999px;background:#1d2f40">'
     + '<a href="' + signedDocumentUrl + '" style="display:inline-block;padding:14px 24px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none">Download Signed Documents</a>'
     + '</td></tr></table>'
-    + '<p style="margin:0 0 12px;font-size:15px;line-height:1.7">To complete registration, please submit the program fee of $' + fee + '.</p>'
+    + '<p style="margin:0 0 12px;font-size:15px;line-height:1.7">If you have not already paid your registration fee, please submit the program fee of $' + fee + '.</p>'
     + '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px"><tr>'
     + '<td style="border-radius:999px;background:#c16a2b">'
     + '<a href="' + paymentUrl + '" style="display:inline-block;padding:14px 24px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none">Pay Registration Fee</a>'
@@ -654,7 +726,7 @@ function buildRegistrationSubmissionEmailText_(payload) {
   if (payload.signedAt) lines.push('Signed At: ' + payload.signedAt);
   lines.push('');
   lines.push('Download signed documents: ' + (payload.signedDocumentUrl || BRAND_URL));
-  lines.push('Complete payment: ' + (payload.paymentUrl || BRAND_URL));
+  lines.push('If you have not already paid your registration fee, complete payment: ' + (payload.paymentUrl || BRAND_URL));
   lines.push('');
   lines.push('LifePrep Academy Foundation is a nonprofit organization. Your payment may be tax-deductible to the extent permitted by law, and you will receive a payment receipt by email.');
   lines.push('');
