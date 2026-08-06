@@ -245,6 +245,7 @@
   let coachingSubmissionId = "";
   let playerAgreementTransactionId = "";
   let signerDownloadUrl = "";
+  let registrationEmailWarning = "";
   let googleMapsApiKeyPromise;
   let donationRedirectTimer = 0;
 
@@ -1787,6 +1788,16 @@
     if (heading) heading.textContent = "Submission Complete";
     if (copy) copy.textContent = message || "Thank you. Your submission was received.";
 
+    const existingEmailWarning = successPanel.querySelector('[data-email-warning="true"]');
+    if (existingEmailWarning) existingEmailWarning.remove();
+
+    if (registrationEmailWarning) {
+      const emailWarning = document.createElement("p");
+      emailWarning.dataset.emailWarning = "true";
+      emailWarning.textContent = registrationEmailWarning;
+      successPanel.appendChild(emailWarning);
+    }
+
     const existingDonationCta = successPanel.querySelector('[data-donation-cta="true"]');
     if (existingDonationCta) existingDonationCta.remove();
 
@@ -2233,6 +2244,12 @@
     const result = await res.json().catch(() => ({}));
     playerAgreementTransactionId = result.transactionId || playerAgreementTransactionId;
     signerDownloadUrl = result.signerDownloadUrl || signerDownloadUrl;
+    if (result?.registrationEmail && result.registrationEmail.ok === false) {
+      registrationEmailWarning =
+        "Your registration was saved, but we could not send the confirmation email with signed-document links right now. Please contact info@lifeprepacademyfoundation.com so we can resend it.";
+    } else {
+      registrationEmailWarning = "";
+    }
   }
 
   async function signVolunteerAgreement(data, formType, submissionId) {

@@ -240,6 +240,7 @@ async function handleSignAgreement(request, env) {
       return json({ ok: false, error: "Sheet update failed", details: sheetUpdate.error }, 502, request, env);
     }
 
+    let registrationEmail = null;
     if (agreementType === "player") {
       const submissionEmail = await sendRegistrationSubmissionEmail(env, {
         parentEmail: payload.fields?.guardianEmail,
@@ -249,6 +250,10 @@ async function handleSignAgreement(request, env) {
         signedDocumentUrl: emailDownloadUrl,
         paymentUrl: PLAYER_REGISTRATION_PAYMENT_URL,
       });
+      registrationEmail = {
+        ok: Boolean(submissionEmail.ok),
+        error: submissionEmail.ok ? "" : String(submissionEmail.error || "Registration email send failed"),
+      };
       if (!submissionEmail.ok) {
         console.warn("registration-submission-email-failed", {
           txId,
@@ -284,6 +289,7 @@ async function handleSignAgreement(request, env) {
       signedAt: payload.audit.signedAtUtc,
       signerDownloadUrl: signerUrl,
       emailDownloadUrl,
+      registrationEmail,
     }, 200, request, env);
   } catch (error) {
     console.error("sign-agreement-failed", {
