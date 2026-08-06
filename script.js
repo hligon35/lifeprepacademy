@@ -123,6 +123,9 @@ function initHomePromoOverlay() {
     })();
 
     function dismiss() {
+        if (typeof overlay.close === 'function') {
+            overlay.close();
+        }
         overlay.hidden = true;
         document.body.classList.remove('home-promo-lock');
         try {
@@ -133,6 +136,9 @@ function initHomePromoOverlay() {
     }
 
     function show() {
+        if (typeof overlay.showModal === 'function' && !overlay.open) {
+            overlay.showModal();
+        }
         overlay.hidden = false;
         document.body.classList.add('home-promo-lock');
         if (typeof closeBtn?.focus === 'function') {

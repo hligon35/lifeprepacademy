@@ -349,13 +349,26 @@ nav ul li a:hover {
 }
 
 /* Home page MLS GO popup */
-.home-promo-overlay {
+.home-promo-overlay,
+dialog.home-promo-overlay {
     position: fixed;
     inset: 0;
     z-index: 1200;
     display: grid;
     place-items: center;
     padding: 1rem;
+    background: rgba(17, 17, 17, 0.62);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border: 0;
+    max-width: none;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 1rem;
+}
+
+dialog.home-promo-overlay::backdrop {
     background: rgba(17, 17, 17, 0.62);
     -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
@@ -374,10 +387,14 @@ nav ul li a:hover {
     text-align: center;
 }
 
-.home-promo-close {
+.home-promo-close-wrap {
     position: absolute;
     top: 1rem;
     right: 1rem;
+    margin: 0;
+}
+
+.home-promo-close {
     width: 2.5rem;
     height: 2.5rem;
     border: 0;
@@ -498,7 +515,8 @@ body.home-promo-lock {
 }
 
 @media (max-width: 640px) {
-    .home-promo-overlay {
+    .home-promo-overlay,
+    dialog.home-promo-overlay {
         padding: 0.75rem;
     }
 
