@@ -1,0 +1,9 @@
+{
+  "agreementType": "volunteer",
+  "generatedAt": "2026-08-06T18:56:47.717Z",
+  "source": {
+    "mapPath": "mlsregistration/worker/pdf-field-maps.js",
+    "samplePath": "mlsregistration/preview/volunteer-preview-sample.json"
+  },
+  "outputPdf": "mlsregistration/preview/live/volunteer-agreement-preview.pdf"
+}

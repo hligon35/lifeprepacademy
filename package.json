@@ -10,16 +10,28 @@
     "build:prod": "node build-assets.js && node cache-bust.js && node minify-html.js",
     "format:html": "node format-html.js",
     "deploy:mlsregistration": "wrangler deploy --config wrangler.jsonc",
-    "preview:mlsregistration": "wrangler dev --config wrangler.jsonc"
+    "preview:mlsregistration": "wrangler dev --config wrangler.jsonc",
+    "preview:player-pdf": "node mlsregistration/preview/live-pdf-preview.mjs",
+    "preview:player-pdf:watch": "node mlsregistration/preview/live-pdf-preview.mjs --watch",
+    "preview:volunteer-pdf": "node mlsregistration/preview/live-pdf-preview.mjs --volunteer",
+    "preview:volunteer-pdf:watch": "node mlsregistration/preview/live-pdf-preview.mjs --volunteer --watch"
   },
   "devDependencies": {
-    "sharp": "^0.32.6",
-    "http-server": "^14.1.1",
     "csso": "^5.0.5",
-    "terser": "^5.31.0",
-    "prettier": "^3.6.2"
+    "http-server": "^14.1.1",
+    "pdfjs-dist": "^6.2.108",
+    "prettier": "^3.6.2",
+    "sharp": "^0.32.6",
+    "terser": "^5.31.0"
   },
-  "keywords": ["image-optimization", "performance", "web"],
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  },
+  "keywords": [
+    "image-optimization",
+    "performance",
+    "web"
+  ],
   "author": "Lifeprep Academy Foundation",
   "license": "MIT"
 }

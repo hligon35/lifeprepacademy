@@ -1,4 +1,5 @@
 const SHEET_ID = '1EIG6F00-mVhT9ws0nS3pJBrp9Y2mPH87p6UyLkWtKT4';
+
 const SHEET_NAMES = {
   PLAYERS: 'Players',
   VOLUNTEERS: 'Volunteers',
@@ -6,9 +7,46 @@ const SHEET_NAMES = {
   ERRORS: 'Errors',
 };
 
+const PLAYER_AGREEMENT_COLUMNS = [
+  'Player Agreement Status',
+  'Player Agreement Version',
+  'Player Agreement Signed At',
+  'Player Agreement Signer Name',
+  'Player Agreement File ID',
+  'Player Agreement PDF URL',
+  'Player Agreement SHA-256',
+  'Player Agreement Transaction ID',
+];
+
+const PLAYER_PAYMENT_COLUMNS = [
+  'Player Payment Status',
+  'Player Payment Amount',
+  'Player Payment Currency',
+  'Player Payment Paid At',
+  'Player Payment Transaction ID',
+  'Player Payment Receipt URL',
+];
+
+const VOLUNTEER_AGREEMENT_COLUMNS = [
+  'Volunteer Agreement Status',
+  'Volunteer Agreement Version',
+  'Volunteer Agreement Signed At',
+  'Volunteer Agreement Signer Name',
+  'Volunteer Agreement File ID',
+  'Volunteer Agreement PDF URL',
+  'Volunteer Agreement SHA-256',
+  'Volunteer Agreement Transaction ID',
+];
+
+const BRAND_URL = 'https://www.lifeprepacademyfoundation.com/';
+const BRAND_DOMAIN = 'lifeprepacademyfoundation.com';
+const REGISTRATION_BANNER_URL = 'https://mlsregistration.lifeprepacademyfoundation.com/LPAFxPGS.PNG';
+const REGISTRATION_PAYMENT_FALLBACK = 'If the registration fee is not prefilled on the payment page, select Other and enter $75.';
+
 const PLAYER_HEADERS = [
   'submitted_at',
   'form_type',
+  'registration_submission_id',
   'page_url',
   'parent_first_name',
   'parent_last_name',
@@ -19,6 +57,7 @@ const PLAYER_HEADERS = [
   'parent_city',
   'parent_state',
   'parent_zip',
+  'parent_guardian_dob',
   'emergency_same_as_parent',
   'emergency_first_name',
   'emergency_last_name',
@@ -87,11 +126,14 @@ const PLAYER_HEADERS = [
   'agree_privacy',
   'agree_marketing',
   'signature',
+  ...PLAYER_AGREEMENT_COLUMNS,
+  ...PLAYER_PAYMENT_COLUMNS,
 ];
 
 const VOLUNTEER_HEADERS = [
   'submittedAt',
   'form_type',
+  'submission_id',
   'pageUrl',
   'firstName',
   'lastName',
@@ -102,6 +144,7 @@ const VOLUNTEER_HEADERS = [
   'city',
   'state',
   'zip',
+  'dob',
   'roles',
   'hasExperience',
   'experienceSummary',
@@ -109,11 +152,13 @@ const VOLUNTEER_HEADERS = [
   'agreement',
   'signature',
   'linkedParentEmail',
+  ...VOLUNTEER_AGREEMENT_COLUMNS,
 ];
 
 const COACH_HEADERS = [
   'submittedAt',
   'form_type',
+  'submission_id',
   'pageUrl',
   'firstName',
   'lastName',
@@ -124,6 +169,7 @@ const COACH_HEADERS = [
   'city',
   'state',
   'zip',
+  'dob',
   'roles',
   'hasExperience',
   'experienceSummary',
@@ -141,69 +187,280 @@ const COACH_HEADERS = [
   'coachCertifications',
   'coachBackgroundConsent',
   'coachSignature',
+  ...VOLUNTEER_AGREEMENT_COLUMNS,
 ];
 
-const ERROR_HEADERS = [
-  'submitted_at',
-  'form_type',
-  'reason',
-  'payload',
-];
+const ERROR_HEADERS = ['submitted_at', 'form_type', 'reason', 'payload'];
 
 const FORM_CONFIG = {
   mls_registration: {
     sheetName: SHEET_NAMES.PLAYERS,
     headers: PLAYER_HEADERS,
+    idColumn: 'registration_submission_id',
   },
   volunteer_application: {
     sheetName: SHEET_NAMES.VOLUNTEERS,
     headers: VOLUNTEER_HEADERS,
+    idColumn: 'submission_id',
   },
   coaching_application: {
     sheetName: SHEET_NAMES.COACHES,
     headers: COACH_HEADERS,
+    idColumn: 'submission_id',
   },
 };
 
 function doPost(e) {
   if (!e || !e.parameter) {
     initializeSheets();
-    return ContentService.createTextOutput(
-      JSON.stringify({ ok: true, initialized: true, note: 'No POST payload provided; headers initialized.' }),
-    ).setMimeType(ContentService.MimeType.JSON);
+    return json_({ ok: true, initialized: true });
   }
 
-  const values = parseValues_(e);
-  const formType = normalizeValue_(values.form_type);
-  const config = getFormConfig_(formType, true);
-
-  if (!config) {
-    const errorSheet = getSheet_(SHEET_NAMES.ERRORS);
-    ensureHeaders_(errorSheet, ERROR_HEADERS);
-    errorSheet.appendRow([
-      new Date().toISOString(),
-      formType,
-      'Unknown form_type',
-      safeStringify_(values),
-    ]);
-
-    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'Unknown form_type' }))
-      .setMimeType(ContentService.MimeType.JSON);
+  const action = normalizeValue_(e.parameter.action);
+  if (action === 'update_agreement_metadata') {
+    return handleAgreementMetadataUpdate_(e.parameter);
+  }
+  if (action === 'update_payment_metadata') {
+    return handlePaymentMetadataUpdate_(e.parameter);
+  }
+  if (action === 'get_registration_context') {
+    return handleRegistrationContextLookup_(e.parameter);
+  }
+  if (action === 'send_registration_paid_email') {
+    return handleRegistrationPaidEmail_(e.parameter);
   }
 
-  const sheet = getSheet_(config.sheetName);
-
-  ensureHeaders_(sheet, config.headers);
-  const row = config.headers.map((header) => normalizeValue_(values[header]));
-  sheet.appendRow(row);
-
-  return ContentService.createTextOutput(JSON.stringify({ ok: true }))
-    .setMimeType(ContentService.MimeType.JSON);
+  return handleSubmissionUpsert_(e.parameter);
 }
 
-function parseValues_(e) {
-  const source = (e && e.parameter) || {};
-  return source;
+function handleSubmissionUpsert_(values) {
+  const formType = normalizeValue_(values.form_type);
+  const config = getFormConfig_(formType, true);
+  if (!config) {
+    writeError_(formType, 'Unknown form_type', values);
+    return json_({ ok: false, error: 'Unknown form_type' }, 400);
+  }
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const sheet = getSheet_(config.sheetName);
+    ensureHeaders_(sheet, config.headers);
+
+    const submissionId = normalizeValue_(values[config.idColumn]);
+    if (!submissionId) {
+      writeError_(formType, `Missing ${config.idColumn}`, values);
+      return json_({ ok: false, error: `Missing ${config.idColumn}` }, 400);
+    }
+
+    const headerIndex = buildHeaderIndex_(config.headers);
+    const rowValues = config.headers.map((header) => sanitizeForSheet_(values[header]));
+    applyPendingAgreementDefaults_(rowValues, config.headers, formType);
+
+    const existingRow = findRowBySubmissionId_(sheet, config.headers, config.idColumn, submissionId);
+    if (existingRow > 0) {
+      sheet.getRange(existingRow, 1, 1, config.headers.length).setValues([rowValues]);
+      return json_({ ok: true, upserted: true, updatedExistingRow: true, row: existingRow });
+    }
+
+    sheet.appendRow(rowValues);
+    return json_({ ok: true, upserted: true, updatedExistingRow: false, row: sheet.getLastRow() });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleAgreementMetadataUpdate_(values) {
+  const expected = PropertiesService.getScriptProperties().getProperty('AGREEMENT_UPDATE_TOKEN') || '';
+  const provided = normalizeValue_(values.update_token);
+  if (!expected || provided !== expected) {
+    return json_({ ok: false, error: 'Unauthorized update token' }, 403);
+  }
+
+  const formType = normalizeValue_(values.form_type);
+  const config = getFormConfig_(formType, true);
+  if (!config) return json_({ ok: false, error: 'Unknown form_type' }, 400);
+
+  const submissionId = normalizeValue_(values.submission_id);
+  if (!submissionId) return json_({ ok: false, error: 'Missing submission_id' }, 400);
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const sheet = getSheet_(config.sheetName);
+    ensureHeaders_(sheet, config.headers);
+
+    const row = findRowBySubmissionId_(sheet, config.headers, config.idColumn, submissionId);
+    if (row <= 0) {
+      return json_({ ok: false, error: 'Matching row not found' }, 404);
+    }
+
+    const headerIndex = buildHeaderIndex_(config.headers);
+    const columnNames =
+      formType === 'mls_registration' ? PLAYER_AGREEMENT_COLUMNS : VOLUNTEER_AGREEMENT_COLUMNS;
+
+    const agreementValues = {
+      [columnNames[0]]: normalizeValue_(values.agreement_status),
+      [columnNames[1]]: normalizeValue_(values.agreement_version),
+      [columnNames[2]]: normalizeValue_(values.agreement_signed_at),
+      [columnNames[3]]: normalizeValue_(values.agreement_signer_name),
+      [columnNames[4]]: normalizeValue_(values.agreement_file_id),
+      [columnNames[5]]: normalizeValue_(values.agreement_pdf_url),
+      [columnNames[6]]: normalizeValue_(values.agreement_sha256),
+      [columnNames[7]]: normalizeValue_(values.agreement_transaction_id),
+    };
+
+    Object.keys(agreementValues).forEach((header) => {
+      const col = headerIndex[header];
+      if (!col) return;
+      sheet.getRange(row, col).setValue(sanitizeForSheet_(agreementValues[header]));
+    });
+
+    return json_({ ok: true, updated: true, row });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleRegistrationReceiptEmail_(values) {
+  const expected = PropertiesService.getScriptProperties().getProperty('AGREEMENT_UPDATE_TOKEN') || '';
+  const provided = normalizeValue_(values.update_token);
+  if (!expected || provided !== expected) {
+    return json_({ ok: false, error: 'Unauthorized update token' }, 403);
+  }
+
+  const parentEmail = normalizeValue_(values.parent_email).toLowerCase();
+  if (!parentEmail || !isValidEmail_(parentEmail)) {
+    return json_({ ok: false, error: 'Invalid parent_email' }, 400);
+  }
+
+  const payload = {
+    parentEmail,
+    parentName: normalizeValue_(values.parent_name),
+    participantNames: normalizeValue_(values.participant_names),
+    signedAt: normalizeValue_(values.signed_at),
+    signedDocumentUrl: normalizeValue_(values.signed_document_url),
+    paymentUrl: normalizeValue_(values.payment_url),
+    paymentReceiptUrl: normalizeValue_(values.payment_receipt_url),
+    paymentPaidAt: normalizeValue_(values.payment_paid_at),
+    registrationFeeAmount: normalizeValue_(values.registration_fee_amount) || '75',
+  };
+
+  try {
+    sendRegistrationPaidEmail_(payload);
+    return json_({ ok: true, emailed: true });
+  } catch (error) {
+    writeError_('mls_registration', 'Registration receipt email failed', {
+      parent_email: parentEmail,
+      error: String(error && error.message ? error.message : error),
+    });
+    return json_({ ok: false, error: String(error && error.message ? error.message : error) }, 500);
+  }
+}
+
+function handlePaymentMetadataUpdate_(values) {
+  const expected = PropertiesService.getScriptProperties().getProperty('AGREEMENT_UPDATE_TOKEN') || '';
+  const provided = normalizeValue_(values.update_token);
+  if (!expected || provided !== expected) {
+    return json_({ ok: false, error: 'Unauthorized update token' }, 403);
+  }
+
+  const formType = normalizeValue_(values.form_type);
+  const config = getFormConfig_(formType, true);
+  if (!config || formType !== 'mls_registration') {
+    return json_({ ok: false, error: 'Unsupported form_type' }, 400);
+  }
+
+  const submissionId = normalizeValue_(values.submission_id);
+  if (!submissionId) return json_({ ok: false, error: 'Missing submission_id' }, 400);
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const sheet = getSheet_(config.sheetName);
+    ensureHeaders_(sheet, config.headers);
+
+    const row = findRowBySubmissionId_(sheet, config.headers, config.idColumn, submissionId);
+    if (row <= 0) {
+      return json_({ ok: false, error: 'Matching row not found' }, 404);
+    }
+
+    const headerIndex = buildHeaderIndex_(config.headers);
+    const paymentValues = {
+      [PLAYER_PAYMENT_COLUMNS[0]]: normalizeValue_(values.payment_status),
+      [PLAYER_PAYMENT_COLUMNS[1]]: normalizeValue_(values.payment_amount),
+      [PLAYER_PAYMENT_COLUMNS[2]]: normalizeValue_(values.payment_currency),
+      [PLAYER_PAYMENT_COLUMNS[3]]: normalizeValue_(values.payment_paid_at),
+      [PLAYER_PAYMENT_COLUMNS[4]]: normalizeValue_(values.payment_transaction_id),
+      [PLAYER_PAYMENT_COLUMNS[5]]: normalizeValue_(values.payment_receipt_url),
+    };
+
+    Object.keys(paymentValues).forEach((header) => {
+      const col = headerIndex[header];
+      if (!col) return;
+      sheet.getRange(row, col).setValue(sanitizeForSheet_(paymentValues[header]));
+    });
+
+    return json_({ ok: true, updated: true, row });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function handleRegistrationContextLookup_(values) {
+  const expected = PropertiesService.getScriptProperties().getProperty('AGREEMENT_UPDATE_TOKEN') || '';
+  const provided = normalizeValue_(values.update_token);
+  if (!expected || provided !== expected) {
+    return json_({ ok: false, error: 'Unauthorized update token' }, 403);
+  }
+
+  const formType = normalizeValue_(values.form_type);
+  const config = getFormConfig_(formType, true);
+  if (!config || formType !== 'mls_registration') {
+    return json_({ ok: false, error: 'Unsupported form_type' }, 400);
+  }
+
+  const submissionId = normalizeValue_(values.submission_id);
+  if (!submissionId) return json_({ ok: false, error: 'Missing submission_id' }, 400);
+
+  const sheet = getSheet_(config.sheetName);
+  ensureHeaders_(sheet, config.headers);
+  const row = findRowBySubmissionId_(sheet, config.headers, config.idColumn, submissionId);
+  if (row <= 0) {
+    return json_({ ok: false, error: 'Matching row not found' }, 404);
+  }
+
+  const headerIndex = buildHeaderIndex_(config.headers);
+  const getValue = (header) => {
+    const col = headerIndex[header];
+    if (!col) return '';
+    return normalizeValue_(sheet.getRange(row, col).getValue());
+  };
+
+  const playerNames = [];
+  for (let i = 1; i <= 4; i += 1) {
+    const first = getValue(`player_${i}_first_name`);
+    const last = getValue(`player_${i}_last_name`);
+    const full = `${first} ${last}`.trim();
+    if (full) playerNames.push(full);
+  }
+
+  return json_({
+    ok: true,
+    parentEmail: getValue('parent_email'),
+    parentName: `${getValue('parent_first_name')} ${getValue('parent_last_name')}`.trim(),
+    participantNames: playerNames.join(', '),
+    transactionId: getValue('Player Agreement Transaction ID'),
+    signedAt: getValue('Player Agreement Signed At'),
+    paymentStatus: getValue('Player Payment Status'),
+  });
+}
+
+function initializeSheets() {
+  ensureHeaders_(getSheet_(SHEET_NAMES.PLAYERS), PLAYER_HEADERS);
+  ensureHeaders_(getSheet_(SHEET_NAMES.VOLUNTEERS), VOLUNTEER_HEADERS);
+  ensureHeaders_(getSheet_(SHEET_NAMES.COACHES), COACH_HEADERS);
+  ensureHeaders_(getSheet_(SHEET_NAMES.ERRORS), ERROR_HEADERS);
 }
 
 function getFormConfig_(formType, strict) {
@@ -212,39 +469,94 @@ function getFormConfig_(formType, strict) {
   return FORM_CONFIG.mls_registration;
 }
 
-function initializeSheets() {
-  const players = getSheet_(SHEET_NAMES.PLAYERS);
-  ensureHeaders_(players, PLAYER_HEADERS);
-
-  const volunteers = getSheet_(SHEET_NAMES.VOLUNTEERS);
-  ensureHeaders_(volunteers, VOLUNTEER_HEADERS);
-
-  const coaches = getSheet_(SHEET_NAMES.COACHES);
-  ensureHeaders_(coaches, COACH_HEADERS);
-
-  const errors = getSheet_(SHEET_NAMES.ERRORS);
-  ensureHeaders_(errors, ERROR_HEADERS);
-}
-
 function getSheet_(sheetName) {
   const ss = SpreadsheetApp.openById(SHEET_ID);
   return ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);
 }
 
 function ensureHeaders_(sheet, headers) {
-  const lastColumn = sheet.getLastColumn();
-  if (lastColumn < headers.length) {
+  const currentWidth = Math.max(sheet.getLastColumn(), headers.length);
+  const current = currentWidth > 0 ? sheet.getRange(1, 1, 1, currentWidth).getValues()[0].map(String) : [];
+
+  let changed = false;
+  headers.forEach((header, idx) => {
+    if (current[idx] !== header) {
+      current[idx] = header;
+      changed = true;
+    }
+  });
+
+  if (changed || sheet.getLastRow() === 0) {
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-    sheet.setFrozenRows(1);
-    return;
+  }
+  sheet.setFrozenRows(1);
+}
+
+function findRowBySubmissionId_(sheet, headers, idHeader, submissionId) {
+  const headerIndex = buildHeaderIndex_(headers);
+  const col = headerIndex[idHeader];
+  if (!col) return -1;
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return -1;
+
+  const values = sheet.getRange(2, col, lastRow - 1, 1).getValues();
+  for (let i = 0; i < values.length; i += 1) {
+    if (normalizeValue_(values[i][0]) === submissionId) {
+      return i + 2;
+    }
+  }
+  return -1;
+}
+
+function buildHeaderIndex_(headers) {
+  const out = {};
+  headers.forEach((h, idx) => {
+    out[h] = idx + 1;
+  });
+  return out;
+}
+
+function applyPendingAgreementDefaults_(rowValues, headers, formType) {
+  const index = buildHeaderIndex_(headers);
+  const statusColumn =
+    formType === 'mls_registration'
+      ? index['Player Agreement Status']
+      : index['Volunteer Agreement Status'];
+
+  if (!statusColumn) return;
+  const current = normalizeValue_(rowValues[statusColumn - 1]);
+  if (!current) {
+    rowValues[statusColumn - 1] = 'Pending Signature';
   }
 
-  const current = sheet.getRange(1, 1, 1, headers.length).getValues()[0].map(String);
-  const matches = headers.every((header, index) => current[index] === header);
-  if (!matches) {
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-    sheet.setFrozenRows(1);
+  if (formType === 'mls_registration') {
+    const paymentStatusColumn = index['Player Payment Status'];
+    if (paymentStatusColumn) {
+      const currentPayment = normalizeValue_(rowValues[paymentStatusColumn - 1]);
+      if (!currentPayment) {
+        rowValues[paymentStatusColumn - 1] = 'Payment Pending';
+      }
+    }
   }
+}
+
+function writeError_(formType, reason, payload) {
+  const errorSheet = getSheet_(SHEET_NAMES.ERRORS);
+  ensureHeaders_(errorSheet, ERROR_HEADERS);
+  errorSheet.appendRow([
+    new Date().toISOString(),
+    formType || '',
+    reason || '',
+    safeStringify_(payload || {}),
+  ]);
+}
+
+function sanitizeForSheet_(value) {
+  const normalized = normalizeValue_(value);
+  if (!normalized) return '';
+  if (/^[=+\-@]/.test(normalized)) return `'${normalized}`;
+  return normalized;
 }
 
 function normalizeValue_(value) {
@@ -256,7 +568,110 @@ function normalizeValue_(value) {
 function safeStringify_(value) {
   try {
     return JSON.stringify(value);
-  } catch (error) {
+  } catch (_error) {
     return String(value);
   }
+}
+
+function sendRegistrationPaidEmail_(payload) {
+  const subject = 'Thank you for completing your MLS GO registration';
+  const htmlBody = buildRegistrationPaidEmailHtml_(payload);
+  const body = buildRegistrationPaidEmailText_(payload);
+
+  MailApp.sendEmail({
+    to: payload.parentEmail,
+    subject,
+    body,
+    htmlBody,
+    name: 'LifePrep Academy Foundation',
+    replyTo: 'info@lifeprepacademyfoundation.com',
+  });
+}
+
+function buildRegistrationPaidEmailHtml_(payload) {
+  const parentName = escapeHtml_(payload.parentName || 'Parent/Guardian');
+  const participantNames = escapeHtml_(payload.participantNames || 'Your registered participant(s)');
+  const signedAt = escapeHtml_(payload.signedAt || '');
+  const signedDocumentUrl = escapeHtml_(payload.signedDocumentUrl || BRAND_URL);
+  const paymentReceiptUrl = escapeHtml_(payload.paymentReceiptUrl || '');
+  const paymentPaidAt = escapeHtml_(payload.paymentPaidAt || '');
+  const fee = escapeHtml_(payload.registrationFeeAmount || '75');
+
+  return ''
+    + '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+    + '<body style="margin:0;padding:0;background:#f5f2ea;font-family:Arial,sans-serif;color:#22313f">'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#f5f2ea">'
+    + '<tr><td style="padding:24px 12px">'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:720px;margin:0 auto;border-collapse:collapse">'
+    + '<tr><td style="background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid rgba(34,49,63,0.12)">'
+    + '<img src="' + REGISTRATION_BANNER_URL + '" alt="LifePrep Academy Foundation MLS GO" style="display:block;width:100%;height:auto">'
+    + '<div style="padding:32px 30px 24px">'
+    + '<div style="font-size:12px;line-height:1.2;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#c16a2b;margin:0 0 12px">MLS GO Registration</div>'
+    + '<h1 style="margin:0 0 16px;font-size:30px;line-height:1.1;color:#1d2f40">Thank you for completing registration</h1>'
+    + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">Hello ' + parentName + ',</p>'
+    + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">We have confirmed payment for the MLS GO registration for ' + participantNames + '. Your signed registration document is ready to download below.</p>'
+    + (signedAt ? '<p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#586574"><strong style="color:#1d2f40">Signed:</strong> ' + signedAt + '</p>' : '')
+    + (paymentPaidAt ? '<p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#586574"><strong style="color:#1d2f40">Payment Confirmed:</strong> ' + paymentPaidAt + '</p>' : '')
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px"><tr>'
+    + '<td style="border-radius:999px;background:#1d2f40">'
+    + '<a href="' + signedDocumentUrl + '" style="display:inline-block;padding:14px 24px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none">Download Signed Documents</a>'
+    + '</td></tr></table>'
+    + (paymentReceiptUrl
+      ? '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px"><tr>'
+        + '<td style="border-radius:999px;background:#c16a2b">'
+        + '<a href="' + paymentReceiptUrl + '" style="display:inline-block;padding:14px 24px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none">View Payment Receipt</a>'
+        + '</td></tr></table>'
+      : '')
+    + '<p style="margin:0 0 12px;font-size:15px;line-height:1.7">We have recorded your registration fee payment of $' + fee + '. LifePrep Academy Foundation is a nonprofit organization, so your payment may be tax-deductible to the extent permitted by law.</p>'
+    + '<p style="margin:0;font-size:15px;line-height:1.7">If you have any questions, reply to this email or contact <a href="mailto:info@lifeprepacademyfoundation.com" style="color:#1d2f40;font-weight:700;text-decoration:none">info@lifeprepacademyfoundation.com</a>.</p>'
+    + '</div>'
+    + '</td></tr>'
+    + '<tr><td style="padding:16px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#6b7280">'
+    + '<a href="' + BRAND_URL + '" style="color:#1d2f40;font-weight:700;text-decoration:none">' + BRAND_DOMAIN + '</a>'
+    + '</td></tr>'
+    + '</table>'
+    + '</td></tr>'
+    + '</table>'
+    + '</body></html>';
+}
+
+function buildRegistrationPaidEmailText_(payload) {
+  const lines = [];
+  lines.push('Thank you for completing your MLS GO registration.');
+  lines.push('');
+  if (payload.parentName) lines.push('Parent/Guardian: ' + payload.parentName);
+  if (payload.participantNames) lines.push('Participant(s): ' + payload.participantNames);
+  if (payload.signedAt) lines.push('Signed At: ' + payload.signedAt);
+  if (payload.paymentPaidAt) lines.push('Payment Confirmed: ' + payload.paymentPaidAt);
+  lines.push('');
+  lines.push('Download signed documents: ' + (payload.signedDocumentUrl || BRAND_URL));
+  if (payload.paymentReceiptUrl) {
+    lines.push('Payment receipt: ' + payload.paymentReceiptUrl);
+  }
+  lines.push('');
+  lines.push('We have recorded your registration fee payment of $' + (payload.registrationFeeAmount || '75') + '.');
+  lines.push('LifePrep Academy Foundation is a nonprofit organization. Your payment may be tax-deductible to the extent permitted by law.');
+  lines.push('');
+  lines.push(BRAND_DOMAIN);
+  return lines.join('\n');
+}
+
+function escapeHtml_(value) {
+  return String(value || '').replace(/[&<>"']/g, function(char) {
+    return {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[char];
+  });
+}
+
+function isValidEmail_(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+}
+
+function json_(payload, status) {
+  return ContentService.createTextOutput(JSON.stringify(payload)).setMimeType(ContentService.MimeType.JSON);
 }

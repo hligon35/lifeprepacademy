@@ -1,60 +1,229 @@
-# MLS Registration App (Cloudflare Pages)
+# MLS Registration + Agreement Signing
 
-This folder contains a Cloudflare Pages-ready MLS GO registration application that uses a section-by-section wizard and submits to your existing Google Form.
+This directory contains the MLS GO registration experience and agreement-signing workflow.
 
-## Files
+## Architecture
 
-- index.html: App shell
-- styles.css: Visual design and responsive layout
-- app.js: Wizard logic and Google Form submission mapping
-- google-apps-script/Code.gs: Spreadsheet logging endpoint for emergency/contact data
+1. Frontend wizard: `mlsregistration/app.js` + `mlsregistration/styles.css`
+2. Immutable templates (do not edit):
+   - `mlsregistration/documents/MLS GO Player Registration Agreement.pdf`
+   - `mlsregistration/documents/MLS GO Volunteer Agreement.pdf`
+3. Worker API for server-side PDF generation/signing:
+   - `mlsregistration/worker/index.js`
+4. PDF coordinate maps:
+   - `mlsregistration/worker/pdf-field-maps.js`
+5. Template integrity hashes:
+   - `mlsregistration/worker/template-hashes.js`
+6. Sheets persistence and metadata updates:
+   - `mlsregistration/google-apps-script/Code.gs`
 
-## Deploy To Cloudflare Pages
+## Agreement Workflow
 
-1. In Cloudflare, go to Workers & Pages -> Create -> Pages -> Connect to Git.
-2. Select this repository.
-3. Set Framework preset to None.
-4. Set Build command to blank.
-5. Set Build output directory to mlsregistration.
-6. Deploy.
+### Player registration
 
-## Connect Custom Domain
+1. Complete registration sections.
+2. Complete Player Agreement signing section.
+3. Submit registration (single submission ID).
+4. Worker generates signed PDF from immutable template.
+5. Worker stores signed PDF in private R2.
+6. Worker updates matching `Players` row agreement metadata.
+7. Signer receives short-lived signer copy URL.
 
-1. In the Pages project, go to Custom domains.
-2. Add mlsregistration.lifeprepacademyfoundation.com.
-3. If prompted for DNS record, create:
-   - Type: CNAME
-   - Name: mlsregistration
-   - Target: your-pages-project.pages.dev
-4. Enable Proxied in Cloudflare DNS if available.
-5. Wait for SSL issuance.
+### Volunteer / Coach
 
-## Spreadsheet Logging
+1. Submit volunteer or coaching application payload once.
+2. Complete Volunteer Agreement signing.
+3. Worker generates/stores signed PDF.
+4. Worker updates matching `Volunteers` or `Coaches` row.
+5. Coach path signs Volunteer Agreement once only.
 
-The page still submits the original MLS GO data to the Google Form, and it also supports a secondary Google Apps Script webhook that appends the complete registration, including emergency-contact fields, into the linked spreadsheet.
+## Agreement Versioning
 
-1. Open the spreadsheet from your Google Sheet link.
-2. Go to Extensions > Apps Script.
-3. Paste the contents of [google-apps-script/Code.gs](google-apps-script/Code.gs).
-4. Deploy it as a Web App with Execute as: Me and Access: Anyone.
-5. Copy the Web App URL into the `google-apps-script-url` meta tag in [index.html](index.html).
-6. The script writes into these tabs in the same spreadsheet:
-   - `Players` for registration (`form_type=mls_registration`)
-   - `Volunteers` for volunteer applications (`form_type=volunteer_application`)
-   - `Coaches` for coaching applications (`form_type=coaching_application`)
-7. In Apps Script, run `initializeSheets()` once to create/update headers on all tabs before the first live submission.
-8. Unknown `form_type` payloads are written to the `Errors` tab.
+Template hashes are enforced before coordinate fill:
 
-## Verify
+- Player: `f64fa9261ddf925208e918d100353335ab241ec6e30d2d2669e997d2fcaa5d29`
+- Volunteer: `0d7922d11776f943ec696bbfd8728d11bf86011e0bebaacd488f43b3d75552a8`
 
-1. Open the deployed URL and complete a test submission.
-2. Confirm a new row appears in your Google Sheet.
-3. Open mlsregistration.lifeprepacademyfoundation.com and verify HTTPS lock icon.
+If a template changes, update:
 
-## Notes
+1. `mlsregistration/documents/*.pdf` (template file)
+2. `mlsregistration/worker/template-hashes.js`
+3. `mlsregistration/worker/pdf-field-maps.js` (coordinate review)
 
-- The app posts to Google Forms formResponse endpoint.
-- After player registration, the wizard can optionally continue into volunteer and/or coaching follow-up flows.
-- Standalone follow-up modes are available with query params: `?flow=volunteer` or `?flow=coach`.
-- If you change fields in Google Form, update the entry IDs in app.js.
-- To reduce spam, add Cloudflare Turnstile before production launch.
+## Signature Placement Mode (Player)
+
+`PLAYER_SIGNATURE_PLACEMENT_MODE` must be explicitly set to one of:
+
+1. `parent_guardian_only`
+2. `both_signature_lines`
+
+This setting must be legally confirmed with RCX / MLS GO before production launch.
+
+## Cloudflare Worker Bindings
+
+Required in `wrangler.jsonc`:
+
+1. Durable Object binding: `SIGNING_TRANSACTIONS`
+2. R2 private bucket binding: `SIGNED_AGREEMENTS`
+3. Vars:
+   - `PLAYER_SIGNATURE_PLACEMENT_MODE`
+   - `ALLOWED_ORIGINS`
+   - `E_CONSENT_TEXT_VERSION`
+   - `APPS_SCRIPT_URL`
+4. Secrets (set via `wrangler secret put`):
+   - `APPS_SCRIPT_UPDATE_TOKEN`
+   - `SIGNER_LINK_SECRET`
+   - `ADMIN_DOWNLOAD_TOKEN`
+
+### Example secret setup
+
+```bash
+wrangler secret put APPS_SCRIPT_UPDATE_TOKEN
+wrangler secret put SIGNER_LINK_SECRET
+wrangler secret put ADMIN_DOWNLOAD_TOKEN
+```
+
+## Private Storage
+
+Signed agreements are stored in private R2 object keys:
+
+1. Player: `player-agreements/{registrationSubmissionId}/{transactionId}.pdf`
+2. Volunteer/Coach: `volunteer-agreements/{submissionId}/{transactionId}.pdf`
+
+No public bucket URLs are used as authorization.
+
+## Google Apps Script Integration
+
+`Code.gs` now supports:
+
+1. Idempotent upsert by submission ID for:
+   - `mls_registration` (`registration_submission_id`)
+   - `volunteer_application` (`submission_id`)
+   - `coaching_application` (`submission_id`)
+2. `LockService` row updates
+3. Formula-injection protection
+4. Agreement metadata update action:
+   - `action=update_agreement_metadata`
+   - `update_token=<AGREEMENT_UPDATE_TOKEN>`
+
+### New agreement columns
+
+Added to end of applicable tabs:
+
+#### Players tab
+
+- Player Agreement Status
+- Player Agreement Version
+- Player Agreement Signed At
+- Player Agreement Signer Name
+- Player Agreement File ID
+- Player Agreement PDF URL
+- Player Agreement SHA-256
+- Player Agreement Transaction ID
+
+#### Volunteers and Coaches tabs
+
+- Volunteer Agreement Status
+- Volunteer Agreement Version
+- Volunteer Agreement Signed At
+- Volunteer Agreement Signer Name
+- Volunteer Agreement File ID
+- Volunteer Agreement PDF URL
+- Volunteer Agreement SHA-256
+- Volunteer Agreement Transaction ID
+
+### Apps Script deployment
+
+1. Paste `mlsregistration/google-apps-script/Code.gs` into Apps Script project.
+2. Set Script Property:
+   - key: `AGREEMENT_UPDATE_TOKEN`
+   - value: same token used in Worker secret `APPS_SCRIPT_UPDATE_TOKEN`
+3. Run `initializeSheets()` once.
+4. Deploy Web App (Execute as Me, access as appropriate).
+5. Update `google-apps-script-url` meta in `mlsregistration/index.html` if URL changes.
+
+## Secure Administrative PDF Access
+
+1. Admin route: `/api/admin/agreement/{transactionId}`
+2. Requires header: `Authorization: Bearer <ADMIN_DOWNLOAD_TOKEN>`
+3. Signer route: `/api/signer/agreement/{transactionId}?exp=...&sig=...`
+4. Signer URL is short-lived and HMAC-protected.
+
+## Retry/Recovery Procedure
+
+1. Submission IDs prevent duplicate row creation.
+2. Durable Object tracks transaction state.
+3. Repeated signing with same `transactionId` returns existing signed result.
+4. Failed generation sets `Generation Failed` status.
+5. Retry signing by re-submitting agreement signing payload with same submission ID.
+
+## Parent/Volunteer Copy Retrieval
+
+Signer receives a short-lived download URL in completion UI.
+Do not expose the admin URL in public-facing pages.
+
+## Local Development
+
+```bash
+npm install
+npx http-server -p 3000 -c-1
+```
+
+## Live Player PDF Placement Preview
+
+Use this local loop to tune `PLAYER_AGREEMENT_FIELD_MAP` coordinates and see immediate visual output:
+
+1. Start static file server (root workspace):
+
+```bash
+npm run serve
+```
+
+2. In another terminal, start the PDF preview watcher:
+
+```bash
+npm run preview:player-pdf:watch
+```
+
+3. Open preview page:
+
+- `http://localhost:3000/mlsregistration/preview/player-preview.html`
+
+4. Edit either file and save:
+
+- `mlsregistration/worker/pdf-field-maps.js`
+- `mlsregistration/preview/player-preview-sample.json`
+
+5. The watcher regenerates `mlsregistration/preview/live/player-agreement-preview.pdf`, and the preview page auto-reloads when updated.
+
+Notes:
+
+1. This preview uses typed signature rendering and the same wrapping logic as the Worker.
+2. Keep template PDFs in `mlsregistration/documents/` unchanged.
+
+## Worker Deploy
+
+```bash
+npx wrangler deploy --name lpaf-mls --assets ./mlsregistration
+```
+
+If using config-driven deploy:
+
+```bash
+npx wrangler deploy --config wrangler.jsonc
+```
+
+## Manual End-to-End Checklist
+
+1. Player registration (1 player) signs and stores agreement.
+2. Player registration (4 players, long names) wraps safely.
+3. Volunteer path signs Volunteer Agreement.
+4. Coach path signs Volunteer Agreement once.
+5. Typed signature mode works.
+6. Drawn signature mode works with touch and mouse.
+7. Under-18 volunteer submission blocked.
+8. Consent unchecked blocks signing submission.
+9. Missing template hash mismatch blocks generation.
+10. Signed PDF row updates include URL + SHA-256 + transaction ID.
+11. Signer URL expires as expected.
+12. Admin route requires bearer token.

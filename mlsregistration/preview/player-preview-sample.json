@@ -1,0 +1,22 @@
+{
+  "signatureMode": "parent_guardian_only",
+  "signer": {
+    "printedName": "Parent Preview"
+  },
+  "signature": {
+    "method": "typed",
+    "typed": "Parent Preview"
+  },
+  "fields": {
+    "participantNames": "Kid One, Kid Two",
+    "guardianName": "Parent Preview",
+    "guardianDob": "01/01/1988",
+    "guardianStreet": "123 Main St",
+    "guardianCity": "Calvert City",
+    "guardianState": "KY",
+    "guardianZip": "42001",
+    "guardianPhone": "(270) 555-0101",
+    "guardianEmail": "parent.preview@example.com",
+    "signingDate": "08/06/2026"
+  }
+}

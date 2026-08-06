@@ -1,0 +1,13 @@
+{
+  "signer": {
+    "printedName": "Volunteer Preview"
+  },
+  "signature": {
+    "method": "typed",
+    "typed": "Volunteer Preview"
+  },
+  "fields": {
+    "signingDate": "08/06/2026",
+    "legalName": "Volunteer Preview"
+  }
+}

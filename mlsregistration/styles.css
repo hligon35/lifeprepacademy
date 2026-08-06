@@ -299,6 +299,11 @@ body {
   cursor: pointer;
 }
 
+.btn-sm {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+}
+
 .btn-primary {
   background: linear-gradient(135deg, var(--brand), var(--brand-2));
   color: #fff;
@@ -372,6 +377,113 @@ body {
   margin: 4px 0 0 28px;
   font-size: 0.85rem;
   color: #5a4c7e;
+}
+
+.agreement-signing-block {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+}
+
+.agreement-signing-title {
+  margin: 0 0 10px;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  font-size: 1rem;
+}
+
+.agreement-view-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.agreement-viewer {
+  width: 100%;
+  min-height: 320px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  background: #fafcff;
+}
+
+.agreement-consent-wrap {
+  margin: 8px 0 10px;
+}
+
+.signature-action-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.signature-preview {
+  display: block;
+  max-width: 320px;
+  width: 100%;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  margin-top: 10px;
+  background: #fff;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.signature-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 18, 36, 0.56);
+  display: grid;
+  place-items: center;
+  z-index: 9999;
+  padding: 12px;
+}
+
+.signature-modal-panel {
+  width: min(740px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  padding: 12px;
+}
+
+.signature-modal-panel--agreement {
+  max-height: min(92vh, 980px);
+  overflow: auto;
+}
+
+.signature-modal-panel h4 {
+  margin: 0 0 10px;
+}
+
+.signature-canvas {
+  width: 100%;
+  height: min(42vh, 320px);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  touch-action: none;
+}
+
+.signature-modal-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+body.signing-lock-scroll {
+  overflow: hidden;
 }
 
 .result-panel {
