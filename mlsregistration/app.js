@@ -21,7 +21,7 @@
   const E_CONSENT_TEXT_VERSION = "v1-2026-08-06";
   const ELECTRONIC_CONSENT_TEXT =
     "I have reviewed the complete agreement, consent to conduct this transaction electronically, and adopt the signature entered below as my electronic signature. I understand that my electronic signature has the same intended effect as my handwritten signature.";
-  const DONATE_URL = "https://give.cornerstone.cc/lifeprepacademyfnd";
+  const DONATE_URL = "https://give.cornerstone.cc/lifeprepacademyfnd/checkout";
   const REGISTRATION_FEE_AMOUNT = 75;
   const DONATION_REDIRECT_DELAY_MS = 3000;
 
@@ -88,6 +88,15 @@
     "Local Operator Social Media Platform",
     "Local Operator Email",
     "Friend/Family",
+  ];
+
+  const STATE_ABBREVIATIONS = [
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+    "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+    "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+    "DC", "PR",
   ];
 
   const PLAYER_ENTRY_MAP = {
@@ -290,7 +299,7 @@
         createTextField({ label: "Street Address", name: "parentStreet", required: true, autocomplete: "street-address", addressField: true, placeholder: "Start typing the address" }),
         createTextField({ label: "Apartment, Suite, or Unit", name: "parentApt", autocomplete: "address-line2" }),
         createTextField({ label: "City", name: "parentCity", required: true, autocomplete: "address-level2" }),
-        createTextField({ label: "State", name: "parentState", required: true, autocomplete: "address-level1" }),
+        createSelectField({ label: "State", name: "parentState", required: true, options: STATE_ABBREVIATIONS }),
         createTextField({ label: "ZIP Code", name: "parentZip", required: true, inputMode: "numeric", autocomplete: "postal-code" }),
       ]),
     );
@@ -325,7 +334,7 @@
         createTextField({ label: "Street Address", name: "emergencyStreet", autocomplete: "street-address", addressField: true, placeholder: "Start typing the address" }),
         createTextField({ label: "Apartment, Suite, or Unit", name: "emergencyApt", autocomplete: "address-line2" }),
         createTextField({ label: "City", name: "emergencyCity", autocomplete: "address-level2" }),
-        createTextField({ label: "State", name: "emergencyState", autocomplete: "address-level1" }),
+        createSelectField({ label: "State", name: "emergencyState", options: STATE_ABBREVIATIONS }),
         createTextField({ label: "ZIP Code", name: "emergencyZip", inputMode: "numeric", autocomplete: "postal-code" }),
       ]),
     );
@@ -486,7 +495,7 @@
         createTextField({ label: "Street Address", name: "volStreet", required: true, autocomplete: "street-address", addressField: true }),
         createTextField({ label: "Apartment, Suite, or Unit", name: "volApt", autocomplete: "address-line2" }),
         createTextField({ label: "City", name: "volCity", required: true, autocomplete: "address-level2" }),
-        createTextField({ label: "State", name: "volState", required: true, autocomplete: "address-level1" }),
+        createSelectField({ label: "State", name: "volState", required: true, options: STATE_ABBREVIATIONS }),
         createTextField({ label: "ZIP Code", name: "volZip", required: true, inputMode: "numeric", autocomplete: "postal-code" }),
       ]),
     );
@@ -1862,11 +1871,68 @@
 
   function buildDonateUrl() {
     const url = new URL(DONATE_URL);
+    const parent = completedRegistrationData?.parent || {};
+    const fullName = `${parent.firstName || ""} ${parent.lastName || ""}`.trim();
+    const billingAddressLine1 = parent.street || "";
+    const billingAddressLine2 = parent.apt || "";
 
     // Cornerstone may ignore unknown query params; we still pass fee intent for compatibility.
     url.searchParams.set("amount", String(REGISTRATION_FEE_AMOUNT));
     url.searchParams.set("designation", "MLS GO Registration Fee");
     url.searchParams.set("source", "mls-go-registration");
+
+    // Best-effort field aliases for checkout prefill.
+    if (parent.firstName) {
+      url.searchParams.set("first_name", parent.firstName);
+      url.searchParams.set("firstName", parent.firstName);
+      url.searchParams.set("firstname", parent.firstName);
+    }
+    if (parent.lastName) {
+      url.searchParams.set("last_name", parent.lastName);
+      url.searchParams.set("lastName", parent.lastName);
+      url.searchParams.set("lastname", parent.lastName);
+    }
+    if (fullName) {
+      url.searchParams.set("name", fullName);
+      url.searchParams.set("full_name", fullName);
+      url.searchParams.set("fullName", fullName);
+    }
+    if (parent.email) {
+      url.searchParams.set("email", parent.email);
+      url.searchParams.set("email_address", parent.email);
+      url.searchParams.set("emailAddress", parent.email);
+    }
+    if (parent.phone) {
+      url.searchParams.set("phone", parent.phone);
+      url.searchParams.set("phone_number", parent.phone);
+    }
+
+    if (billingAddressLine1) {
+      url.searchParams.set("address", billingAddressLine1);
+      url.searchParams.set("address1", billingAddressLine1);
+      url.searchParams.set("billing_address", billingAddressLine1);
+      url.searchParams.set("billingAddress", billingAddressLine1);
+      url.searchParams.set("billing_address_1", billingAddressLine1);
+    }
+    if (billingAddressLine2) {
+      url.searchParams.set("address2", billingAddressLine2);
+      url.searchParams.set("billing_address_2", billingAddressLine2);
+    }
+    if (parent.city) {
+      url.searchParams.set("city", parent.city);
+      url.searchParams.set("billing_city", parent.city);
+    }
+    if (parent.state) {
+      url.searchParams.set("state", parent.state);
+      url.searchParams.set("billing_state", parent.state);
+    }
+    if (parent.zip) {
+      url.searchParams.set("zip", parent.zip);
+      url.searchParams.set("postal_code", parent.zip);
+      url.searchParams.set("billing_zip", parent.zip);
+    }
+    url.searchParams.set("is_international", "no");
+
     if (registrationSubmissionId) url.searchParams.set("registration_submission_id", registrationSubmissionId);
     if (playerAgreementTransactionId) url.searchParams.set("agreement_transaction_id", playerAgreementTransactionId);
 

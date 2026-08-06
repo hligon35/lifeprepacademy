@@ -7,7 +7,7 @@ const MAX_TYPED_SIGNATURE_LEN = 120;
 const RATE_LIMIT_PER_MINUTE = 30;
 const DEFAULT_SIGNER_LINK_TTL_MS = 1000 * 60 * 30;
 const EMAIL_SIGNER_LINK_TTL_MS = 1000 * 60 * 60 * 24 * 30;
-const PLAYER_REGISTRATION_PAYMENT_URL = "https://give.cornerstone.cc/lifeprepacademyfnd?amount=75&designation=MLS%20GO%20Registration%20Fee&source=mls-go-registration";
+const PLAYER_REGISTRATION_PAYMENT_URL = "https://give.cornerstone.cc/lifeprepacademyfnd/checkout?amount=75&designation=MLS%20GO%20Registration%20Fee&source=mls-go-registration";
 
 export default {
   async fetch(request, env, ctx) {
