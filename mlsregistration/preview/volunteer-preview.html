@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Volunteer Agreement Live Preview</title>
+    <style>
+      :root {
+        --bg: #f3efe5;
+        --ink: #1c2a39;
+        --accent: #c0552e;
+        --panel: #fffaf2;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 15% 15%, #ffd5b0 0%, transparent 38%),
+          radial-gradient(circle at 85% 10%, #b4d6ff 0%, transparent 30%),
+          var(--bg);
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      .topbar {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        border-bottom: 1px solid rgba(28, 42, 57, 0.15);
+        background: color-mix(in srgb, var(--panel) 88%, white 12%);
+      }
+
+      .title {
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .meta {
+        font-size: 0.9rem;
+      }
+
+      .frame-wrap {
+        padding: 12px;
+        height: calc(100vh - 62px);
+      }
+
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: 1px solid rgba(28, 42, 57, 0.2);
+        border-radius: 10px;
+        background: white;
+      }
+
+      .pulse {
+        color: var(--accent);
+        animation: pulse 0.9s ease;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 0.3;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .topbar {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="title">Volunteer Agreement Live PDF Preview</div>
+      <div class="meta" id="meta">Waiting for preview metadata...</div>
+    </header>
+
+    <main class="frame-wrap">
+      <iframe id="preview" title="Volunteer Agreement PDF Preview"></iframe>
+    </main>
+
+    <script>
+      const metaEl = document.getElementById("meta");
+      const frame = document.getElementById("preview");
+      let lastGeneratedAt = "";
+
+      function renderPreview(ts) {
+        frame.src = `./live/volunteer-agreement-preview.pdf?t=${encodeURIComponent(ts)}`;
+      }
+
+      async function pollMeta() {
+        try {
+          const res = await fetch(`./live/volunteer-preview-meta.json?t=${Date.now()}`, { cache: "no-store" });
+          if (!res.ok) throw new Error(`Meta request failed (${res.status})`);
+          const meta = await res.json();
+
+          if (!meta.generatedAt) return;
+
+          if (meta.generatedAt !== lastGeneratedAt) {
+            lastGeneratedAt = meta.generatedAt;
+            renderPreview(lastGeneratedAt);
+            metaEl.classList.remove("pulse");
+            void metaEl.offsetWidth;
+            metaEl.classList.add("pulse");
+          }
+
+          metaEl.textContent = `Last generated: ${new Date(meta.generatedAt).toLocaleString()}`;
+        } catch (error) {
+          metaEl.textContent = `Preview unavailable: ${error.message}`;
+        }
+      }
+
+      pollMeta();
+      setInterval(pollMeta, 1000);
+    </script>
+  </body>
+</html>

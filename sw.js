@@ -1,7 +1,7 @@
 // Service Worker for LifePrep Academy Foundation
 // Provides basic caching for improved performance
 
-const CACHE_NAME = 'lifeprep-academy-v16';
+const CACHE_NAME = 'lifeprep-academy-v17';
 const MAX_RUNTIME_ENTRIES = 120;
 const MAX_ASSET_ENTRIES = 40;
 

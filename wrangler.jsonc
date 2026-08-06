@@ -1,0 +1,48 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "mlsregistration-lifeprepacademyfoundation-com",
+	"main": "mlsregistration/worker/index.js",
+	"routes": [
+		{
+			"pattern": "mlsregistration.lifeprepacademyfoundation.com/*",
+			"zone_name": "lifeprepacademyfoundation.com"
+		}
+	],
+	"compatibility_date": "2026-08-05",
+	"assets": {
+		"directory": "./mlsregistration",
+		"binding": "ASSETS"
+	},
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "SIGNING_TRANSACTIONS",
+				"class_name": "SigningTransactionsDO"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1-signing-transactions-do",
+			"new_sqlite_classes": [
+				"SigningTransactionsDO"
+			]
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "SIGNED_AGREEMENTS",
+			"bucket_name": "lpaf-mls-signed-agreements",
+			"remote": true
+		}
+	],
+	"vars": {
+		"PLAYER_SIGNATURE_PLACEMENT_MODE": "parent_guardian_only",
+		"ALLOWED_ORIGINS": "https://mlsregistration.lifeprepacademyfoundation.com,https://preview.lifeprepacademyfoundation.com,https://lpaf-mls.hligon.workers.dev,http://127.0.0.1:3000",
+		"E_CONSENT_TEXT_VERSION": "v1-2026-08-06",
+		"APPS_SCRIPT_URL": "https://script.google.com/macros/s/AKfycbyXFrKhIy-u-CEq6IuHsig6JytvqJMBu6RVh-2jHO1g1sdgQHFp5PlrCEbz1F7vhAVq/exec"
+	},
+	"observability": {
+		"enabled": true
+	}
+}

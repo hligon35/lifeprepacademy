@@ -348,6 +348,113 @@ nav ul li a:hover {
     box-shadow: var(--shadow-hover);
 }
 
+/* Home page MLS GO announcement */
+.home-announcement {
+    padding: 1rem 1rem 0.75rem;
+    background: linear-gradient(180deg, rgba(40, 17, 86, 0.04), rgba(40, 17, 86, 0));
+}
+
+.home-announcement__card {
+    position: relative;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: clamp(1.25rem, 2.6vw, 2rem);
+    border-radius: 28px;
+    overflow: hidden;
+    text-align: center;
+    color: #ffffff;
+    background:
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.18), transparent 32%),
+        radial-gradient(circle at bottom left, rgba(249, 181, 21, 0.24), transparent 28%),
+        linear-gradient(135deg, #2d0d6d 0%, #35136f 46%, #3f67c7 100%);
+    box-shadow: 0 18px 45px -20px rgba(40, 17, 86, 0.55), var(--shadow);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.home-announcement__card::before,
+.home-announcement__card::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.home-announcement__card::before {
+    width: 240px;
+    height: 240px;
+    top: -120px;
+    right: -90px;
+    background: rgba(255, 255, 255, 0.10);
+    filter: blur(1px);
+}
+
+.home-announcement__card::after {
+    width: 160px;
+    height: 160px;
+    left: -70px;
+    bottom: -80px;
+    background: rgba(249, 181, 21, 0.16);
+}
+
+.home-announcement__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.9rem;
+    padding: 0.36rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+
+.home-announcement__message {
+    max-width: 980px;
+    margin: 0 auto;
+    font-size: clamp(1.3rem, 2.4vw, 2rem);
+    font-weight: 900;
+    line-height: 1.12;
+    letter-spacing: -0.03em;
+    color: #ffffff;
+    overflow-wrap: anywhere;
+}
+
+.home-announcement__details {
+    max-width: 860px;
+    margin: 0.9rem auto 1.35rem;
+    font-size: clamp(0.98rem, 1.65vw, 1.1rem);
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.home-announcement__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 150px;
+    padding: 0.9rem 1.55rem;
+    border-radius: 999px;
+    text-decoration: none;
+    background: linear-gradient(135deg, var(--secondary-color), #ffd766);
+    color: var(--primary-color);
+    font-weight: 800;
+    font-size: 0.98rem;
+    letter-spacing: 0.02em;
+    box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.75);
+    transition: var(--transition);
+}
+
+.home-announcement__button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px -14px rgba(0, 0, 0, 0.85);
+    filter: saturate(1.05);
+}
+
 /* Hero Section */
 .hero-section {
     background: linear-gradient(135deg, rgba(40, 17, 86, 0.9), rgba(61, 26, 120, 0.9)), 
@@ -391,6 +498,30 @@ nav ul li a:hover {
 
 .hero-image {
     display: none; /* Hidden since we're using it as background */
+}
+
+@media (max-width: 640px) {
+    .home-announcement {
+        padding: 0.8rem 0.8rem 0.5rem;
+    }
+
+    .home-announcement__card {
+        border-radius: 22px;
+        padding: 1rem;
+    }
+
+    .home-announcement__message {
+        letter-spacing: -0.02em;
+    }
+
+    .home-announcement__details {
+        margin-bottom: 1rem;
+    }
+
+    .home-announcement__button {
+        width: 100%;
+        max-width: 320px;
+    }
 }
 
 /* Section Styles */
@@ -1432,22 +1563,38 @@ footer .social-links {
     flex-direction: column;
     align-items: center;
     text-align: center;
+    min-height: 371px;
 }
 
 .page-youth-programs .program-card--nfl {
-    justify-content: center;
+    justify-content: flex-start;
 }
 
-.page-youth-programs .program-card .program-logo {
+.page-youth-programs .program-logo-wrap {
     width: 100%;
     max-width: 360px;
-    height: auto;
-    display: block;
+    height: 190px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-inline: auto;
 }
 
+.page-youth-programs .program-card .program-logo {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+    margin-inline: 0;
+}
+
 .page-youth-programs .program-card .program-logo--nfl {
-    transform: translateX(14px);
+    transform: none;
+    margin-bottom: 0;
+    margin-top: 0;
 }
 
 .page-youth-programs .program-card > p {
@@ -1467,6 +1614,7 @@ footer .social-links {
     width: auto;
     display: inline-flex;
     align-self: center;
+    margin-top: 1rem;
 }
 
 .page-youth-programs .checkbox-label {
@@ -1484,15 +1632,18 @@ footer .social-links {
     margin-left: -2px;
 }
 
-.page-youth-programs .form-group label.checkbox-label {
-    display: flex;
+.page-youth-programs .program-logo-wrap + p {
+    margin-top: 0.75rem;
+}
+
+.page-youth-programs .program-logo-wrap + p strong {
+    display: inline-block;
 }
 
 .page-youth-programs .jersey-size-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 0.5rem 1rem;
-    margin-top: 0.25rem;
 }
 
 .page-youth-programs .jersey-size-row {
@@ -1524,10 +1675,6 @@ footer .social-links {
 
 .page-youth-programs .checkbox-label input[type="checkbox"] {
     flex: 0 0 auto;
-    width: 1.1rem;
-    height: 1.1rem;
-    padding: 0;
-    margin: 0;
     margin-top: 0.25rem;
     accent-color: var(--secondary-color);
 }

@@ -1,0 +1,2 @@
+/* Compatibility shim for edge-injected /api/style.min.css preload/stylesheet links. */
+@import url("../style.min.css");

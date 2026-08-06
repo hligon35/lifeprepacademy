@@ -78,6 +78,36 @@ function initOfflineReload() {
     btn.addEventListener('click', () => location.reload());
 }
 
+function shouldEnableTurnstile() {
+    const host = (window.location.hostname || '').toLowerCase();
+    const isLocalOrPreview = host === 'localhost' || host === '127.0.0.1' || host.endsWith('.pages.dev') || host.includes('preview');
+    const captchaContainer = document.getElementById('captchaContainer');
+    const siteKey = (captchaContainer?.getAttribute('data-sitekey') || '').trim();
+    return !isLocalOrPreview && Boolean(siteKey && !siteKey.startsWith('0x000000'));
+}
+
+function initTurnstileWidget() {
+    const captchaContainer = document.getElementById('captchaContainer');
+    if (!captchaContainer) return false;
+
+    const enabled = shouldEnableTurnstile();
+    captchaContainer.setAttribute('data-turnstile-enabled', enabled ? 'true' : 'false');
+    captchaContainer.style.display = enabled ? 'block' : 'none';
+
+    if (!enabled) return false;
+
+    if (!document.querySelector('script[data-turnstile-script="true"]')) {
+        const script = document.createElement('script');
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+        script.async = true;
+        script.defer = true;
+        script.setAttribute('data-turnstile-script', 'true');
+        document.body.appendChild(script);
+    }
+
+    return true;
+}
+
 // Contact form network handler (moved from inline script for CSP readiness)
 function initContactFormNetworkHandler() {
     const form = document.getElementById('contactForm');
@@ -89,6 +119,7 @@ function initContactFormNetworkHandler() {
     const submitBtn = document.getElementById('contactSubmitBtn');
     const FETCH_URL = form.getAttribute('action');
     const captchaContainer = document.getElementById('captchaContainer');
+    const turnstileEnabled = initTurnstileWidget();
 
     // Config: client-side protections (UX only; server enforces real security)
     const MIN_DWELL_MS = 3000;                 // Require at least 3s on page before submit
@@ -314,10 +345,11 @@ function initContactFormNetworkHandler() {
         throw new Error(json && json.message ? json.message : `Unexpected response (no success token): ${raw.slice(0, 140)}`);
     }
 
-    // Show captcha widget if configured
+    // Show captcha widget only on supported hosts.
     try {
-        const key = captchaContainer?.getAttribute('data-sitekey') || '';
-        if (key && !key.startsWith('0x000000')) captchaContainer.style.display = 'block';
+        if (captchaContainer && !turnstileEnabled) {
+            captchaContainer.style.display = 'none';
+        }
     } catch {
         // ignore
     }
@@ -362,7 +394,7 @@ function initContactFormNetworkHandler() {
         }
 
         // Optional CAPTCHA gate
-        if (REQUIRE_CAPTCHA) {
+        if (REQUIRE_CAPTCHA && turnstileEnabled) {
             const tsToken = document.querySelector('input[name="cf-turnstile-response"]')?.value;
             if (!tsToken) {
                 setStatus('Please complete the verification before sending.', true);
@@ -1022,19 +1054,6 @@ function debounce(func, wait) {
 window.addEventListener('load', function() {
     // Remove loading classes and show content
     document.body.classList.add('loaded');
-    
-    // Preload critical images (only preload hero background if hero actually exists on page)
-    const criticalImages = ['logo.png'];
-    if (document.querySelector('.hero-section')) {
-        criticalImages.push('groupPhoto.avif');
-    }
-    criticalImages.forEach(src => {
-        const link = document.createElement('link');
-        link.rel = 'preload';
-        link.as = 'image';
-        link.href = src;
-        document.head.appendChild(link);
-    });
 });
 
 // Error handling
