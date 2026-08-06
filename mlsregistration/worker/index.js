@@ -723,7 +723,7 @@ async function updateAgreementInSheets(env, input) {
 
   const params = new URLSearchParams();
   params.append("action", "update_agreement_metadata");
-  params.append("update_token", env.APPS_SCRIPT_UPDATE_TOKEN);
+  appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
   params.append("form_type", input.formType);
   params.append("submission_id", input.submissionId);
   params.append("agreement_type", input.agreementType);
@@ -755,7 +755,7 @@ async function updatePaymentInSheets(env, input) {
 
   const params = new URLSearchParams();
   params.append("action", "update_payment_metadata");
-  params.append("update_token", env.APPS_SCRIPT_UPDATE_TOKEN);
+  appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
   params.append("form_type", "mls_registration");
   params.append("submission_id", input.submissionId);
   params.append("payment_status", input.paymentStatus || "Paid");
@@ -784,7 +784,7 @@ async function getRegistrationContext(env, submissionId) {
 
   const params = new URLSearchParams();
   params.append("action", "get_registration_context");
-  params.append("update_token", env.APPS_SCRIPT_UPDATE_TOKEN);
+  appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
   params.append("form_type", "mls_registration");
   params.append("submission_id", submissionId);
 
@@ -849,7 +849,8 @@ async function sendRegistrationPaidEmail(env, input) {
 
   const params = new URLSearchParams();
   params.append("action", "send_registration_paid_email");
-  params.append("update_token", env.APPS_SCRIPT_UPDATE_TOKEN);
+  appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
+  params.append("form_type", "mls_registration");
   params.append("parent_email", parentEmail);
   params.append("parent_name", String(input.parentName || "").trim());
   params.append("participant_names", String(input.participantNames || "").trim());
@@ -902,7 +903,8 @@ async function sendRegistrationSubmissionEmail(env, input) {
 async function postRegistrationEmailAction(env, action, payload) {
   const params = new URLSearchParams();
   params.append("action", action);
-  params.append("update_token", env.APPS_SCRIPT_UPDATE_TOKEN);
+  appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
+  params.append("form_type", "mls_registration");
 
   Object.entries(payload).forEach(([key, value]) => {
     params.append(key, String(value || "").trim());
@@ -1094,6 +1096,14 @@ async function postAppsScriptForm(url, params) {
   }
 
   return res.text();
+}
+
+function appendUpdateTokenParams(params, token) {
+  const value = String(token || "").trim();
+  params.append("update_token", value);
+  // Backward compatibility with older Apps Script deployments.
+  params.append("token", value);
+  params.append("agreement_update_token", value);
 }
 
 function safeJsonParse(text) {
