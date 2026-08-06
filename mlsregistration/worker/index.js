@@ -7,11 +7,23 @@ const MAX_TYPED_SIGNATURE_LEN = 120;
 const RATE_LIMIT_PER_MINUTE = 30;
 const DEFAULT_SIGNER_LINK_TTL_MS = 1000 * 60 * 30;
 const EMAIL_SIGNER_LINK_TTL_MS = 1000 * 60 * 60 * 24 * 30;
+const PRIMARY_APP_ORIGIN = "https://mlsregistration.lifeprepacademyfoundation.com";
+const DEFAULT_ALLOWED_ORIGINS = [
+  PRIMARY_APP_ORIGIN,
+  "https://preview.lifeprepacademyfoundation.com",
+  "https://lpaf-mls.hligon.workers.dev",
+  "http://127.0.0.1:3000",
+  "http://localhost:3000",
+];
 const PLAYER_REGISTRATION_PAYMENT_URL = "https://give.cornerstone.cc/lifeprepacademyfnd/checkout?amount=75&designation=MLS%20GO%20Registration%20Fee&source=mls-go-registration";
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    if (request.method === "OPTIONS" && url.pathname.startsWith("/api/")) {
+      return handleApiOptions(request, env);
+    }
 
     if (url.pathname === "/api/public-config" && request.method === "GET") {
       return handlePublicConfig(env, request);
@@ -39,18 +51,14 @@ export default {
 
 function handlePublicConfig(env, request) {
   const googleMapsApiKey = String(env.GOOGLE_MAPS_API_KEY || "").trim();
-  const origin = request?.headers?.get("Origin") || "";
-  const allowedOrigin = isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "")
-    ? origin
-    : "";
+  const corsHeaders = buildCorsHeaders(request, env);
   return new Response(JSON.stringify({ googleMapsApiKey }), {
     status: 200,
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
       "X-Robots-Tag": "noindex, nofollow, noarchive",
-      "Access-Control-Allow-Origin": allowedOrigin || "https://mlsregistration.lifeprepacademyfoundation.com",
-      "Vary": "Origin",
+      ...corsHeaders,
     },
   });
 }
@@ -101,7 +109,7 @@ export class SigningTransactionsDO {
 async function handleSignAgreement(request, env) {
   const origin = request.headers.get("Origin") || "";
   if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "")) {
-    return json({ ok: false, error: "Origin not allowed" }, 403);
+    return json({ ok: false, error: "Origin not allowed" }, 403, request, env);
   }
 
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
@@ -110,18 +118,18 @@ async function handleSignAgreement(request, env) {
     body: JSON.stringify({ key: `ip:${ip}`, limit: RATE_LIMIT_PER_MINUTE }),
   });
   if (!rate.ok) {
-    return json({ ok: false, error: "Too many requests" }, 429);
+    return json({ ok: false, error: "Too many requests" }, 429, request, env);
   }
 
   const payload = await request.json().catch(() => null);
-  if (!payload) return json({ ok: false, error: "Invalid JSON" }, 400);
+  if (!payload) return json({ ok: false, error: "Invalid JSON" }, 400, request, env);
 
   const validation = validateSigningPayload(payload, env);
-  if (!validation.ok) return json(validation, 400);
+  if (!validation.ok) return json(validation, 400, request, env);
 
   const { agreementType, formType, submissionId } = payload;
   const template = AGREEMENT_TEMPLATES[agreementType];
-  if (!template) return json({ ok: false, error: "Unknown agreement type" }, 400);
+  if (!template) return json({ ok: false, error: "Unknown agreement type" }, 400, request, env);
 
   const txId = payload.transactionId || crypto.randomUUID();
   const existing = await doFetch(env, `/transaction?txId=${encodeURIComponent(txId)}`);
@@ -134,7 +142,7 @@ async function handleSignAgreement(request, env) {
       signerDownloadUrl: signerUrl,
       emailDownloadUrl,
       alreadyExisted: true,
-    });
+    }, 200, request, env);
   }
 
   await doFetch(env, "/transaction", {
@@ -169,7 +177,7 @@ async function handleSignAgreement(request, env) {
         status: "Generation Failed",
         agreementVersion: template.version,
       });
-      return json({ ok: false, error: "Template not found" }, 500);
+      return json({ ok: false, error: "Template not found" }, 500, request, env);
     }
 
     const templateHash = await sha256Hex(templateBytes);
@@ -188,7 +196,7 @@ async function handleSignAgreement(request, env) {
         status: "Generation Failed",
         agreementVersion: template.version,
       });
-      return json({ ok: false, error: "Template hash mismatch" }, 409);
+      return json({ ok: false, error: "Template hash mismatch" }, 409, request, env);
     }
 
     const completedPdf = await generateSignedPdf({ payload, templateBytes, env, txId, templateHash });
@@ -229,7 +237,7 @@ async function handleSignAgreement(request, env) {
 
     if (!sheetUpdate.ok) {
       await markTransactionFailed(env, txId, "Sheet update failed");
-      return json({ ok: false, error: "Sheet update failed", details: sheetUpdate.error }, 502);
+      return json({ ok: false, error: "Sheet update failed", details: sheetUpdate.error }, 502, request, env);
     }
 
     if (agreementType === "player") {
@@ -276,7 +284,7 @@ async function handleSignAgreement(request, env) {
       signedAt: payload.audit.signedAtUtc,
       signerDownloadUrl: signerUrl,
       emailDownloadUrl,
-    });
+    }, 200, request, env);
   } catch (error) {
     console.error("sign-agreement-failed", {
       txId,
@@ -300,7 +308,7 @@ async function handleSignAgreement(request, env) {
       status: "Generation Failed",
       agreementVersion: template.version,
     });
-    return json({ ok: false, error: "Agreement generation failed" }, 500);
+    return json({ ok: false, error: "Agreement generation failed" }, 500, request, env);
   }
 }
 
@@ -913,8 +921,36 @@ function normalizePaymentWebhookPayload(payload) {
 
 function isAllowedOrigin(origin, csv) {
   if (!origin) return false;
-  const allowed = csv.split(",").map((v) => v.trim()).filter(Boolean);
+  const allowed = [
+    ...DEFAULT_ALLOWED_ORIGINS,
+    ...csv.split(",").map((v) => v.trim()).filter(Boolean),
+  ];
   return allowed.includes(origin);
+}
+
+function buildCorsHeaders(request, env) {
+  const origin = request?.headers?.get("Origin") || "";
+  const allowOrigin = isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "")
+    ? origin
+    : PRIMARY_APP_ORIGIN;
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, x-webhook-token",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin",
+  };
+}
+
+function handleApiOptions(request, env) {
+  const origin = request.headers.get("Origin") || "";
+  if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "")) {
+    return new Response(null, { status: 403 });
+  }
+  return new Response(null, {
+    status: 204,
+    headers: buildCorsHeaders(request, env),
+  });
 }
 
 async function markTransactionFailed(env, txId, reason) {
@@ -985,13 +1021,15 @@ function safeJsonParse(text) {
   }
 }
 
-function json(data, status = 200) {
+function json(data, status = 200, request = null, env = null) {
+  const corsHeaders = request && env ? buildCorsHeaders(request, env) : {};
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
       "X-Robots-Tag": "noindex, nofollow, noarchive",
+      ...corsHeaders,
     },
   });
 }

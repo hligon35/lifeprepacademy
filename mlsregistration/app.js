@@ -4,9 +4,11 @@
   const FBZX = "-3891024944817654155";
   const GOOGLE_MAPS_API_KEY_META =
     document.querySelector('meta[name="google-maps-api-key"]')?.content.trim() || "";
-  const PUBLIC_CONFIG_ENDPOINT = "/api/public-config";
-  const PUBLIC_CONFIG_FALLBACK_ENDPOINT =
-    "https://mlsregistration.lifeprepacademyfoundation.com/api/public-config";
+  const REGISTRATION_API_ORIGIN = "https://mlsregistration.lifeprepacademyfoundation.com";
+  const API_ORIGIN = window.location.origin === REGISTRATION_API_ORIGIN
+    ? ""
+    : REGISTRATION_API_ORIGIN;
+  const PUBLIC_CONFIG_ENDPOINT = `${API_ORIGIN}/api/public-config`;
   const GOOGLE_APPS_SCRIPT_URL =
     document.querySelector('meta[name="google-apps-script-url"]')?.content.trim() || "";
   const MLS_PLAYER_WAIVER_URL =
@@ -17,13 +19,14 @@
     "https://www.mlssoccer.com/legal/terms-of-service";
   const PLAYER_AGREEMENT_TEMPLATE_URL = "./documents/MLS GO Player Registration Agreement.pdf";
   const VOLUNTEER_AGREEMENT_TEMPLATE_URL = "./documents/MLS GO Volunteer Agreement.pdf";
-  const SIGNING_ENDPOINT = "/api/sign-agreement";
+  const SIGNING_ENDPOINT = `${API_ORIGIN}/api/sign-agreement`;
   const E_CONSENT_TEXT_VERSION = "v1-2026-08-06";
   const ELECTRONIC_CONSENT_TEXT =
     "I have reviewed the complete agreement, consent to conduct this transaction electronically, and adopt the signature entered below as my electronic signature. I understand that my electronic signature has the same intended effect as my handwritten signature.";
   const DONATE_URL = "https://give.cornerstone.cc/lifeprepacademyfnd/checkout";
   const REGISTRATION_FEE_AMOUNT = 75;
   const DONATION_REDIRECT_DELAY_MS = 3000;
+  const ENABLE_GOOGLE_FORM_MIRROR = false;
 
   const FLOW = {
     PLAYER: "player",
@@ -1613,10 +1616,12 @@
       await postRegistrationCopy(registrationData);
     }
 
-    // Mirror to Google Form as best-effort telemetry only.
-    postFormResponse(params).catch((error) => {
-      console.warn("Google Form mirror failed", error);
-    });
+    if (ENABLE_GOOGLE_FORM_MIRROR) {
+      // Mirror to Google Form as best-effort telemetry only.
+      postFormResponse(params).catch((error) => {
+        console.warn("Google Form mirror failed", error);
+      });
+    }
 
     await signPlayerAgreement(registrationData);
     playerAgreementSigned = true;
@@ -2518,28 +2523,22 @@
         return GOOGLE_MAPS_API_KEY_META;
       }
 
-      const endpoints = [PUBLIC_CONFIG_ENDPOINT];
-      if (window.location.origin !== "https://mlsregistration.lifeprepacademyfoundation.com") {
-        endpoints.push(PUBLIC_CONFIG_FALLBACK_ENDPOINT);
-      }
-
-      for (const endpoint of endpoints) {
-        try {
-          const res = await fetch(endpoint, {
-            method: "GET",
-            headers: { Accept: "application/json" },
-            credentials: "omit",
-            cache: "no-store",
-          });
-          if (!res.ok) continue;
+      try {
+        const res = await fetch(PUBLIC_CONFIG_ENDPOINT, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          credentials: "omit",
+          cache: "no-store",
+        });
+        if (res.ok) {
           const payload = await res.json().catch(() => null);
           const key = typeof payload?.googleMapsApiKey === "string"
             ? payload.googleMapsApiKey.trim()
             : "";
           if (key) return key;
-        } catch (_error) {
-          // Try next endpoint.
         }
+      } catch (_error) {
+        // Address autocomplete remains disabled when config lookup fails.
       }
 
       return "";
