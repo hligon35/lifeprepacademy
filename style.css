@@ -390,6 +390,14 @@ nav ul li a:hover {
     transition: var(--transition);
 }
 
+.home-promo-close-icon {
+    width: 1.15rem;
+    height: 1.15rem;
+    display: block;
+    margin: 0 auto;
+    fill: currentColor;
+}
+
 .home-promo-close:hover,
 .home-promo-close:focus-visible {
     background: rgba(40, 17, 86, 0.18);
