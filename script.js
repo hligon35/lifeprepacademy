@@ -31,7 +31,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initImageFallbacks();
     initContactFormNetworkHandler();
     initOfflineReload();
-    initHomePromoOverlay();
 
     // Force initial position to top ONLY if user didn't load with a hash anchor
     requestAnimationFrame(() => {
@@ -77,96 +76,6 @@ function initOfflineReload() {
     const btn = document.getElementById('offlineReloadButton');
     if (!btn) return;
     btn.addEventListener('click', () => location.reload());
-}
-
-function initHomePromoOverlay() {
-    let overlay = document.getElementById('home-promo-overlay');
-    const storageKey = 'homePromoDismissed';
-
-    if (!overlay) {
-        const main = document.getElementById('main-content') || document.body;
-        overlay = document.createElement('div');
-        overlay.className = 'home-promo-overlay';
-        overlay.id = 'home-promo-overlay';
-        overlay.hidden = true;
-        overlay.innerHTML = `
-            <div class="home-promo-modal" role="dialog" aria-modal="true" aria-labelledby="home-promo-title" aria-describedby="home-promo-description">
-                <button type="button" class="home-promo-close" id="home-promo-close" aria-label="Close MLS GO registration popup">
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" class="home-promo-close-icon"><path d="M18.3 5.71a1 1 0 0 0-1.41 0L12 10.59 7.11 5.7A1 1 0 1 0 5.7 7.11L10.59 12l-4.89 4.89a1 1 0 1 0 1.41 1.41L12 13.41l4.89 4.89a1 1 0 0 0 1.41-1.41L13.41 12l4.89-4.89a1 1 0 0 0 0-1.4Z"/></svg>
-                </button>
-                <p class="home-promo-eyebrow">MLS GO</p>
-                <h2 id="home-promo-title">MLS GO PROGRAM IS NOW LIVE AND WE'RE TAKING REGISTRATIONS</h2>
-                <p id="home-promo-description" class="home-promo-description">Register now to get started with the LifePrep Academy Foundation MLS GO program.</p>
-                <div class="home-promo-actions">
-                    <a class="btn btn-primary home-promo-register" href="mls-go.html">More info</a>
-                    <button type="button" class="btn btn-outline home-promo-dismiss" id="home-promo-dismiss">Close</button>
-                </div>
-            </div>
-        `;
-
-        if (main.firstChild) {
-            main.insertBefore(overlay, main.firstChild);
-        } else {
-            main.appendChild(overlay);
-        }
-    }
-
-    const closeBtn = overlay.querySelector('#home-promo-close');
-    const dismissBtn = overlay.querySelector('#home-promo-dismiss');
-
-    const isDismissed = (() => {
-        try {
-            return localStorage.getItem(storageKey) === 'true';
-        } catch {
-            return false;
-        }
-    })();
-
-    function dismiss() {
-        if (typeof overlay.close === 'function') {
-            overlay.close();
-        }
-        overlay.hidden = true;
-        document.body.classList.remove('home-promo-lock');
-        try {
-            localStorage.setItem(storageKey, 'true');
-        } catch {
-            // Ignore storage failures.
-        }
-    }
-
-    function show() {
-        if (typeof overlay.showModal === 'function' && !overlay.open) {
-            overlay.showModal();
-        }
-        overlay.hidden = false;
-        document.body.classList.add('home-promo-lock');
-        if (typeof closeBtn?.focus === 'function') {
-            closeBtn.focus({ preventScroll: true });
-        }
-    }
-
-    if (isDismissed) {
-        overlay.hidden = true;
-        return;
-    }
-
-    overlay.addEventListener('click', (event) => {
-        if (event.target === overlay) {
-            dismiss();
-        }
-    });
-
-    closeBtn?.addEventListener('click', dismiss);
-    dismissBtn?.addEventListener('click', dismiss);
-
-    document.addEventListener('keydown', (event) => {
-        if (!overlay.hidden && event.key === 'Escape') {
-            dismiss();
-        }
-    });
-
-    show();
 }
 
 function shouldEnableTurnstile() {
