@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initImageFallbacks();
     initContactFormNetworkHandler();
     initOfflineReload();
+    initHomePromoOverlay();
 
     // Force initial position to top ONLY if user didn't load with a hash anchor
     requestAnimationFrame(() => {
@@ -76,6 +77,63 @@ function initOfflineReload() {
     const btn = document.getElementById('offlineReloadButton');
     if (!btn) return;
     btn.addEventListener('click', () => location.reload());
+}
+
+function initHomePromoOverlay() {
+    const overlay = document.getElementById('home-promo-overlay');
+    if (!overlay) return;
+
+    const closeBtn = document.getElementById('home-promo-close');
+    const dismissBtn = document.getElementById('home-promo-dismiss');
+    const storageKey = 'homePromoDismissed';
+
+    const isDismissed = (() => {
+        try {
+            return localStorage.getItem(storageKey) === 'true';
+        } catch {
+            return false;
+        }
+    })();
+
+    function dismiss() {
+        overlay.hidden = true;
+        document.body.classList.remove('home-promo-lock');
+        try {
+            localStorage.setItem(storageKey, 'true');
+        } catch {
+            // Ignore storage failures.
+        }
+    }
+
+    function show() {
+        overlay.hidden = false;
+        document.body.classList.add('home-promo-lock');
+        if (typeof closeBtn?.focus === 'function') {
+            closeBtn.focus({ preventScroll: true });
+        }
+    }
+
+    if (isDismissed) {
+        overlay.hidden = true;
+        return;
+    }
+
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+            dismiss();
+        }
+    });
+
+    closeBtn?.addEventListener('click', dismiss);
+    dismissBtn?.addEventListener('click', dismiss);
+
+    document.addEventListener('keydown', (event) => {
+        if (!overlay.hidden && event.key === 'Escape') {
+            dismiss();
+        }
+    });
+
+    window.setTimeout(show, 700);
 }
 
 function shouldEnableTurnstile() {

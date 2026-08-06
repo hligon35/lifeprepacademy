@@ -348,6 +348,102 @@ nav ul li a:hover {
     box-shadow: var(--shadow-hover);
 }
 
+/* Home page MLS GO popup */
+.home-promo-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(17, 17, 17, 0.62);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+}
+
+.home-promo-modal {
+    position: relative;
+    width: min(100%, 760px);
+    border-radius: 28px;
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    background:
+        radial-gradient(circle at top left, rgba(249, 181, 21, 0.18), transparent 36%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 246, 237, 0.99));
+    border: 1px solid rgba(40, 17, 86, 0.14);
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.35);
+    text-align: center;
+}
+
+.home-promo-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(40, 17, 86, 0.1);
+    color: var(--primary-color);
+    font-size: 1.75rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.home-promo-close:hover,
+.home-promo-close:focus-visible {
+    background: rgba(40, 17, 86, 0.18);
+    transform: scale(1.04);
+}
+
+.home-promo-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.85rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: var(--primary-color);
+    color: #fff;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.home-promo-modal h2 {
+    margin-bottom: 1rem;
+    font-size: clamp(1.7rem, 4vw, 2.6rem);
+    line-height: 1.1;
+}
+
+.home-promo-modal h2::after {
+    display: none;
+}
+
+.home-promo-description {
+    max-width: 38rem;
+    margin: 0 auto 1.5rem;
+    font-size: clamp(1rem, 2vw, 1.12rem);
+    color: var(--text-light);
+}
+
+.home-promo-actions {
+    display: flex;
+    gap: 0.9rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.home-promo-register,
+.home-promo-dismiss {
+    min-width: 180px;
+}
+
+body.home-promo-lock {
+    overflow: hidden;
+}
+
 /* Hero Section */
 .hero-section {
     background: linear-gradient(135deg, rgba(40, 17, 86, 0.9), rgba(61, 26, 120, 0.9)), 
@@ -391,6 +487,30 @@ nav ul li a:hover {
 
 .hero-image {
     display: none; /* Hidden since we're using it as background */
+}
+
+@media (max-width: 640px) {
+    .home-promo-overlay {
+        padding: 0.75rem;
+    }
+
+    .home-promo-modal {
+        border-radius: 22px;
+        padding-top: 2.2rem;
+    }
+
+    .home-promo-close {
+        top: 0.75rem;
+        right: 0.75rem;
+        width: 2.2rem;
+        height: 2.2rem;
+    }
+
+    .home-promo-register,
+    .home-promo-dismiss {
+        width: 100%;
+        min-width: 0;
+    }
 }
 
 /* Section Styles */
