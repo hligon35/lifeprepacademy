@@ -38,7 +38,12 @@ The page still submits the original MLS GO data to the Google Form, and it also 
 3. Paste the contents of [google-apps-script/Code.gs](google-apps-script/Code.gs).
 4. Deploy it as a Web App with Execute as: Me and Access: Anyone.
 5. Copy the Web App URL into the `google-apps-script-url` meta tag in [index.html](index.html).
-6. The script writes into a tab named `MLS Registration`.
+6. The script writes into these tabs in the same spreadsheet:
+   - `Players` for registration (`form_type=mls_registration`)
+   - `Volunteers` for volunteer applications (`form_type=volunteer_application`)
+   - `Coaches` for coaching applications (`form_type=coaching_application`)
+7. In Apps Script, run `initializeSheets()` once to create/update headers on all tabs before the first live submission.
+8. Unknown `form_type` payloads are written to the `Errors` tab.
 
 ## Verify
 

@@ -1,7 +1,12 @@
 const SHEET_ID = '1EIG6F00-mVhT9ws0nS3pJBrp9Y2mPH87p6UyLkWtKT4';
-const SHEET_NAME = 'MLS Registration';
+const SHEET_NAMES = {
+  PLAYERS: 'Players',
+  VOLUNTEERS: 'Volunteers',
+  COACHES: 'Coaches',
+  ERRORS: 'Errors',
+};
 
-const HEADERS = [
+const PLAYER_HEADERS = [
   'submitted_at',
   'form_type',
   'page_url',
@@ -77,18 +82,119 @@ const HEADERS = [
   'player_4_race_other',
   'player_4_favorite_club',
   'player_4_hear_about',
+  'help_choice',
   'agree_waiver',
   'agree_privacy',
   'agree_marketing',
   'signature',
 ];
 
+const VOLUNTEER_HEADERS = [
+  'submittedAt',
+  'form_type',
+  'pageUrl',
+  'firstName',
+  'lastName',
+  'email',
+  'phone',
+  'street',
+  'apt',
+  'city',
+  'state',
+  'zip',
+  'roles',
+  'hasExperience',
+  'experienceSummary',
+  'availabilityNotes',
+  'agreement',
+  'signature',
+  'linkedParentEmail',
+];
+
+const COACH_HEADERS = [
+  'submittedAt',
+  'form_type',
+  'pageUrl',
+  'firstName',
+  'lastName',
+  'email',
+  'phone',
+  'street',
+  'apt',
+  'city',
+  'state',
+  'zip',
+  'roles',
+  'hasExperience',
+  'experienceSummary',
+  'availabilityNotes',
+  'agreement',
+  'signature',
+  'linkedParentEmail',
+  'coachHasExperience',
+  'coachExperienceSummary',
+  'coachAvailability',
+  'ref1Name',
+  'ref1Relationship',
+  'ref1Phone',
+  'ref1Email',
+  'coachCertifications',
+  'coachBackgroundConsent',
+  'coachSignature',
+];
+
+const ERROR_HEADERS = [
+  'submitted_at',
+  'form_type',
+  'reason',
+  'payload',
+];
+
+const FORM_CONFIG = {
+  mls_registration: {
+    sheetName: SHEET_NAMES.PLAYERS,
+    headers: PLAYER_HEADERS,
+  },
+  volunteer_application: {
+    sheetName: SHEET_NAMES.VOLUNTEERS,
+    headers: VOLUNTEER_HEADERS,
+  },
+  coaching_application: {
+    sheetName: SHEET_NAMES.COACHES,
+    headers: COACH_HEADERS,
+  },
+};
+
 function doPost(e) {
-  const sheet = getSheet_();
-  ensureHeaders_(sheet);
+  if (!e || !e.parameter) {
+    initializeSheets();
+    return ContentService.createTextOutput(
+      JSON.stringify({ ok: true, initialized: true, note: 'No POST payload provided; headers initialized.' }),
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
 
   const values = parseValues_(e);
-  const row = HEADERS.map((header) => values[header] || '');
+  const formType = normalizeValue_(values.form_type);
+  const config = getFormConfig_(formType, true);
+
+  if (!config) {
+    const errorSheet = getSheet_(SHEET_NAMES.ERRORS);
+    ensureHeaders_(errorSheet, ERROR_HEADERS);
+    errorSheet.appendRow([
+      new Date().toISOString(),
+      formType,
+      'Unknown form_type',
+      safeStringify_(values),
+    ]);
+
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'Unknown form_type' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  const sheet = getSheet_(config.sheetName);
+
+  ensureHeaders_(sheet, config.headers);
+  const row = config.headers.map((header) => normalizeValue_(values[header]));
   sheet.appendRow(row);
 
   return ContentService.createTextOutput(JSON.stringify({ ok: true }))
@@ -97,32 +203,46 @@ function doPost(e) {
 
 function parseValues_(e) {
   const source = (e && e.parameter) || {};
-  const values = {};
-
-  HEADERS.forEach((header) => {
-    values[header] = normalizeValue_(source[header]);
-  });
-
-  return values;
+  return source;
 }
 
-function getSheet_() {
+function getFormConfig_(formType, strict) {
+  if (FORM_CONFIG[formType]) return FORM_CONFIG[formType];
+  if (strict) return null;
+  return FORM_CONFIG.mls_registration;
+}
+
+function initializeSheets() {
+  const players = getSheet_(SHEET_NAMES.PLAYERS);
+  ensureHeaders_(players, PLAYER_HEADERS);
+
+  const volunteers = getSheet_(SHEET_NAMES.VOLUNTEERS);
+  ensureHeaders_(volunteers, VOLUNTEER_HEADERS);
+
+  const coaches = getSheet_(SHEET_NAMES.COACHES);
+  ensureHeaders_(coaches, COACH_HEADERS);
+
+  const errors = getSheet_(SHEET_NAMES.ERRORS);
+  ensureHeaders_(errors, ERROR_HEADERS);
+}
+
+function getSheet_(sheetName) {
   const ss = SpreadsheetApp.openById(SHEET_ID);
-  return ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+  return ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);
 }
 
-function ensureHeaders_(sheet) {
+function ensureHeaders_(sheet, headers) {
   const lastColumn = sheet.getLastColumn();
-  if (lastColumn < HEADERS.length) {
-    sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+  if (lastColumn < headers.length) {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     sheet.setFrozenRows(1);
     return;
   }
 
-  const current = sheet.getRange(1, 1, 1, HEADERS.length).getValues()[0].map(String);
-  const matches = HEADERS.every((header, index) => current[index] === header);
+  const current = sheet.getRange(1, 1, 1, headers.length).getValues()[0].map(String);
+  const matches = headers.every((header, index) => current[index] === header);
   if (!matches) {
-    sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     sheet.setFrozenRows(1);
   }
 }
@@ -131,4 +251,12 @@ function normalizeValue_(value) {
   if (value === undefined || value === null) return '';
   if (Array.isArray(value)) return value.join(', ');
   return String(value).trim();
+}
+
+function safeStringify_(value) {
+  try {
+    return JSON.stringify(value);
+  } catch (error) {
+    return String(value);
+  }
 }
