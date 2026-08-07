@@ -492,6 +492,7 @@ async function handleFormUpsert(request, env) {
 
   const params = new URLSearchParams();
   params.append("form_type", formType);
+  appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
   Object.entries(values).forEach(([key, value]) => {
     if (!key) return;
     if (value === undefined || value === null) return;
@@ -1005,6 +1006,7 @@ async function sendRegistrationSubmissionEmail(env, input) {
 
   const payload = {
     registration_submission_id: String(input.submissionId || "").trim(),
+    submission_id: String(input.submissionId || "").trim(),
     parent_email: parentEmail,
     parent_name: String(input.parentName || "").trim(),
     participant_names: String(input.participantNames || "").trim(),
@@ -1028,8 +1030,15 @@ async function sendRegistrationSubmissionEmail(env, input) {
   const primary = await postRegistrationEmailAction(env, "send_registration_receipt_email", payload);
   if (primary.ok) return primary;
 
+  const fallback = await postRegistrationEmailAction(env, "send_registration_paid_email", payload);
+  if (fallback.ok) return fallback;
+
+  if (!payload.registration_submission_id && !payload.submission_id) {
+    return { ok: false, error: fallback.error || primary.error || "Apps Script registration email send failed" };
+  }
+
   // Backward-compatible fallback for scripts only supporting the newer action name.
-  return postRegistrationEmailAction(env, "send_registration_paid_email", payload);
+  return fallback;
 }
 
 async function sendVolunteerCoachConfirmationEmail(env, input) {

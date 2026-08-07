@@ -355,7 +355,7 @@ function handleAgreementMetadataUpdate_(values) {
 
 function handleVolunteerCoachConfirmationEmail_(values) {
   const expected = PropertiesService.getScriptProperties().getProperty('AGREEMENT_UPDATE_TOKEN') || '';
-  const provided = normalizeValue_(values.update_token);
+  const provided = normalizeValue_(values.update_token || values.token || values.agreement_update_token);
   if (!expected || provided !== expected) {
     return json_({ ok: false, error: 'Unauthorized update token' }, 403);
   }
@@ -368,7 +368,7 @@ function handleVolunteerCoachConfirmationEmail_(values) {
   const config = getFormConfig_(formType, true);
   if (!config) return json_({ ok: false, error: 'Unknown form_type' }, 400);
 
-  const submissionId = normalizeValue_(values.submission_id);
+  const submissionId = normalizeValue_(values.submission_id || values.registration_submission_id || values.submissionId);
   if (!submissionId) return json_({ ok: false, error: 'Missing submission_id' }, 400);
 
   const sheet = getSheet_(config.sheetName);
@@ -394,7 +394,7 @@ function handleVolunteerCoachConfirmationEmail_(values) {
 
 function handleRegistrationPaidEmail_(values) {
   const expected = PropertiesService.getScriptProperties().getProperty('AGREEMENT_UPDATE_TOKEN') || '';
-  const provided = normalizeValue_(values.update_token);
+  const provided = normalizeValue_(values.update_token || values.token || values.agreement_update_token);
   if (!expected || provided !== expected) {
     return json_({ ok: false, error: 'Unauthorized update token' }, 403);
   }
@@ -405,7 +405,7 @@ function handleRegistrationPaidEmail_(values) {
   }
 
   const payload = {
-    registrationSubmissionId: normalizeValue_(values.registration_submission_id || values.submission_id),
+    registrationSubmissionId: normalizeValue_(values.registration_submission_id || values.submission_id || values.registrationSubmissionId || values.submissionId),
     parentEmail,
     parentName: normalizeValue_(values.parent_name),
     participantNames: normalizeValue_(values.participant_names),
@@ -497,7 +497,7 @@ function handleRegistrationReceiptEmail_(values) {
 
 function handlePaymentMetadataUpdate_(values) {
   const expected = PropertiesService.getScriptProperties().getProperty('AGREEMENT_UPDATE_TOKEN') || '';
-  const provided = normalizeValue_(values.update_token);
+  const provided = normalizeValue_(values.update_token || values.token || values.agreement_update_token);
   if (!expected || provided !== expected) {
     return json_({ ok: false, error: 'Unauthorized update token' }, 403);
   }
@@ -546,7 +546,7 @@ function handlePaymentMetadataUpdate_(values) {
 
 function handleRegistrationContextLookup_(values) {
   const expected = PropertiesService.getScriptProperties().getProperty('AGREEMENT_UPDATE_TOKEN') || '';
-  const provided = normalizeValue_(values.update_token);
+  const provided = normalizeValue_(values.update_token || values.token || values.agreement_update_token);
   if (!expected || provided !== expected) {
     return json_({ ok: false, error: 'Unauthorized update token' }, 403);
   }
