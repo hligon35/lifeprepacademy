@@ -240,6 +240,9 @@ function doPost(e) {
   if (action === 'send_registration_paid_email') {
     return handleRegistrationPaidEmail_(e.parameter);
   }
+  if (action === 'send_volunteer_coach_confirmation_email') {
+    return handleVolunteerCoachConfirmationEmail_(e.parameter);
+  }
 
   return handleSubmissionUpsert_(e.parameter);
 }
@@ -312,8 +315,6 @@ function handleAgreementMetadataUpdate_(values) {
     const columnNames =
       formType === 'mls_registration' ? PLAYER_AGREEMENT_COLUMNS : VOLUNTEER_AGREEMENT_COLUMNS;
 
-    const previousAgreementStatus = normalizeValue_(sheet.getRange(row, headerIndex[columnNames[0]]).getValue());
-
     const agreementValues = {
       [columnNames[0]]: normalizeValue_(values.agreement_status),
       [columnNames[1]]: normalizeValue_(values.agreement_version),
@@ -331,24 +332,48 @@ function handleAgreementMetadataUpdate_(values) {
       sheet.getRange(row, col).setValue(formatSheetValue_(header, agreementValues[header]));
     });
 
-    const nowSigned = normalizeValue_(agreementValues[columnNames[0]]) === 'Signed';
-    const wasSigned = previousAgreementStatus === 'Signed';
-    if ((formType === 'volunteer_application' || formType === 'coaching_application') && nowSigned && !wasSigned) {
-      try {
-        const rowRecord = readSheetRowRecord_(sheet, config.headers, row);
-        sendVolunteerCoachConfirmationEmail_(formType, rowRecord);
-      } catch (error) {
-        writeError_(formType, 'Volunteer/Coach confirmation email failed', {
-          submission_id: submissionId,
-          row,
-          error: String(error && error.message ? error.message : error),
-        });
-      }
-    }
-
     return json_({ ok: true, updated: true, row });
   } finally {
     lock.releaseLock();
+  }
+}
+
+function handleVolunteerCoachConfirmationEmail_(values) {
+  const expected = PropertiesService.getScriptProperties().getProperty('AGREEMENT_UPDATE_TOKEN') || '';
+  const provided = normalizeValue_(values.update_token);
+  if (!expected || provided !== expected) {
+    return json_({ ok: false, error: 'Unauthorized update token' }, 403);
+  }
+
+  const formType = normalizeValue_(values.form_type);
+  if (formType !== 'volunteer_application' && formType !== 'coaching_application') {
+    return json_({ ok: false, error: 'Unsupported form_type' }, 400);
+  }
+
+  const config = getFormConfig_(formType, true);
+  if (!config) return json_({ ok: false, error: 'Unknown form_type' }, 400);
+
+  const submissionId = normalizeValue_(values.submission_id);
+  if (!submissionId) return json_({ ok: false, error: 'Missing submission_id' }, 400);
+
+  const sheet = getSheet_(config.sheetName);
+  ensureHeaders_(sheet, config.headers);
+  const row = findRowBySubmissionId_(sheet, config.headers, config.idColumn, submissionId);
+  if (row <= 0) {
+    return json_({ ok: false, error: 'Matching row not found' }, 404);
+  }
+
+  try {
+    const rowRecord = readSheetRowRecord_(sheet, config.headers, row);
+    sendVolunteerCoachConfirmationEmail_(formType, rowRecord);
+    return json_({ ok: true, emailed: true, row });
+  } catch (error) {
+    writeError_(formType, 'Volunteer/Coach confirmation email failed', {
+      submission_id: submissionId,
+      row,
+      error: String(error && error.message ? error.message : error),
+    });
+    return json_({ ok: false, error: String(error && error.message ? error.message : error) }, 500);
   }
 }
 

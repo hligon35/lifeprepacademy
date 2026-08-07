@@ -134,7 +134,7 @@ export class SigningTransactionsDO {
   }
 }
 
-async function handleSignAgreement(request, env) {
+async function handleSignAgreement(request, env, ctx) {
   const origin = request.headers.get("Origin") || "";
   if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "")) {
     return json({ ok: false, error: "Origin not allowed" }, 403, request, env);
@@ -273,7 +273,7 @@ async function handleSignAgreement(request, env) {
 
     let registrationEmail = null;
     if (agreementType === "player") {
-      const submissionEmail = await sendRegistrationSubmissionEmail(env, {
+      const submissionEmailPromise = sendRegistrationSubmissionEmail(env, {
         submissionId,
         parentEmail: payload.fields?.guardianEmail,
         parentName: payload.fields?.guardianName || payload.signer?.printedName,
@@ -293,16 +293,57 @@ async function handleSignAgreement(request, env) {
         signedDocumentUrl: emailDownloadUrl,
         paymentUrl: PLAYER_REGISTRATION_PAYMENT_URL,
       });
+      if (ctx && typeof ctx.waitUntil === "function") {
+        ctx.waitUntil(
+          submissionEmailPromise.then((submissionEmail) => {
+            if (!submissionEmail.ok) {
+              console.warn("registration-submission-email-failed", {
+                txId,
+                submissionId,
+                error: submissionEmail.error,
+              });
+            }
+          }).catch((error) => {
+            console.warn("registration-submission-email-failed", {
+              txId,
+              submissionId,
+              error: String(error?.message || error),
+            });
+          }),
+        );
+      }
       registrationEmail = {
-        ok: Boolean(submissionEmail.ok),
-        error: submissionEmail.ok ? "" : String(submissionEmail.error || "Registration email send failed"),
+        ok: true,
+        pending: true,
+        error: "",
       };
-      if (!submissionEmail.ok) {
-        console.warn("registration-submission-email-failed", {
-          txId,
-          submissionId,
-          error: submissionEmail.error,
-        });
+    }
+
+    if (agreementType === "volunteer") {
+      const volunteerEmailPromise = sendVolunteerCoachConfirmationEmail(env, {
+        formType,
+        submissionId,
+      });
+      if (ctx && typeof ctx.waitUntil === "function") {
+        ctx.waitUntil(
+          volunteerEmailPromise.then((result) => {
+            if (!result.ok) {
+              console.warn("volunteer-coach-email-failed", {
+                txId,
+                formType,
+                submissionId,
+                error: result.error,
+              });
+            }
+          }).catch((error) => {
+            console.warn("volunteer-coach-email-failed", {
+              txId,
+              formType,
+              submissionId,
+              error: String(error?.message || error),
+            });
+          }),
+        );
       }
     }
 
@@ -926,6 +967,35 @@ async function sendRegistrationSubmissionEmail(env, input) {
 
   // Backward-compatible fallback for scripts only supporting the newer action name.
   return postRegistrationEmailAction(env, "send_registration_paid_email", payload);
+}
+
+async function sendVolunteerCoachConfirmationEmail(env, input) {
+  if (!env.APPS_SCRIPT_URL || !env.APPS_SCRIPT_UPDATE_TOKEN) {
+    return { ok: false, error: "Missing Apps Script email configuration" };
+  }
+
+  const formType = String(input.formType || "").trim();
+  const submissionId = String(input.submissionId || "").trim();
+  if (!formType || !submissionId) {
+    return { ok: false, error: "Missing formType or submissionId" };
+  }
+
+  const params = new URLSearchParams();
+  params.append("action", "send_volunteer_coach_confirmation_email");
+  appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
+  params.append("form_type", formType);
+  params.append("submission_id", submissionId);
+
+  try {
+    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
+    const parsed = safeJsonParse(text);
+    if (!parsed?.ok) {
+      return { ok: false, error: parsed?.error || "Apps Script volunteer/coach email send failed" };
+    }
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: String(error?.message || error) };
+  }
 }
 
 async function postRegistrationEmailAction(env, action, payload) {

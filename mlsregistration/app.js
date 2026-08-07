@@ -24,9 +24,9 @@
   const E_CONSENT_TEXT_VERSION = "v1-2026-08-06";
   const ELECTRONIC_CONSENT_TEXT =
     "I have reviewed the complete agreement, consent to conduct this transaction electronically, and adopt the signature entered below as my electronic signature. I understand that my electronic signature has the same intended effect as my handwritten signature.";
-  const DONATE_URL = "https://give.cornerstone.cc/lifeprepacademyfnd/checkout";
+  const DONATE_URL = "https://give.cornerstone.cc/lifeprepacademyfnd/checkout?amount=75&designation=MLS%20GO%20Registration%20Fee&source=mls-go-registration";
   const REGISTRATION_FEE_AMOUNT = 75;
-  const DONATION_REDIRECT_DELAY_MS = 3000;
+  const DONATION_REDIRECT_DELAY_MS = 1200;
   const ENABLE_GOOGLE_FORM_MIRROR = false;
 
   const FLOW = {
@@ -1993,11 +1993,15 @@
       url.searchParams.set("first_name", parent.firstName);
       url.searchParams.set("firstName", parent.firstName);
       url.searchParams.set("firstname", parent.firstName);
+      url.searchParams.set("donor_first_name", parent.firstName);
+      url.searchParams.set("donorFirstName", parent.firstName);
     }
     if (parent.lastName) {
       url.searchParams.set("last_name", parent.lastName);
       url.searchParams.set("lastName", parent.lastName);
       url.searchParams.set("lastname", parent.lastName);
+      url.searchParams.set("donor_last_name", parent.lastName);
+      url.searchParams.set("donorLastName", parent.lastName);
     }
     if (fullName) {
       url.searchParams.set("name", fullName);
@@ -2008,10 +2012,14 @@
       url.searchParams.set("email", parent.email);
       url.searchParams.set("email_address", parent.email);
       url.searchParams.set("emailAddress", parent.email);
+      url.searchParams.set("donor_email", parent.email);
+      url.searchParams.set("donorEmail", parent.email);
     }
     if (parent.phone) {
       url.searchParams.set("phone", parent.phone);
       url.searchParams.set("phone_number", parent.phone);
+      url.searchParams.set("donor_phone", parent.phone);
+      url.searchParams.set("donorPhone", parent.phone);
     }
 
     if (billingAddressLine1) {
@@ -2020,6 +2028,7 @@
       url.searchParams.set("billing_address", billingAddressLine1);
       url.searchParams.set("billingAddress", billingAddressLine1);
       url.searchParams.set("billing_address_1", billingAddressLine1);
+      url.searchParams.set("donor_address", billingAddressLine1);
     }
     if (billingAddressLine2) {
       url.searchParams.set("address2", billingAddressLine2);
@@ -2028,15 +2037,18 @@
     if (parent.city) {
       url.searchParams.set("city", parent.city);
       url.searchParams.set("billing_city", parent.city);
+      url.searchParams.set("donor_city", parent.city);
     }
     if (parent.state) {
       url.searchParams.set("state", parent.state);
       url.searchParams.set("billing_state", parent.state);
+      url.searchParams.set("donor_state", parent.state);
     }
     if (parent.zip) {
       url.searchParams.set("zip", parent.zip);
       url.searchParams.set("postal_code", parent.zip);
       url.searchParams.set("billing_zip", parent.zip);
+      url.searchParams.set("donor_zip", parent.zip);
     }
     url.searchParams.set("is_international", "no");
 
