@@ -249,7 +249,7 @@ async function handleSignAgreement(request, env, ctx) {
     const signerUrl = await buildSignerUrl(request.url, txId, env);
     const emailDownloadUrl = await buildSignerUrl(request.url, txId, env, EMAIL_SIGNER_LINK_TTL_MS);
 
-    const sheetUpdate = await updateAgreementInSheets(env, {
+    const sheetUpdatePromise = updateAgreementInSheets(env, {
       formType,
       submissionId,
       agreementType,
@@ -262,13 +262,73 @@ async function handleSignAgreement(request, env, ctx) {
       status: "Signed",
       agreementVersion: template.version,
     });
-    if (!sheetUpdate.ok) {
-      console.warn("agreement-sheet-update-failed", {
-        txId,
-        submissionId,
-        formType,
-        error: sheetUpdate.error,
-      });
+    let sheetUpdate = { ok: true, pending: Boolean(ctx && typeof ctx.waitUntil === "function"), error: "" };
+
+    if (ctx && typeof ctx.waitUntil === "function") {
+      ctx.waitUntil(
+        sheetUpdatePromise.then((result) => {
+          if (!result.ok) {
+            console.warn("agreement-sheet-update-failed", {
+              txId,
+              submissionId,
+              formType,
+              error: result.error,
+            });
+            return result;
+          }
+
+          if (agreementType === "volunteer") {
+            return sendVolunteerCoachConfirmationEmail(env, {
+              formType,
+              submissionId,
+            }).then((emailResult) => {
+              if (!emailResult.ok) {
+                console.warn("volunteer-coach-email-failed", {
+                  txId,
+                  formType,
+                  submissionId,
+                  error: emailResult.error,
+                });
+              }
+              return emailResult;
+            });
+          }
+
+          return result;
+        }).catch((error) => {
+          console.warn("agreement-sheet-update-failed", {
+            txId,
+            submissionId,
+            formType,
+            error: String(error?.message || error),
+          });
+        }),
+      );
+    } else {
+      sheetUpdate = await sheetUpdatePromise;
+      if (!sheetUpdate.ok) {
+        console.warn("agreement-sheet-update-failed", {
+          txId,
+          submissionId,
+          formType,
+          error: sheetUpdate.error,
+        });
+      }
+
+      if (agreementType === "volunteer" && sheetUpdate.ok) {
+        const emailResult = await sendVolunteerCoachConfirmationEmail(env, {
+          formType,
+          submissionId,
+        });
+        if (!emailResult.ok) {
+          console.warn("volunteer-coach-email-failed", {
+            txId,
+            formType,
+            submissionId,
+            error: emailResult.error,
+          });
+        }
+      }
     }
 
     let registrationEmail = null;
@@ -317,34 +377,6 @@ async function handleSignAgreement(request, env, ctx) {
         pending: true,
         error: "",
       };
-    }
-
-    if (agreementType === "volunteer") {
-      const volunteerEmailPromise = sendVolunteerCoachConfirmationEmail(env, {
-        formType,
-        submissionId,
-      });
-      if (ctx && typeof ctx.waitUntil === "function") {
-        ctx.waitUntil(
-          volunteerEmailPromise.then((result) => {
-            if (!result.ok) {
-              console.warn("volunteer-coach-email-failed", {
-                txId,
-                formType,
-                submissionId,
-                error: result.error,
-              });
-            }
-          }).catch((error) => {
-            console.warn("volunteer-coach-email-failed", {
-              txId,
-              formType,
-              submissionId,
-              error: String(error?.message || error),
-            });
-          }),
-        );
-      }
     }
 
     await doFetch(env, "/transaction", {

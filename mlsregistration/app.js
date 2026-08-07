@@ -26,7 +26,7 @@
     "I have reviewed the complete agreement, consent to conduct this transaction electronically, and adopt the signature entered below as my electronic signature. I understand that my electronic signature has the same intended effect as my handwritten signature.";
   const DONATE_URL = "https://give.cornerstone.cc/lifeprepacademyfnd/checkout?amount=75&designation=MLS%20GO%20Registration%20Fee&source=mls-go-registration";
   const REGISTRATION_FEE_AMOUNT = 75;
-  const DONATION_REDIRECT_DELAY_MS = 1200;
+  const DONATION_REDIRECT_DELAY_MS = 900;
   const ENABLE_GOOGLE_FORM_MIRROR = false;
 
   const FLOW = {
@@ -1984,7 +1984,12 @@
     const billingAddressLine2 = parent.apt || "";
 
     // Cornerstone may ignore unknown query params; we still pass fee intent for compatibility.
-    url.searchParams.set("amount", String(REGISTRATION_FEE_AMOUNT));
+    url.searchParams.set("amount", `${REGISTRATION_FEE_AMOUNT}.00`);
+    url.searchParams.set("donation_amount", `${REGISTRATION_FEE_AMOUNT}.00`);
+    url.searchParams.set("gift_amount", `${REGISTRATION_FEE_AMOUNT}.00`);
+    url.searchParams.set("default_amount", `${REGISTRATION_FEE_AMOUNT}.00`);
+    url.searchParams.set("checkout_amount", `${REGISTRATION_FEE_AMOUNT}.00`);
+    url.searchParams.set("amount_in_cents", String(REGISTRATION_FEE_AMOUNT * 100));
     url.searchParams.set("designation", "MLS GO Registration Fee");
     url.searchParams.set("source", "mls-go-registration");
 
@@ -2007,6 +2012,8 @@
       url.searchParams.set("name", fullName);
       url.searchParams.set("full_name", fullName);
       url.searchParams.set("fullName", fullName);
+      url.searchParams.set("donor_name", fullName);
+      url.searchParams.set("donorName", fullName);
     }
     if (parent.email) {
       url.searchParams.set("email", parent.email);
@@ -2565,28 +2572,45 @@
   }
 
   async function postUpsertViaWorker(formType, values) {
-    const res = await fetchWithTimeout(FORM_UPSERT_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({ formType, values }),
-    }, 20000);
+    let res;
+    let payload = null;
+    let error = "";
 
-    const payload = await res.json().catch(() => null);
-    if (!res.ok || !payload?.ok) {
-      const error = String(payload?.error || `Form upsert failed (${res.status})`).trim();
-      if (GOOGLE_APPS_SCRIPT_URL) {
-        await postUpsertDirect(formType, values);
-        console.warn("Worker upsert failed; direct Apps Script fallback succeeded", {
-          formType,
-          error,
-        });
-        return;
+    try {
+      res = await fetchWithTimeout(FORM_UPSERT_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ formType, values }),
+      }, 7000);
+      payload = await res.json().catch(() => null);
+      if (!res.ok || !payload?.ok) {
+        error = String(payload?.error || `Form upsert failed (${res.status})`).trim();
       }
-      throw new Error(error || "Form upsert failed");
+    } catch (err) {
+      error = String(err?.message || err || "Form upsert request failed").trim();
     }
+
+    if (!error) return;
+
+    if (GOOGLE_APPS_SCRIPT_URL) {
+      // Non-blocking fallback keeps submit flow fast while still attempting direct sync.
+      postUpsertDirect(formType, values).catch((fallbackErr) => {
+        console.warn("Direct Apps Script fallback failed", {
+          formType,
+          error: String(fallbackErr?.message || fallbackErr),
+        });
+      });
+      console.warn("Worker upsert failed; direct Apps Script fallback started", {
+        formType,
+        error,
+      });
+      return;
+    }
+
+    throw new Error(error || "Form upsert failed");
   }
 
   async function postUpsertDirect(formType, values) {
@@ -2612,7 +2636,7 @@
         "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
       },
       body: params.toString(),
-    }, 20000);
+    }, 5000);
   }
 
   async function fetchWithTimeout(url, init, timeoutMs) {
