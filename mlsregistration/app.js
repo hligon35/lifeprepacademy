@@ -190,7 +190,7 @@
     [FLOW.PLAYER]: {
       title: "MLS GO Registration",
       subtitle:
-        "Registration fee is $75 per player. You can register up to four players in a single submission.",
+        "Registration fee is <strong>$75 per player</strong>. You can register up to four players in a single submission.",
       progressLabel: "Player registration",
       submitLabel: "Submit Registration",
     },
@@ -1474,7 +1474,7 @@
     const stageFlow = getCurrentStageFlow();
     const meta = FLOW_META[stageFlow] || FLOW_META[FLOW.PLAYER];
     if (formTitle) formTitle.textContent = meta.title;
-    if (formSubtitle) formSubtitle.textContent = meta.subtitle;
+    if (formSubtitle) formSubtitle.innerHTML = meta.subtitle;
 
     if (flowStatus) {
       const message = getFlowStatusMessage();
