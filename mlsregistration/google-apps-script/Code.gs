@@ -1025,7 +1025,7 @@ function buildRegistrationSubmissionEmailHtml_(payload) {
     + '<td style="border-radius:999px;background:#c16a2b">'
     + '<a href="' + paymentUrl + '" style="display:inline-block;padding:14px 24px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none">Pay Registration Fee</a>'
     + '</td></tr></table>'
-    + '<p style="margin:0 0 12px;font-size:15px;line-height:1.7">LifePrep Academy Foundation is a nonprofit organization. Your payment may be tax-deductible to the extent permitted by law, and you will receive a payment receipt by email.</p>'
+    + '<p style="margin:0 0 12px;font-size:15px;line-height:1.7">You will receive a payment receipt by email once payment is available.</p>'
     + '<p style="margin:0;font-size:15px;line-height:1.7">If you have any questions, reply to this email or contact <a href="mailto:info@lifeprepacademyfoundation.com" style="color:#1d2f40;font-weight:700;text-decoration:none">info@lifeprepacademyfoundation.com</a>.</p>'
     + (openTrackingUrl ? '<img src="' + openTrackingUrl + '" alt="" width="1" height="1" style="display:block;border:0;width:1px;height:1px">' : '')
     + '</div>'
@@ -1058,7 +1058,7 @@ function buildRegistrationSubmissionEmailText_(payload) {
   lines.push('Download signed documents: ' + (payload.signedDocumentTrackingUrl || payload.signedDocumentUrl || BRAND_URL));
   lines.push('If you have not already paid your registration fee, complete payment: ' + (payload.paymentTrackingUrl || payload.paymentUrl || BRAND_URL));
   lines.push('');
-  lines.push('LifePrep Academy Foundation is a nonprofit organization. Your payment may be tax-deductible to the extent permitted by law, and you will receive a payment receipt by email.');
+  lines.push('You will receive a payment receipt by email once payment is available.');
   lines.push('');
   lines.push(BRAND_DOMAIN);
   return lines.join('\n');
@@ -1112,7 +1112,7 @@ function buildRegistrationPaidEmailHtml_(payload) {
         + '<a href="' + paymentReceiptUrl + '" style="display:inline-block;padding:14px 24px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none">View Payment Receipt</a>'
         + '</td></tr></table>'
       : '')
-    + '<p style="margin:0 0 12px;font-size:15px;line-height:1.7">We have recorded your registration fee payment of $' + fee + '. LifePrep Academy Foundation is a nonprofit organization, so your payment may be tax-deductible to the extent permitted by law.</p>'
+    + '<p style="margin:0 0 12px;font-size:15px;line-height:1.7">We have recorded your registration fee payment of $' + fee + '.</p>'
     + '<p style="margin:0;font-size:15px;line-height:1.7">If you have any questions, reply to this email or contact <a href="mailto:info@lifeprepacademyfoundation.com" style="color:#1d2f40;font-weight:700;text-decoration:none">info@lifeprepacademyfoundation.com</a>.</p>'
     + (openTrackingUrl ? '<img src="' + openTrackingUrl + '" alt="" width="1" height="1" style="display:block;border:0;width:1px;height:1px">' : '')
     + '</div>'
@@ -1149,7 +1149,7 @@ function buildRegistrationPaidEmailText_(payload) {
   }
   lines.push('');
   lines.push('We have recorded your registration fee payment of $' + (payload.registrationFeeAmount || '75') + '.');
-  lines.push('LifePrep Academy Foundation is a nonprofit organization. Your payment may be tax-deductible to the extent permitted by law.');
+  lines.push('');
   lines.push('');
   lines.push(BRAND_DOMAIN);
   return lines.join('\n');

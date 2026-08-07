@@ -1909,12 +1909,6 @@
         "Your registration is saved. We will email you a secure payment link as soon as payments resume.";
       successPanel.appendChild(paymentNote);
 
-      const paymentTaxSubtitle = document.createElement("p");
-      paymentTaxSubtitle.dataset.paymentTaxSubtitle = "true";
-      paymentTaxSubtitle.textContent =
-        "LifePrep Academy Foundation is a nonprofit organization. Your registration fee payment may be tax-deductible to the extent permitted by law.";
-      successPanel.appendChild(paymentTaxSubtitle);
-
       const paymentHint = document.createElement("p");
       paymentHint.dataset.paymentHint = "true";
       paymentHint.textContent = `${PAYMENT_PAUSED_MESSAGE} Your registration fee amount is currently ${paymentAmount} for the selected player count.`;

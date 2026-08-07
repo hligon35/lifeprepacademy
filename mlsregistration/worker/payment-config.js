@@ -20,7 +20,6 @@ function buildPaymentConfig(options = {}) {
     paymentUrl: null,
     paymentUrlLabel: 'Payment temporarily paused',
     instructions: 'Payment is temporarily paused while we transition to a new payment provider. Your registration is saved, and we will email a secure payment link when the service is available.',
-    taxDeductibleNote: 'LifePrep Academy Foundation is a nonprofit organization. Your registration fee payment may be tax-deductible to the extent permitted by law.',
   };
 }
 
