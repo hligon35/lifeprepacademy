@@ -24,9 +24,10 @@
   const E_CONSENT_TEXT_VERSION = "v1-2026-08-06";
   const ELECTRONIC_CONSENT_TEXT =
     "I have reviewed the complete agreement, consent to conduct this transaction electronically, and adopt the signature entered below as my electronic signature. I understand that my electronic signature has the same intended effect as my handwritten signature.";
-  const DONATE_URL = "https://give.cornerstone.cc/lifeprepacademyfnd/checkout?source=mls-go-registration&designation=MLS%20GO%20Registration%20Fee";
-  const REGISTRATION_FEE_AMOUNT = 75;
-  const DONATION_REDIRECT_DELAY_MS = 900;
+  const REGISTRATION_FEE_AMOUNT_PER_PLAYER = 75;
+  const PAYMENT_MODE = "paused";
+  const PAYMENT_PROVIDER = "none";
+  const PAYMENT_PAUSED_MESSAGE = "Payment is temporarily paused while we transition to a new payment provider. Your registration is saved, and we will email a secure payment link when the service is available.";
   const ENABLE_GOOGLE_FORM_MIRROR = false;
 
   const FLOW = {
@@ -189,28 +190,28 @@
     [FLOW.PLAYER]: {
       title: "MLS GO Registration",
       subtitle:
-        "Complete player registration first. You can optionally continue into volunteer or coaching after submission.",
+        "Registration fee is $75 per player. You can register up to four players in a single submission.",
       progressLabel: "Player registration",
       submitLabel: "Submit Registration",
     },
     [FLOW.VOLUNTEER]: {
       title: "Volunteer Application",
       subtitle:
-        "Complete the volunteer intake. Your previous registration data stays in memory only for this browser session.",
+        "Complete the volunteer form. Your registration details will stay in this browser while you finish.",
       progressLabel: "Volunteer application",
       submitLabel: "Submit Volunteer Application",
     },
     [FLOW.COACH]: {
       title: "Coaching Application",
       subtitle:
-        "Complete the coaching application for program consideration. Contact details are collected first, followed by coaching-specific sections.",
+        "Complete the coaching form. We’ll ask for your contact details first, then a few coaching questions.",
       progressLabel: "Coaching application",
       submitLabel: "Submit Coaching Application",
     },
     coachSupplement: {
       title: "Coaching Application",
       subtitle:
-        "Volunteer intake is complete. Finish the coaching supplement.",
+        "You’ve finished the volunteer step. Please complete the coaching section.",
       progressLabel: "Coaching application",
       submitLabel: "Submit Coaching Application",
     },
@@ -1883,56 +1884,47 @@
 
     const heading = successPanel.querySelector("h2");
     const copy = successPanel.querySelector("p");
-    if (heading) heading.textContent = "Submission Complete";
-    if (copy) copy.textContent = message || "Thank you. Your submission was received.";
+    if (heading) heading.textContent = "We’ve got your submission";
+    if (copy) copy.textContent = message || "Thanks! We received your submission and will be in touch soon.";
 
-    const existingDonationCta = successPanel.querySelector('[data-donation-cta="true"]');
-    if (existingDonationCta) existingDonationCta.remove();
+    const existingPaymentCta = successPanel.querySelector('[data-payment-cta="true"]');
+    if (existingPaymentCta) existingPaymentCta.remove();
 
-    const existingDonationNote = successPanel.querySelector('[data-donation-note="true"]');
-    if (existingDonationNote) existingDonationNote.remove();
+    const existingPaymentNote = successPanel.querySelector('[data-payment-note="true"]');
+    if (existingPaymentNote) existingPaymentNote.remove();
 
-    const existingDonationHint = successPanel.querySelector('[data-donation-hint="true"]');
-    if (existingDonationHint) existingDonationHint.remove();
+    const existingPaymentHint = successPanel.querySelector('[data-payment-hint="true"]');
+    if (existingPaymentHint) existingPaymentHint.remove();
 
-    const existingDonationTaxSubtitle = successPanel.querySelector('[data-donation-tax-subtitle="true"]');
-    if (existingDonationTaxSubtitle) existingDonationTaxSubtitle.remove();
+    const existingPaymentTaxSubtitle = successPanel.querySelector('[data-payment-tax-subtitle="true"]');
+    if (existingPaymentTaxSubtitle) existingPaymentTaxSubtitle.remove();
 
     renderCompletionMessages();
 
     if (options.redirectToDonation) {
-      const donateUrl = buildDonateUrl();
+      const paymentAmount = calculateRegistrationFeeAmount();
+      const paymentNote = document.createElement("p");
+      paymentNote.dataset.paymentNote = "true";
+      paymentNote.textContent =
+        "Your registration is saved. We will email you a secure payment link as soon as payments resume.";
+      successPanel.appendChild(paymentNote);
 
-      const donationNote = document.createElement("p");
-      donationNote.dataset.donationNote = "true";
-      donationNote.textContent =
-        "After payment is confirmed, we will email your final registration confirmation and signed-document download link.";
-      successPanel.appendChild(donationNote);
-
-      const donationTaxSubtitle = document.createElement("p");
-      donationTaxSubtitle.dataset.donationTaxSubtitle = "true";
-      donationTaxSubtitle.textContent =
+      const paymentTaxSubtitle = document.createElement("p");
+      paymentTaxSubtitle.dataset.paymentTaxSubtitle = "true";
+      paymentTaxSubtitle.textContent =
         "LifePrep Academy Foundation is a nonprofit organization. Your registration fee payment may be tax-deductible to the extent permitted by law.";
-      successPanel.appendChild(donationTaxSubtitle);
+      successPanel.appendChild(paymentTaxSubtitle);
 
-      const donationHint = document.createElement("p");
-      donationHint.dataset.donationHint = "true";
-      donationHint.textContent =
-        "You will be redirected to our secure donation page in a few seconds. We will try to prefill the MLS GO registration fee as a custom amount of $75. If it does not appear, choose Other and enter $75.";
-      successPanel.appendChild(donationHint);
+      const paymentHint = document.createElement("p");
+      paymentHint.dataset.paymentHint = "true";
+      paymentHint.textContent = `${PAYMENT_PAUSED_MESSAGE} Your registration fee amount is currently ${paymentAmount} for the selected player count.`;
+      successPanel.appendChild(paymentHint);
 
-      const donateCta = document.createElement("a");
-      donateCta.href = donateUrl;
-      donateCta.target = "_self";
-      donateCta.rel = "noopener noreferrer";
-      donateCta.className = "btn btn-primary";
-      donateCta.dataset.donationCta = "true";
-      donateCta.textContent = "Continue to Registration Fee Payment ($75)";
-      successPanel.appendChild(donateCta);
-
-      donationRedirectTimer = window.setTimeout(() => {
-        window.location.assign(donateUrl);
-      }, DONATION_REDIRECT_DELAY_MS);
+      const paymentCta = document.createElement("p");
+      paymentCta.className = "btn btn-primary";
+      paymentCta.dataset.paymentCta = "true";
+      paymentCta.textContent = `Payment temporarily paused (${paymentAmount})`;
+      successPanel.appendChild(paymentCta);
     }
   }
 
@@ -1995,110 +1987,13 @@
     return HELP_OPTION.NO;
   }
 
+  function calculateRegistrationFeeAmount() {
+    const playerCount = selectedPlayerCount();
+    return Math.max(0, playerCount * REGISTRATION_FEE_AMOUNT_PER_PLAYER);
+  }
+
   function buildDonateUrl() {
-    const url = new URL(DONATE_URL);
-    const parent = completedRegistrationData?.parent || {};
-    const fullName = `${parent.firstName || ""} ${parent.lastName || ""}`.trim();
-    const billingAddressLine1 = parent.street || "";
-    const billingAddressLine2 = parent.apt || "";
-    const amountDisplay = `${REGISTRATION_FEE_AMOUNT}.00`;
-    const amountCents = String(REGISTRATION_FEE_AMOUNT * 100);
-
-    // Cornerstone may ignore unknown query params, so we pass a broad set of aliases
-    // that commonly drive checkout amounts and custom-amount selection.
-    url.searchParams.set("amount", amountDisplay);
-    url.searchParams.set("amount_value", amountDisplay);
-    url.searchParams.set("donation_amount", amountDisplay);
-    url.searchParams.set("gift_amount", amountDisplay);
-    url.searchParams.set("default_amount", amountDisplay);
-    url.searchParams.set("checkout_amount", amountDisplay);
-    url.searchParams.set("amount_in_cents", amountCents);
-    url.searchParams.set("amount_cents", amountCents);
-    url.searchParams.set("unit_amount", amountDisplay);
-    url.searchParams.set("price", amountDisplay);
-    url.searchParams.set("preset_amount", amountDisplay);
-    url.searchParams.set("suggested_amount", amountDisplay);
-    url.searchParams.set("set_amount", amountDisplay);
-    url.searchParams.set("amount_type", "other");
-    url.searchParams.set("payment_type", "other");
-    url.searchParams.set("gift_type", "other");
-    url.searchParams.set("donation_type", "other");
-    url.searchParams.set("custom_amount", "true");
-    url.searchParams.set("is_custom_amount", "true");
-    url.searchParams.set("other_amount", "true");
-    url.searchParams.set("designation", "MLS GO Registration Fee");
-    url.searchParams.set("source", "mls-go-registration");
-
-    // Best-effort field aliases for checkout prefill.
-    if (parent.firstName) {
-      url.searchParams.set("first_name", parent.firstName);
-      url.searchParams.set("firstName", parent.firstName);
-      url.searchParams.set("firstname", parent.firstName);
-      url.searchParams.set("donor_first_name", parent.firstName);
-      url.searchParams.set("donorFirstName", parent.firstName);
-    }
-    if (parent.lastName) {
-      url.searchParams.set("last_name", parent.lastName);
-      url.searchParams.set("lastName", parent.lastName);
-      url.searchParams.set("lastname", parent.lastName);
-      url.searchParams.set("donor_last_name", parent.lastName);
-      url.searchParams.set("donorLastName", parent.lastName);
-    }
-    if (fullName) {
-      url.searchParams.set("name", fullName);
-      url.searchParams.set("full_name", fullName);
-      url.searchParams.set("fullName", fullName);
-      url.searchParams.set("donor_name", fullName);
-      url.searchParams.set("donorName", fullName);
-    }
-    if (parent.email) {
-      url.searchParams.set("email", parent.email);
-      url.searchParams.set("email_address", parent.email);
-      url.searchParams.set("emailAddress", parent.email);
-      url.searchParams.set("donor_email", parent.email);
-      url.searchParams.set("donorEmail", parent.email);
-    }
-    if (parent.phone) {
-      url.searchParams.set("phone", parent.phone);
-      url.searchParams.set("phone_number", parent.phone);
-      url.searchParams.set("donor_phone", parent.phone);
-      url.searchParams.set("donorPhone", parent.phone);
-    }
-
-    if (billingAddressLine1) {
-      url.searchParams.set("address", billingAddressLine1);
-      url.searchParams.set("address1", billingAddressLine1);
-      url.searchParams.set("billing_address", billingAddressLine1);
-      url.searchParams.set("billingAddress", billingAddressLine1);
-      url.searchParams.set("billing_address_1", billingAddressLine1);
-      url.searchParams.set("donor_address", billingAddressLine1);
-    }
-    if (billingAddressLine2) {
-      url.searchParams.set("address2", billingAddressLine2);
-      url.searchParams.set("billing_address_2", billingAddressLine2);
-    }
-    if (parent.city) {
-      url.searchParams.set("city", parent.city);
-      url.searchParams.set("billing_city", parent.city);
-      url.searchParams.set("donor_city", parent.city);
-    }
-    if (parent.state) {
-      url.searchParams.set("state", parent.state);
-      url.searchParams.set("billing_state", parent.state);
-      url.searchParams.set("donor_state", parent.state);
-    }
-    if (parent.zip) {
-      url.searchParams.set("zip", parent.zip);
-      url.searchParams.set("postal_code", parent.zip);
-      url.searchParams.set("billing_zip", parent.zip);
-      url.searchParams.set("donor_zip", parent.zip);
-    }
-    url.searchParams.set("is_international", "no");
-
-    if (registrationSubmissionId) url.searchParams.set("registration_submission_id", registrationSubmissionId);
-    if (playerAgreementTransactionId) url.searchParams.set("agreement_transaction_id", playerAgreementTransactionId);
-
-    return url.toString();
+    return "";
   }
 
   function collectRegistrationData() {

@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { AGREEMENT_TEMPLATES } from "./template-hashes.js";
 import { PLAYER_AGREEMENT_FIELD_MAP, VOLUNTEER_AGREEMENT_FIELD_MAP } from "./pdf-field-maps.js";
+import { buildPaymentConfig } from "./payment-config.js";
 
 const MAX_SIGNATURE_DATA_URL_BYTES = 1024 * 1024;
 const MAX_TYPED_SIGNATURE_LEN = 120;
@@ -18,34 +19,7 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:3000",
 ];
 function buildPlayerRegistrationPaymentUrl() {
-  const url = new URL("https://give.cornerstone.cc/lifeprepacademyfnd/checkout");
-  const amountDisplay = "75.00";
-  const amountCents = "7500";
-
-  url.searchParams.set("source", "mls-go-registration");
-  url.searchParams.set("designation", "MLS GO Registration Fee");
-  url.searchParams.set("amount", amountDisplay);
-  url.searchParams.set("amount_value", amountDisplay);
-  url.searchParams.set("donation_amount", amountDisplay);
-  url.searchParams.set("gift_amount", amountDisplay);
-  url.searchParams.set("default_amount", amountDisplay);
-  url.searchParams.set("checkout_amount", amountDisplay);
-  url.searchParams.set("amount_in_cents", amountCents);
-  url.searchParams.set("amount_cents", amountCents);
-  url.searchParams.set("unit_amount", amountDisplay);
-  url.searchParams.set("price", amountDisplay);
-  url.searchParams.set("preset_amount", amountDisplay);
-  url.searchParams.set("suggested_amount", amountDisplay);
-  url.searchParams.set("set_amount", amountDisplay);
-  url.searchParams.set("amount_type", "other");
-  url.searchParams.set("payment_type", "other");
-  url.searchParams.set("gift_type", "other");
-  url.searchParams.set("donation_type", "other");
-  url.searchParams.set("custom_amount", "true");
-  url.searchParams.set("is_custom_amount", "true");
-  url.searchParams.set("other_amount", "true");
-
-  return url.toString();
+  return null;
 }
 
 const PLAYER_REGISTRATION_PAYMENT_URL = buildPlayerRegistrationPaymentUrl();
@@ -60,6 +34,9 @@ export default {
 
     if (url.pathname === "/api/public-config" && request.method === "GET") {
       return handlePublicConfig(env, request);
+    }
+    if (url.pathname === "/api/payment-session" && request.method === "GET") {
+      return handlePaymentSession(request, env);
     }
     if (url.pathname === "/api/public-config") {
       return json({ ok: false, error: "Method not allowed" }, 405, request, env);
@@ -111,7 +88,33 @@ export default {
 function handlePublicConfig(env, request) {
   const googleMapsApiKey = String(env.GOOGLE_MAPS_API_KEY || "").trim();
   const corsHeaders = buildCorsHeaders(request, env);
-  return new Response(JSON.stringify({ googleMapsApiKey }), {
+  const paymentConfig = buildPaymentConfig({
+    feePerPlayer: 75,
+    playerCount: 1,
+    currency: "USD",
+  });
+
+  return new Response(JSON.stringify({ googleMapsApiKey, payment: paymentConfig }), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+      "X-Robots-Tag": "noindex, nofollow, noarchive",
+      ...corsHeaders,
+    },
+  });
+}
+
+function handlePaymentSession(request, env) {
+  const corsHeaders = buildCorsHeaders(request, env);
+  const playerCount = Number(new URL(request.url).searchParams.get("playerCount") || 1);
+  const paymentConfig = buildPaymentConfig({
+    feePerPlayer: 75,
+    playerCount,
+    currency: "USD",
+  });
+
+  return new Response(JSON.stringify({ ok: true, payment: paymentConfig }), {
     status: 200,
     headers: {
       "Content-Type": "application/json",

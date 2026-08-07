@@ -92,6 +92,60 @@ Signed agreements are stored in private R2 object keys:
 
 No public bucket URLs are used as authorization.
 
+## Payment Flow
+
+The registration experience now uses a provider-neutral payment boundary:
+
+1. The worker exposes `/api/public-config` with a non-sensitive `payment` object.
+2. The worker exposes `/api/payment-session?playerCount=...` for future payment-provider integration.
+3. The default mode is `paused` with `provider: "none"` and a safe status message.
+4. Player registrations are saved immediately, and the success state tells the user that payment is temporarily paused and that a secure payment link will be emailed later.
+
+### Payment configuration contract
+
+The public payment config shape is:
+
+```json
+{
+  "mode": "paused",
+  "provider": "none",
+  "status": "temporarily-paused",
+  "amount": 75,
+  "currency": "USD",
+  "feePerPlayer": 75,
+  "playerCount": 1,
+  "paymentUrl": null,
+  "instructions": "Payment is temporarily paused while we transition to a new payment provider. Your registration is saved, and we will email a secure payment link when the service is available."
+}
+```
+
+## Payment Flow
+
+The registration experience now uses a provider-neutral payment boundary:
+
+1. The worker exposes `/api/public-config` with a non-sensitive `payment` object.
+2. The worker exposes `/api/payment-session?playerCount=...` for future payment-provider integration.
+3. The default mode is `paused` with `provider: "none"` and a safe status message.
+4. Player registrations are saved immediately, and the success state tells the user that payment is temporarily paused and that a secure payment link will be emailed later.
+
+### Payment configuration contract
+
+The public payment config shape is:
+
+```json
+{
+  "mode": "paused",
+  "provider": "none",
+  "status": "temporarily-paused",
+  "amount": 75,
+  "currency": "USD",
+  "feePerPlayer": 75,
+  "playerCount": 1,
+  "paymentUrl": null,
+  "instructions": "Payment is temporarily paused while we transition to a new payment provider. Your registration is saved, and we will email a secure payment link when the service is available."
+}
+```
+
 ## Google Apps Script Integration
 
 `Code.gs` now supports:
@@ -102,7 +156,8 @@ No public bucket URLs are used as authorization.
    - `coaching_application` (`submission_id`)
 2. `LockService` row updates
 3. Formula-injection protection
-4. Agreement metadata update action:
+4. Preservation of system-managed agreement/payment columns during re-upsert
+5. Agreement metadata update action:
    - `action=update_agreement_metadata`
    - `update_token=<AGREEMENT_UPDATE_TOKEN>`
 
@@ -225,5 +280,6 @@ npx wrangler deploy --config wrangler.jsonc
 8. Consent unchecked blocks signing submission.
 9. Missing template hash mismatch blocks generation.
 10. Signed PDF row updates include URL + SHA-256 + transaction ID.
-11. Signer URL expires as expected.
-12. Admin route requires bearer token.
+11. Player registration rows default to `Payment Pending` until a payment status is later recorded.
+12. Signer URL expires as expected.
+13. Admin route requires bearer token.

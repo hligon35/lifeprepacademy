@@ -288,6 +288,8 @@ function handleSubmissionUpsert_(values) {
 
     const existingRow = findRowBySubmissionId_(sheet, config.headers, config.idColumn, submissionId);
     if (existingRow > 0) {
+      const existingRecord = readSheetRowRecord_(sheet, config.headers, existingRow);
+      preserveSystemManagedColumns_(rowValues, config.headers, existingRecord, formType);
       sheet.getRange(existingRow, 1, 1, config.headers.length).setValues([rowValues]);
       return json_({ ok: true, upserted: true, updatedExistingRow: true, row: existingRow });
     }
@@ -677,6 +679,32 @@ function applyPendingAgreementDefaults_(rowValues, headers, formType) {
       }
     }
   }
+}
+
+function preserveSystemManagedColumns_(rowValues, headers, existingRecord, formType) {
+  const index = buildHeaderIndex_(headers);
+  const agreementColumns = formType === 'mls_registration' ? PLAYER_AGREEMENT_COLUMNS : VOLUNTEER_AGREEMENT_COLUMNS;
+  const paymentColumns = formType === 'mls_registration' ? PLAYER_PAYMENT_COLUMNS : [];
+
+  agreementColumns.forEach((header) => {
+    const col = index[header];
+    if (!col) return;
+    const existingValue = normalizeValue_(existingRecord && existingRecord[header]);
+    const incomingValue = normalizeValue_(rowValues[col - 1]);
+    if (!incomingValue && existingValue) {
+      rowValues[col - 1] = existingValue;
+    }
+  });
+
+  paymentColumns.forEach((header) => {
+    const col = index[header];
+    if (!col) return;
+    const existingValue = normalizeValue_(existingRecord && existingRecord[header]);
+    const incomingValue = normalizeValue_(rowValues[col - 1]);
+    if (!incomingValue && existingValue) {
+      rowValues[col - 1] = existingValue;
+    }
+  });
 }
 
 function writeError_(formType, reason, payload) {
