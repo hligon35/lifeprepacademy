@@ -430,6 +430,11 @@ function handleRegistrationPaidEmail_(values) {
     registrationFeeAmount: normalizeValue_(values.registration_fee_amount) || '75',
   };
 
+  const parsedFormValues = parseRegistrationFormValues_(values);
+  if (parsedFormValues.length) {
+    payload.formValues = parsedFormValues;
+  }
+
   if (payload.registrationSubmissionId) {
     try {
       const registrationSheet = getSheet_(SHEET_NAMES.PLAYERS);
@@ -1162,6 +1167,12 @@ function buildRegistrationResponseRows_(payload) {
     });
   }
 
+  if (payload && payload.formValues && Array.isArray(payload.formValues)) {
+    return payload.formValues.filter(function(row) {
+      return normalizeValue_(row && row.value);
+    });
+  }
+
   const emergencyAddress = [
     normalizeValue_(payload.emergencyStreet),
     normalizeValue_(payload.emergencyCity),
@@ -1185,6 +1196,51 @@ function buildRegistrationResponseRows_(payload) {
   ];
 
   return rows.filter((row) => normalizeValue_(row.value));
+}
+
+function parseRegistrationFormValues_(values) {
+  const candidates = [
+    values && values.form_values_json,
+    values && values.formValues,
+    values && values.response_rows_json,
+    values && values.all_response_rows_json,
+  ];
+
+  for (var i = 0; i < candidates.length; i += 1) {
+    const candidate = candidates[i];
+    if (!candidate) continue;
+
+    if (Array.isArray(candidate)) {
+      return candidate.filter(function(row) {
+        return normalizeValue_(row && row.value);
+      }).map(function(row) {
+        return {
+          label: normalizeValue_(row && row.label),
+          value: normalizeValue_(row && row.value),
+        };
+      });
+    }
+
+    if (typeof candidate === 'string') {
+      try {
+        const parsed = JSON.parse(candidate);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(function(row) {
+            return normalizeValue_(row && row.value);
+          }).map(function(row) {
+            return {
+              label: normalizeValue_(row && row.label),
+              value: normalizeValue_(row && row.value),
+            };
+          });
+        }
+      } catch (error) {
+        // Ignore malformed payloads and fall back to the default summary.
+      }
+    }
+  }
+
+  return [];
 }
 
 function readSheetRowRecord_(sheet, headers, row) {

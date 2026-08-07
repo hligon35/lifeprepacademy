@@ -1007,12 +1007,33 @@ async function sendRegistrationSubmissionEmail(env, input) {
     return { ok: false, error: "Missing parent email" };
   }
 
+  const parentName = String(input.parentName || "").trim();
+  const participantNames = String(input.participantNames || "").trim();
+  const registrationFormValues = [
+    { label: "Parent/Guardian Full Name", value: parentName },
+    { label: "Relationship to Child", value: String(input.relationshipToChild || "").trim() },
+    { label: "Email Address", value: parentEmail },
+    { label: "Primary Phone Number", value: String(input.primaryPhone || "").trim() },
+    { label: "Alternate Phone Number", value: String(input.alternatePhone || "").trim() },
+    { label: "Emergency Contact Name", value: String(input.emergencyContactName || "").trim() },
+    { label: "Emergency Relationship", value: String(input.emergencyRelationship || "").trim() },
+    { label: "Emergency Contact Email", value: String(input.emergencyEmail || "").trim() },
+    { label: "Emergency Contact Phone", value: String(input.emergencyPhone || "").trim() },
+    {
+      label: "Emergency Contact Address",
+      value: [input.emergencyStreet, input.emergencyCity, input.emergencyState, input.emergencyZip]
+        .filter(Boolean)
+        .join(", "),
+    },
+    { label: "Participant(s)", value: participantNames },
+  ].filter((row) => String(row.value || "").trim());
+
   const payload = {
     registration_submission_id: String(input.submissionId || "").trim(),
     submission_id: String(input.submissionId || "").trim(),
     parent_email: parentEmail,
-    parent_name: String(input.parentName || "").trim(),
-    participant_names: String(input.participantNames || "").trim(),
+    parent_name: parentName,
+    participant_names: participantNames,
     relationship_to_child: String(input.relationshipToChild || "").trim(),
     primary_phone: String(input.primaryPhone || "").trim(),
     alternate_phone: String(input.alternatePhone || "").trim(),
@@ -1028,6 +1049,7 @@ async function sendRegistrationSubmissionEmail(env, input) {
     signed_document_url: String(input.signedDocumentUrl || "").trim(),
     payment_url: String(input.paymentUrl || "").trim(),
     registration_fee_amount: "75",
+    form_values_json: JSON.stringify(registrationFormValues),
   };
 
   const primary = await postRegistrationEmailAction(env, "send_registration_receipt_email", payload);

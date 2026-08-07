@@ -1906,7 +1906,7 @@
       const paymentNote = document.createElement("p");
       paymentNote.dataset.paymentNote = "true";
       paymentNote.textContent =
-        "Your registration is saved. We will email you a secure payment link as soon as payments resume.";
+        "Your registration has been submitted. We will email you a secure payment link as soon as payments resume.";
       successPanel.appendChild(paymentNote);
 
       const paymentHint = document.createElement("p");
@@ -1917,7 +1917,7 @@
       const paymentCta = document.createElement("p");
       paymentCta.className = "btn btn-primary";
       paymentCta.dataset.paymentCta = "true";
-      paymentCta.textContent = `Payment temporarily paused (${paymentAmount})`;
+      paymentCta.textContent = `Payment temporarily paused — ${paymentAmount} registration fee`;
       successPanel.appendChild(paymentCta);
     }
   }
