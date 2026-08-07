@@ -191,6 +191,14 @@ const COACH_HEADERS = [
 ];
 
 const ERROR_HEADERS = ['submitted_at', 'form_type', 'reason', 'payload'];
+const SHEET_TIMESTAMP_FORMAT = 'MM/dd/yy-hh:mm a';
+const TIMESTAMP_HEADERS = [
+  'submitted_at',
+  'submittedAt',
+  'Player Agreement Signed At',
+  'Volunteer Agreement Signed At',
+  'Player Payment Paid At',
+];
 
 const FORM_CONFIG = {
   mls_registration: {
@@ -257,7 +265,7 @@ function handleSubmissionUpsert_(values) {
     }
 
     const headerIndex = buildHeaderIndex_(config.headers);
-    const rowValues = config.headers.map((header) => sanitizeForSheet_(values[header]));
+    const rowValues = config.headers.map((header) => formatSheetValue_(header, values[header]));
     applyPendingAgreementDefaults_(rowValues, config.headers, formType);
 
     const existingRow = findRowBySubmissionId_(sheet, config.headers, config.idColumn, submissionId);
@@ -329,7 +337,7 @@ function handleAgreementMetadataUpdate_(values) {
     Object.keys(agreementValues).forEach((header) => {
       const col = headerIndex[header];
       if (!col) return;
-      sheet.getRange(row, col).setValue(sanitizeForSheet_(agreementValues[header]));
+      sheet.getRange(row, col).setValue(formatSheetValue_(header, agreementValues[header]));
     });
 
     return json_({ ok: true, updated: true, row });
@@ -430,7 +438,7 @@ function handlePaymentMetadataUpdate_(values) {
     Object.keys(paymentValues).forEach((header) => {
       const col = headerIndex[header];
       if (!col) return;
-      sheet.getRange(row, col).setValue(sanitizeForSheet_(paymentValues[header]));
+      sheet.getRange(row, col).setValue(formatSheetValue_(header, paymentValues[header]));
     });
 
     return json_({ ok: true, updated: true, row });
@@ -577,11 +585,33 @@ function writeError_(formType, reason, payload) {
   const errorSheet = getSheet_(SHEET_NAMES.ERRORS);
   ensureHeaders_(errorSheet, ERROR_HEADERS);
   errorSheet.appendRow([
-    new Date().toISOString(),
+    formatSheetTimestamp_(new Date()),
     formType || '',
     reason || '',
     safeStringify_(payload || {}),
   ]);
+}
+
+function formatSheetValue_(header, value) {
+  if (isTimestampHeader_(header)) {
+    return formatSheetTimestamp_(value);
+  }
+  return sanitizeForSheet_(value);
+}
+
+function isTimestampHeader_(header) {
+  return TIMESTAMP_HEADERS.indexOf(String(header || '').trim()) >= 0;
+}
+
+function formatSheetTimestamp_(value) {
+  if (value === undefined || value === null || value === '') return '';
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (isNaN(date.getTime())) {
+    return sanitizeForSheet_(value);
+  }
+
+  return Utilities.formatDate(date, Session.getScriptTimeZone(), SHEET_TIMESTAMP_FORMAT);
 }
 
 function sanitizeForSheet_(value) {
@@ -688,7 +718,7 @@ function sendVolunteerCoachConfirmationEmail_(formType, values) {
 function buildRegistrationSubmissionEmailHtml_(payload) {
   const parentName = escapeHtml_(payload.parentName || 'Parent/Guardian');
   const participantNames = escapeHtml_(payload.participantNames || 'Your registered participant(s)');
-  const signedAt = escapeHtml_(payload.signedAt || '');
+  const signedAt = escapeHtml_(formatEmailTimestamp_(payload.signedAt));
   const signedDocumentUrl = escapeHtml_(payload.signedDocumentUrl || BRAND_URL);
   const paymentUrl = escapeHtml_(payload.paymentUrl || BRAND_URL);
   const fee = escapeHtml_(payload.registrationFeeAmount || '75');
@@ -770,10 +800,10 @@ function buildRegistrationSubmissionEmailText_(payload) {
 function buildRegistrationPaidEmailHtml_(payload) {
   const parentName = escapeHtml_(payload.parentName || 'Parent/Guardian');
   const participantNames = escapeHtml_(payload.participantNames || 'Your registered participant(s)');
-  const signedAt = escapeHtml_(payload.signedAt || '');
+  const signedAt = escapeHtml_(formatEmailTimestamp_(payload.signedAt));
   const signedDocumentUrl = escapeHtml_(payload.signedDocumentUrl || BRAND_URL);
   const paymentReceiptUrl = escapeHtml_(payload.paymentReceiptUrl || '');
-  const paymentPaidAt = escapeHtml_(payload.paymentPaidAt || '');
+  const paymentPaidAt = escapeHtml_(formatEmailTimestamp_(payload.paymentPaidAt));
   const fee = escapeHtml_(payload.registrationFeeAmount || '75');
   const responseRows = buildRegistrationResponseRows_(payload);
   const responseRowsHtml = responseRows.map((row) => ''
@@ -880,6 +910,15 @@ function buildRegistrationResponseRows_(payload) {
   ];
 
   return rows.filter((row) => normalizeValue_(row.value));
+}
+
+function formatEmailTimestamp_(value) {
+  if (!value) return '';
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (isNaN(date.getTime())) return normalizeValue_(value);
+
+  return Utilities.formatDate(date, Session.getScriptTimeZone(), SHEET_TIMESTAMP_FORMAT);
 }
 
 function escapeHtml_(value) {
