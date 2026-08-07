@@ -191,6 +191,8 @@ const COACH_HEADERS = [
 ];
 
 const ERROR_HEADERS = ['submitted_at', 'form_type', 'reason', 'payload'];
+const EMAIL_TRACKING_SHEET_NAME = 'Email Tracking';
+const EMAIL_TRACKING_HEADERS = ['tracking_id', 'event_type', 'email_type', 'submission_id', 'recipient_email', 'target_url', 'link_label', 'created_at', 'user_agent', 'ip_address', 'source_url'];
 const SHEET_TIMESTAMP_FORMAT = 'MM/dd/yy-hh:mm a';
 const TIMESTAMP_HEADERS = [
   'submitted_at',
@@ -217,6 +219,19 @@ const FORM_CONFIG = {
     idColumn: 'submission_id',
   },
 };
+
+function doGet(e) {
+  if (!e || !e.parameter) {
+    return HtmlService.createHtmlOutput('<p>Email tracking endpoint is active.</p>');
+  }
+
+  const action = normalizeValue_(e.parameter.action);
+  if (action === 'track_email') {
+    return handleEmailTrackingRequest_(e);
+  }
+
+  return HtmlService.createHtmlOutput('<p>Unknown request.</p>');
+}
 
 function doPost(e) {
   if (!e || !e.parameter) {
@@ -583,6 +598,7 @@ function initializeSheets() {
   ensureHeaders_(getSheet_(SHEET_NAMES.VOLUNTEERS), VOLUNTEER_HEADERS);
   ensureHeaders_(getSheet_(SHEET_NAMES.COACHES), COACH_HEADERS);
   ensureHeaders_(getSheet_(SHEET_NAMES.ERRORS), ERROR_HEADERS);
+  ensureHeaders_(getSheet_(EMAIL_TRACKING_SHEET_NAME), EMAIL_TRACKING_HEADERS);
 }
 
 function getFormConfig_(formType, strict) {
@@ -709,6 +725,95 @@ function normalizeValue_(value) {
   return String(value).trim();
 }
 
+function handleEmailTrackingRequest_(e) {
+  const params = e && e.parameter ? e.parameter : {};
+  const token = normalizeValue_(params.token);
+  const eventType = normalizeValue_(params.event || 'opened');
+  const emailType = normalizeValue_(params.email_type);
+  const submissionId = normalizeValue_(params.submission_id);
+  const recipientEmail = normalizeValue_(params.recipient_email);
+  const targetUrl = normalizeValue_(params.target);
+  const linkLabel = normalizeValue_(params.link_label);
+
+  recordEmailTrackingEvent_(token, eventType, emailType, submissionId, recipientEmail, targetUrl, linkLabel, e && e.headers ? e.headers : null, params);
+
+  if (eventType === 'clicked' && targetUrl) {
+    return HtmlService.createHtmlOutput('<html><head><meta http-equiv="refresh" content="0;url=' + escapeHtml_(targetUrl) + '"></head><body>Redirecting…</body></html>');
+  }
+
+  const pixel = Utilities.base64Decode('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==');
+  return ContentService.createOutput(Utilities.newBlob(pixel, 'image/gif', 'pixel.gif'));
+}
+
+function recordEmailTrackingEvent_(trackingId, eventType, emailType, submissionId, recipientEmail, targetUrl, linkLabel, headers, params) {
+  const sheet = getSheet_(EMAIL_TRACKING_SHEET_NAME);
+  ensureHeaders_(sheet, EMAIL_TRACKING_HEADERS);
+
+  const userAgent = headers && headers['user-agent'] ? headers['user-agent'] : '';
+  const ipAddress = headers && headers['x-forwarded-for']
+    ? String(headers['x-forwarded-for']).split(',')[0].trim()
+    : '';
+  const sourceUrl = normalizeValue_(params && params.source_url ? params.source_url : '');
+
+  sheet.appendRow([
+    trackingId || '',
+    eventType || '',
+    emailType || '',
+    submissionId || '',
+    recipientEmail || '',
+    targetUrl || '',
+    linkLabel || '',
+    formatSheetTimestamp_(new Date()),
+    userAgent,
+    ipAddress,
+    sourceUrl,
+  ]);
+}
+
+function createEmailTrackingContext_(payload, emailType) {
+  const submissionId = normalizeValue_(payload.registrationSubmissionId || payload.submissionId || payload.submission_id || payload.id || '');
+  const recipientEmail = normalizeValue_(payload.parentEmail || payload.email || '').toLowerCase();
+  const trackingToken = ['email', emailType, submissionId || 'anonymous', Date.now(), Utilities.getUuid()].filter(Boolean).join('-');
+  const trackingBaseUrl = ScriptApp.getService().getUrl() || 'https://script.google.com/macros/s/unknown/exec';
+
+  const openUrl = buildEmailTrackingUrl_(trackingBaseUrl, trackingToken, 'opened', emailType, submissionId, recipientEmail, '', '');
+  const makeTrackedUrl = function(targetUrl, linkLabel) {
+    return buildEmailTrackingUrl_(trackingBaseUrl, trackingToken, 'clicked', emailType, submissionId, recipientEmail, targetUrl, linkLabel);
+  };
+
+  recordEmailTrackingEvent_(trackingToken, 'sent', emailType, submissionId, recipientEmail, '', '', null, null);
+
+  return {
+    trackingToken: trackingToken,
+    openUrl: openUrl,
+    makeTrackedUrl: makeTrackedUrl,
+  };
+}
+
+function buildEmailTrackingUrl_(trackingBaseUrl, trackingToken, eventType, emailType, submissionId, recipientEmail, targetUrl, linkLabel) {
+  const params = [
+    ['action', 'track_email'],
+    ['token', trackingToken],
+    ['event', eventType],
+    ['email_type', emailType],
+    ['submission_id', submissionId],
+    ['recipient_email', recipientEmail],
+    ['target', targetUrl || ''],
+    ['link_label', linkLabel || ''],
+  ];
+
+  const query = params
+    .filter(function(entry) {
+      return entry[1] !== '';
+    })
+    .map(function(entry) {
+      return encodeURIComponent(entry[0]) + '=' + encodeURIComponent(entry[1]);
+    })
+    .join('&');
+
+  return trackingBaseUrl ? trackingBaseUrl + (trackingBaseUrl.indexOf('?') >= 0 ? '&' : '?') + query : '';
+}
+
 function safeStringify_(value) {
   try {
     return JSON.stringify(value);
@@ -718,6 +823,13 @@ function safeStringify_(value) {
 }
 
 function sendRegistrationEmailByStage_(payload, paymentConfirmed) {
+  const trackingContext = createEmailTrackingContext_(payload, paymentConfirmed ? 'registration_paid_confirmation' : 'registration_confirmation');
+  payload.emailTrackingToken = trackingContext.trackingToken;
+  payload.emailOpenTrackingUrl = trackingContext.openUrl;
+  payload.paymentTrackingUrl = trackingContext.makeTrackedUrl(payload.paymentUrl || BRAND_URL, 'payment_button');
+  payload.signedDocumentTrackingUrl = trackingContext.makeTrackedUrl(payload.signedDocumentUrl || BRAND_URL, 'download_documents_button');
+  payload.paymentReceiptTrackingUrl = trackingContext.makeTrackedUrl(payload.paymentReceiptUrl || BRAND_URL, 'payment_receipt_button');
+
   const subject = paymentConfirmed
     ? 'Thank you for completing your MLS GO registration'
     : 'Thank you for registering for MLS GO';
@@ -740,6 +852,10 @@ function sendRegistrationEmailByStage_(payload, paymentConfirmed) {
 
 function sendVolunteerCoachConfirmationEmail_(formType, values) {
   const email = normalizeValue_(values.email).toLowerCase();
+  const trackingContext = createEmailTrackingContext_({
+    registrationSubmissionId: normalizeValue_(values.submission_id || values.submissionId || ''),
+    parentEmail: email,
+  }, formType === 'coaching_application' ? 'coaching_application_confirmation' : 'volunteer_application_confirmation');
   if (!email || !isValidEmail_(email)) {
     throw new Error('Invalid email for volunteer/coach confirmation');
   }
@@ -751,6 +867,8 @@ function sendVolunteerCoachConfirmationEmail_(formType, values) {
   const programLabel = isCoach ? 'coaching' : 'volunteer';
   const signedAt = formatEmailTimestamp_(normalizeValue_(values['Volunteer Agreement Signed At']));
   const signedDocumentUrl = normalizeValue_(values['Volunteer Agreement PDF URL']);
+  const trackedSignedDocumentUrl = trackingContext.makeTrackedUrl(signedDocumentUrl || BRAND_URL, 'download_documents_button');
+  const trackedOpenUrl = trackingContext.openUrl;
   const responseRows = buildResponseRowsFromRecord_(values, isCoach ? COACH_HEADERS : VOLUNTEER_HEADERS, {
     exclude: {
       form_type: true,
@@ -789,11 +907,12 @@ function sendVolunteerCoachConfirmationEmail_(formType, values) {
     + (signedDocumentUrl
       ? '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px"><tr>'
         + '<td style="border-radius:999px;background:#1d2f40">'
-        + '<a href="' + escapeHtml_(signedDocumentUrl) + '" style="display:inline-block;padding:14px 24px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none">Download Signed Documents</a>'
+        + '<a href="' + escapeHtml_(trackedSignedDocumentUrl) + '" style="display:inline-block;padding:14px 24px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none">Download Signed Documents</a>'
         + '</td></tr></table>'
       : '')
     + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">Please keep an eye on your email for updates and next steps from our team.</p>'
     + '<p style="margin:0;font-size:15px;line-height:1.7">If you have any questions, reply to this email or contact <a href="mailto:info@lifeprepacademyfoundation.com" style="color:#1d2f40;font-weight:700;text-decoration:none">info@lifeprepacademyfoundation.com</a>.</p>'
+    + (trackedOpenUrl ? '<img src="' + escapeHtml_(trackedOpenUrl) + '" alt="" width="1" height="1" style="display:block;border:0;width:1px;height:1px">' : '')
     + '</div>'
     + '</td></tr>'
     + '<tr><td style="padding:16px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#6b7280">'
@@ -815,7 +934,7 @@ function sendVolunteerCoachConfirmationEmail_(formType, values) {
     responseRows.length ? 'Submitted Responses:' : '',
     responseRows.length ? responseRows.map((row) => `- ${row.label}: ${row.value}`).join('\n') : '',
     signedDocumentUrl ? '' : '',
-    signedDocumentUrl ? `Download signed documents: ${signedDocumentUrl}` : '',
+    signedDocumentUrl ? `Download signed documents: ${trackedSignedDocumentUrl}` : '',
     'Please keep an eye on your email for updates and next steps from our team.',
     '',
     BRAND_DOMAIN,
@@ -837,8 +956,9 @@ function buildRegistrationSubmissionEmailHtml_(payload) {
   const parentName = escapeHtml_(payload.parentName || 'Parent/Guardian');
   const participantNames = escapeHtml_(payload.participantNames || 'Your registered participant(s)');
   const signedAt = escapeHtml_(formatEmailTimestamp_(payload.signedAt));
-  const signedDocumentUrl = escapeHtml_(payload.signedDocumentUrl || BRAND_URL);
-  const paymentUrl = escapeHtml_(payload.paymentUrl || BRAND_URL);
+  const signedDocumentUrl = escapeHtml_(payload.signedDocumentTrackingUrl || payload.signedDocumentUrl || BRAND_URL);
+  const paymentUrl = escapeHtml_(payload.paymentTrackingUrl || payload.paymentUrl || BRAND_URL);
+  const openTrackingUrl = escapeHtml_(payload.emailOpenTrackingUrl || '');
   const fee = escapeHtml_(payload.registrationFeeAmount || '75');
   const responseRows = buildRegistrationResponseRows_(payload);
   const responseRowsHtml = responseRows.map((row) => ''
@@ -879,6 +999,7 @@ function buildRegistrationSubmissionEmailHtml_(payload) {
     + '</td></tr></table>'
     + '<p style="margin:0 0 12px;font-size:15px;line-height:1.7">LifePrep Academy Foundation is a nonprofit organization. Your payment may be tax-deductible to the extent permitted by law, and you will receive a payment receipt by email.</p>'
     + '<p style="margin:0;font-size:15px;line-height:1.7">If you have any questions, reply to this email or contact <a href="mailto:info@lifeprepacademyfoundation.com" style="color:#1d2f40;font-weight:700;text-decoration:none">info@lifeprepacademyfoundation.com</a>.</p>'
+    + (openTrackingUrl ? '<img src="' + openTrackingUrl + '" alt="" width="1" height="1" style="display:block;border:0;width:1px;height:1px">' : '')
     + '</div>'
     + '</td></tr>'
     + '<tr><td style="padding:16px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#6b7280">'
@@ -906,8 +1027,8 @@ function buildRegistrationSubmissionEmailText_(payload) {
     });
   }
   lines.push('');
-  lines.push('Download signed documents: ' + (payload.signedDocumentUrl || BRAND_URL));
-  lines.push('If you have not already paid your registration fee, complete payment: ' + (payload.paymentUrl || BRAND_URL));
+  lines.push('Download signed documents: ' + (payload.signedDocumentTrackingUrl || payload.signedDocumentUrl || BRAND_URL));
+  lines.push('If you have not already paid your registration fee, complete payment: ' + (payload.paymentTrackingUrl || payload.paymentUrl || BRAND_URL));
   lines.push('');
   lines.push('LifePrep Academy Foundation is a nonprofit organization. Your payment may be tax-deductible to the extent permitted by law, and you will receive a payment receipt by email.');
   lines.push('');
@@ -919,8 +1040,9 @@ function buildRegistrationPaidEmailHtml_(payload) {
   const parentName = escapeHtml_(payload.parentName || 'Parent/Guardian');
   const participantNames = escapeHtml_(payload.participantNames || 'Your registered participant(s)');
   const signedAt = escapeHtml_(formatEmailTimestamp_(payload.signedAt));
-  const signedDocumentUrl = escapeHtml_(payload.signedDocumentUrl || BRAND_URL);
-  const paymentReceiptUrl = escapeHtml_(payload.paymentReceiptUrl || '');
+  const signedDocumentUrl = escapeHtml_(payload.signedDocumentTrackingUrl || payload.signedDocumentUrl || BRAND_URL);
+  const paymentReceiptUrl = escapeHtml_(payload.paymentReceiptTrackingUrl || payload.paymentReceiptUrl || '');
+  const openTrackingUrl = escapeHtml_(payload.emailOpenTrackingUrl || '');
   const paymentPaidAt = escapeHtml_(formatEmailTimestamp_(payload.paymentPaidAt));
   const fee = escapeHtml_(payload.registrationFeeAmount || '75');
   const responseRows = buildRegistrationResponseRows_(payload);
@@ -964,6 +1086,7 @@ function buildRegistrationPaidEmailHtml_(payload) {
       : '')
     + '<p style="margin:0 0 12px;font-size:15px;line-height:1.7">We have recorded your registration fee payment of $' + fee + '. LifePrep Academy Foundation is a nonprofit organization, so your payment may be tax-deductible to the extent permitted by law.</p>'
     + '<p style="margin:0;font-size:15px;line-height:1.7">If you have any questions, reply to this email or contact <a href="mailto:info@lifeprepacademyfoundation.com" style="color:#1d2f40;font-weight:700;text-decoration:none">info@lifeprepacademyfoundation.com</a>.</p>'
+    + (openTrackingUrl ? '<img src="' + openTrackingUrl + '" alt="" width="1" height="1" style="display:block;border:0;width:1px;height:1px">' : '')
     + '</div>'
     + '</td></tr>'
     + '<tr><td style="padding:16px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#6b7280">'
@@ -992,9 +1115,9 @@ function buildRegistrationPaidEmailText_(payload) {
     });
   }
   lines.push('');
-  lines.push('Download signed documents: ' + (payload.signedDocumentUrl || BRAND_URL));
-  if (payload.paymentReceiptUrl) {
-    lines.push('Payment receipt: ' + payload.paymentReceiptUrl);
+  lines.push('Download signed documents: ' + (payload.signedDocumentTrackingUrl || payload.signedDocumentUrl || BRAND_URL));
+  if (payload.paymentReceiptTrackingUrl || payload.paymentReceiptUrl) {
+    lines.push('Payment receipt: ' + (payload.paymentReceiptTrackingUrl || payload.paymentReceiptUrl));
   }
   lines.push('');
   lines.push('We have recorded your registration fee payment of $' + (payload.registrationFeeAmount || '75') + '.');

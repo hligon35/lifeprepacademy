@@ -24,7 +24,7 @@
   const E_CONSENT_TEXT_VERSION = "v1-2026-08-06";
   const ELECTRONIC_CONSENT_TEXT =
     "I have reviewed the complete agreement, consent to conduct this transaction electronically, and adopt the signature entered below as my electronic signature. I understand that my electronic signature has the same intended effect as my handwritten signature.";
-  const DONATE_URL = "https://give.cornerstone.cc/lifeprepacademyfnd/checkout?amount=75&designation=MLS%20GO%20Registration%20Fee&source=mls-go-registration";
+  const DONATE_URL = "https://give.cornerstone.cc/lifeprepacademyfnd/checkout?source=mls-go-registration&designation=MLS%20GO%20Registration%20Fee";
   const REGISTRATION_FEE_AMOUNT = 75;
   const DONATION_REDIRECT_DELAY_MS = 900;
   const ENABLE_GOOGLE_FORM_MIRROR = false;
@@ -1605,6 +1605,8 @@
     if (playerSubmitted) return;
 
     formMessage.textContent = "Submitting registration...";
+    registrationEmailWarning = "";
+    registrationSyncWarning = "";
 
     const registrationData = collectRegistrationData();
     registrationData.agreementSigning = await requestAgreementSignature({
@@ -1694,19 +1696,13 @@
       });
     }
 
-    await signPlayerAgreement(registrationData);
-    playerAgreementSigned = true;
-
     completedRegistrationData = registrationData;
     playerSubmitted = true;
 
     const helpChoice = mapHelpChoice(getTextValue("helpChoice"));
     followUpPlan = helpChoice;
 
-    if (helpChoice === HELP_OPTION.NO || standaloneFlow) {
-      completeFlow("Registration received.", { redirectToDonation: true });
-      return;
-    }
+    void startPlayerAgreementFollowUp(registrationData);
 
     if (helpChoice === HELP_OPTION.VOLUNTEER) {
       switchFlow(FLOW.VOLUNTEER, true);
@@ -1723,7 +1719,24 @@
       return;
     }
 
+    if (helpChoice === HELP_OPTION.NO || standaloneFlow) {
+      completeFlow("Registration received.", { redirectToDonation: true });
+      return;
+    }
+
     completeFlow("Registration received.", { redirectToDonation: true });
+  }
+
+  async function startPlayerAgreementFollowUp(registrationData) {
+    try {
+      await signPlayerAgreement(registrationData);
+      playerAgreementSigned = true;
+    } catch (error) {
+      console.warn("player-agreement-follow-up-failed", error);
+      registrationEmailWarning =
+        "Your registration was received, but we could not finish the signed-document workflow right now. Please contact info@lifeprepacademyfoundation.com so we can resend it.";
+    }
+    renderCompletionMessages();
   }
 
   async function submitVolunteerApplication() {
@@ -1873,26 +1886,6 @@
     if (heading) heading.textContent = "Submission Complete";
     if (copy) copy.textContent = message || "Thank you. Your submission was received.";
 
-    const existingEmailWarning = successPanel.querySelector('[data-email-warning="true"]');
-    if (existingEmailWarning) existingEmailWarning.remove();
-
-    const existingSyncWarning = successPanel.querySelector('[data-sync-warning="true"]');
-    if (existingSyncWarning) existingSyncWarning.remove();
-
-    if (registrationEmailWarning) {
-      const emailWarning = document.createElement("p");
-      emailWarning.dataset.emailWarning = "true";
-      emailWarning.textContent = registrationEmailWarning;
-      successPanel.appendChild(emailWarning);
-    }
-
-    if (registrationSyncWarning) {
-      const syncWarning = document.createElement("p");
-      syncWarning.dataset.syncWarning = "true";
-      syncWarning.textContent = registrationSyncWarning;
-      successPanel.appendChild(syncWarning);
-    }
-
     const existingDonationCta = successPanel.querySelector('[data-donation-cta="true"]');
     if (existingDonationCta) existingDonationCta.remove();
 
@@ -1904,6 +1897,8 @@
 
     const existingDonationTaxSubtitle = successPanel.querySelector('[data-donation-tax-subtitle="true"]');
     if (existingDonationTaxSubtitle) existingDonationTaxSubtitle.remove();
+
+    renderCompletionMessages();
 
     if (options.redirectToDonation) {
       const donateUrl = buildDonateUrl();
@@ -1923,7 +1918,7 @@
       const donationHint = document.createElement("p");
       donationHint.dataset.donationHint = "true";
       donationHint.textContent =
-        "You will be redirected to our secure donation page in a few seconds. We will attempt to preload $75 for the MLS GO registration fee. If it is not prefilled, choose Other and enter $75.";
+        "You will be redirected to our secure donation page in a few seconds. We will try to prefill the MLS GO registration fee as a custom amount of $75. If it does not appear, choose Other and enter $75.";
       successPanel.appendChild(donationHint);
 
       const donateCta = document.createElement("a");
@@ -1938,6 +1933,30 @@
       donationRedirectTimer = window.setTimeout(() => {
         window.location.assign(donateUrl);
       }, DONATION_REDIRECT_DELAY_MS);
+    }
+  }
+
+  function renderCompletionMessages() {
+    if (!successPanel) return;
+
+    const existingEmailWarning = successPanel.querySelector('[data-email-warning="true"]');
+    if (existingEmailWarning) existingEmailWarning.remove();
+
+    const existingSyncWarning = successPanel.querySelector('[data-sync-warning="true"]');
+    if (existingSyncWarning) existingSyncWarning.remove();
+
+    if (registrationEmailWarning) {
+      const emailWarning = document.createElement("p");
+      emailWarning.dataset.emailWarning = "true";
+      emailWarning.textContent = registrationEmailWarning;
+      successPanel.appendChild(emailWarning);
+    }
+
+    if (registrationSyncWarning) {
+      const syncWarning = document.createElement("p");
+      syncWarning.dataset.syncWarning = "true";
+      syncWarning.textContent = registrationSyncWarning;
+      successPanel.appendChild(syncWarning);
     }
   }
 
@@ -1982,14 +2001,31 @@
     const fullName = `${parent.firstName || ""} ${parent.lastName || ""}`.trim();
     const billingAddressLine1 = parent.street || "";
     const billingAddressLine2 = parent.apt || "";
+    const amountDisplay = `${REGISTRATION_FEE_AMOUNT}.00`;
+    const amountCents = String(REGISTRATION_FEE_AMOUNT * 100);
 
-    // Cornerstone may ignore unknown query params; we still pass fee intent for compatibility.
-    url.searchParams.set("amount", `${REGISTRATION_FEE_AMOUNT}.00`);
-    url.searchParams.set("donation_amount", `${REGISTRATION_FEE_AMOUNT}.00`);
-    url.searchParams.set("gift_amount", `${REGISTRATION_FEE_AMOUNT}.00`);
-    url.searchParams.set("default_amount", `${REGISTRATION_FEE_AMOUNT}.00`);
-    url.searchParams.set("checkout_amount", `${REGISTRATION_FEE_AMOUNT}.00`);
-    url.searchParams.set("amount_in_cents", String(REGISTRATION_FEE_AMOUNT * 100));
+    // Cornerstone may ignore unknown query params, so we pass a broad set of aliases
+    // that commonly drive checkout amounts and custom-amount selection.
+    url.searchParams.set("amount", amountDisplay);
+    url.searchParams.set("amount_value", amountDisplay);
+    url.searchParams.set("donation_amount", amountDisplay);
+    url.searchParams.set("gift_amount", amountDisplay);
+    url.searchParams.set("default_amount", amountDisplay);
+    url.searchParams.set("checkout_amount", amountDisplay);
+    url.searchParams.set("amount_in_cents", amountCents);
+    url.searchParams.set("amount_cents", amountCents);
+    url.searchParams.set("unit_amount", amountDisplay);
+    url.searchParams.set("price", amountDisplay);
+    url.searchParams.set("preset_amount", amountDisplay);
+    url.searchParams.set("suggested_amount", amountDisplay);
+    url.searchParams.set("set_amount", amountDisplay);
+    url.searchParams.set("amount_type", "other");
+    url.searchParams.set("payment_type", "other");
+    url.searchParams.set("gift_type", "other");
+    url.searchParams.set("donation_type", "other");
+    url.searchParams.set("custom_amount", "true");
+    url.searchParams.set("is_custom_amount", "true");
+    url.searchParams.set("other_amount", "true");
     url.searchParams.set("designation", "MLS GO Registration Fee");
     url.searchParams.set("source", "mls-go-registration");
 

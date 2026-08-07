@@ -17,7 +17,38 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://127.0.0.1:3000",
   "http://localhost:3000",
 ];
-const PLAYER_REGISTRATION_PAYMENT_URL = "https://give.cornerstone.cc/lifeprepacademyfnd/checkout?amount=75&designation=MLS%20GO%20Registration%20Fee&source=mls-go-registration";
+function buildPlayerRegistrationPaymentUrl() {
+  const url = new URL("https://give.cornerstone.cc/lifeprepacademyfnd/checkout");
+  const amountDisplay = "75.00";
+  const amountCents = "7500";
+
+  url.searchParams.set("source", "mls-go-registration");
+  url.searchParams.set("designation", "MLS GO Registration Fee");
+  url.searchParams.set("amount", amountDisplay);
+  url.searchParams.set("amount_value", amountDisplay);
+  url.searchParams.set("donation_amount", amountDisplay);
+  url.searchParams.set("gift_amount", amountDisplay);
+  url.searchParams.set("default_amount", amountDisplay);
+  url.searchParams.set("checkout_amount", amountDisplay);
+  url.searchParams.set("amount_in_cents", amountCents);
+  url.searchParams.set("amount_cents", amountCents);
+  url.searchParams.set("unit_amount", amountDisplay);
+  url.searchParams.set("price", amountDisplay);
+  url.searchParams.set("preset_amount", amountDisplay);
+  url.searchParams.set("suggested_amount", amountDisplay);
+  url.searchParams.set("set_amount", amountDisplay);
+  url.searchParams.set("amount_type", "other");
+  url.searchParams.set("payment_type", "other");
+  url.searchParams.set("gift_type", "other");
+  url.searchParams.set("donation_type", "other");
+  url.searchParams.set("custom_amount", "true");
+  url.searchParams.set("is_custom_amount", "true");
+  url.searchParams.set("other_amount", "true");
+
+  return url.toString();
+}
+
+const PLAYER_REGISTRATION_PAYMENT_URL = buildPlayerRegistrationPaymentUrl();
 
 export default {
   async fetch(request, env, ctx) {
