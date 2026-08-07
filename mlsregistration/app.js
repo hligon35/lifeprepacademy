@@ -2486,8 +2486,42 @@
     const payload = await res.json().catch(() => null);
     if (!res.ok || !payload?.ok) {
       const error = String(payload?.error || `Form upsert failed (${res.status})`).trim();
+      if (GOOGLE_APPS_SCRIPT_URL) {
+        await postUpsertDirect(formType, values);
+        console.warn("Worker upsert failed; direct Apps Script fallback succeeded", {
+          formType,
+          error,
+        });
+        return;
+      }
       throw new Error(error || "Form upsert failed");
     }
+  }
+
+  async function postUpsertDirect(formType, values) {
+    const params = new URLSearchParams();
+    params.append("form_type", formType);
+
+    Object.entries(values || {}).forEach(([key, value]) => {
+      if (!key) return;
+      if (value === undefined || value === null) return;
+      if (Array.isArray(value)) {
+        if (value.length) params.append(key, value.join(", "));
+        return;
+      }
+      if (typeof value === "object") return;
+      const text = String(value).trim();
+      if (text) params.append(key, text);
+    });
+
+    await fetchWithTimeout(GOOGLE_APPS_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      },
+      body: params.toString(),
+    }, 20000);
   }
 
   async function fetchWithTimeout(url, init, timeoutMs) {

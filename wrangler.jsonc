@@ -40,7 +40,7 @@
 		"PLAYER_SIGNATURE_PLACEMENT_MODE": "parent_guardian_only",
 		"ALLOWED_ORIGINS": "https://mlsregistration.lifeprepacademyfoundation.com,https://lifeprepacademyfoundation.com,https://www.lifeprepacademyfoundation.com,https://preview.lifeprepacademyfoundation.com,https://lpaf-mls.hligon.workers.dev,http://127.0.0.1:3000",
 		"E_CONSENT_TEXT_VERSION": "v1-2026-08-06",
-		"APPS_SCRIPT_URL": "https://script.google.com/macros/s/AKfycbxeC06XycNrywgzhi9UbGYKik7cZaxFyhk83sLlVHiZTRTuE8PGzHGw_2knkm2MBeuD/exec"
+		"APPS_SCRIPT_URL": "https://script.google.com/macros/s/AKfycbxVJm7O0V9HuLL_ruMuueXCBm39b_SfRtaQo4gA9bGf2dEMZxg1UutD0l2tTY53JQSl/exec"
 	},
 	"observability": {
 		"enabled": true

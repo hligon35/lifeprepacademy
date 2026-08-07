@@ -1099,29 +1099,16 @@ function timingSafeEq(a, b) {
   return out === 0;
 }
 
-function isRedirectStatus(status) {
-  return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
-}
-
 async function postAppsScriptForm(url, params) {
   const body = typeof params === "string" ? params : params.toString();
-  const init = {
+  const res = await fetch(url, {
     method: "POST",
     body,
-    redirect: "manual",
+    redirect: "follow",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
     },
-  };
-
-  let res = await fetch(url, init);
-  if (isRedirectStatus(res.status)) {
-    const location = res.headers.get("Location");
-    if (location) {
-      const followUrl = new URL(location, url).toString();
-      res = await fetch(followUrl, init);
-    }
-  }
+  });
 
   return res.text();
 }
