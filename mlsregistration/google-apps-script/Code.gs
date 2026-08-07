@@ -277,17 +277,6 @@ function handleSubmissionUpsert_(values) {
     sheet.appendRow(rowValues);
     const insertedRow = sheet.getLastRow();
 
-    if (formType === 'volunteer_application' || formType === 'coaching_application') {
-      try {
-        sendVolunteerCoachConfirmationEmail_(formType, values);
-      } catch (error) {
-        writeError_(formType, 'Volunteer/Coach confirmation email failed', {
-          submission_id: submissionId,
-          error: String(error && error.message ? error.message : error),
-        });
-      }
-    }
-
     return json_({ ok: true, upserted: true, updatedExistingRow: false, row: insertedRow });
   } finally {
     lock.releaseLock();
@@ -323,6 +312,8 @@ function handleAgreementMetadataUpdate_(values) {
     const columnNames =
       formType === 'mls_registration' ? PLAYER_AGREEMENT_COLUMNS : VOLUNTEER_AGREEMENT_COLUMNS;
 
+    const previousAgreementStatus = normalizeValue_(sheet.getRange(row, headerIndex[columnNames[0]]).getValue());
+
     const agreementValues = {
       [columnNames[0]]: normalizeValue_(values.agreement_status),
       [columnNames[1]]: normalizeValue_(values.agreement_version),
@@ -339,6 +330,21 @@ function handleAgreementMetadataUpdate_(values) {
       if (!col) return;
       sheet.getRange(row, col).setValue(formatSheetValue_(header, agreementValues[header]));
     });
+
+    const nowSigned = normalizeValue_(agreementValues[columnNames[0]]) === 'Signed';
+    const wasSigned = previousAgreementStatus === 'Signed';
+    if ((formType === 'volunteer_application' || formType === 'coaching_application') && nowSigned && !wasSigned) {
+      try {
+        const rowRecord = readSheetRowRecord_(sheet, config.headers, row);
+        sendVolunteerCoachConfirmationEmail_(formType, rowRecord);
+      } catch (error) {
+        writeError_(formType, 'Volunteer/Coach confirmation email failed', {
+          submission_id: submissionId,
+          row,
+          error: String(error && error.message ? error.message : error),
+        });
+      }
+    }
 
     return json_({ ok: true, updated: true, row });
   } finally {
@@ -381,6 +387,57 @@ function handleRegistrationPaidEmail_(values) {
     paymentPaidAt: normalizeValue_(values.payment_paid_at),
     registrationFeeAmount: normalizeValue_(values.registration_fee_amount) || '75',
   };
+
+  if (payload.registrationSubmissionId) {
+    try {
+      const registrationSheet = getSheet_(SHEET_NAMES.PLAYERS);
+      ensureHeaders_(registrationSheet, PLAYER_HEADERS);
+      const registrationRow = findRowBySubmissionId_(
+        registrationSheet,
+        PLAYER_HEADERS,
+        'registration_submission_id',
+        payload.registrationSubmissionId,
+      );
+      if (registrationRow > 0) {
+        const rowRecord = readSheetRowRecord_(registrationSheet, PLAYER_HEADERS, registrationRow);
+        payload.allResponseRows = buildResponseRowsFromRecord_(rowRecord, PLAYER_HEADERS, {
+          exclude: {
+            form_type: true,
+            page_url: true,
+            signature: true,
+          },
+        });
+
+        payload.parentName = payload.parentName || [rowRecord.parent_first_name, rowRecord.parent_last_name].filter(Boolean).join(' ').trim();
+        payload.parentEmail = payload.parentEmail || normalizeValue_(rowRecord.parent_email).toLowerCase();
+        payload.primaryPhone = payload.primaryPhone || rowRecord.parent_phone;
+        payload.emergencyContactName = payload.emergencyContactName || [rowRecord.emergency_first_name, rowRecord.emergency_last_name].filter(Boolean).join(' ').trim();
+        payload.emergencyRelationship = payload.emergencyRelationship || rowRecord.emergency_relationship;
+        payload.emergencyEmail = payload.emergencyEmail || rowRecord.emergency_email;
+        payload.emergencyPhone = payload.emergencyPhone || rowRecord.emergency_phone;
+        payload.emergencyStreet = payload.emergencyStreet || rowRecord.emergency_street;
+        payload.emergencyCity = payload.emergencyCity || rowRecord.emergency_city;
+        payload.emergencyState = payload.emergencyState || rowRecord.emergency_state;
+        payload.emergencyZip = payload.emergencyZip || rowRecord.emergency_zip;
+
+        if (!payload.participantNames) {
+          const playerNames = [];
+          for (var i = 1; i <= 4; i += 1) {
+            const first = normalizeValue_(rowRecord['player_' + i + '_first_name']);
+            const last = normalizeValue_(rowRecord['player_' + i + '_last_name']);
+            const full = (first + ' ' + last).trim();
+            if (full) playerNames.push(full);
+          }
+          payload.participantNames = playerNames.join(', ');
+        }
+      }
+    } catch (lookupError) {
+      writeError_('mls_registration', 'Registration email row lookup failed', {
+        registration_submission_id: payload.registrationSubmissionId,
+        error: String(lookupError && lookupError.message ? lookupError.message : lookupError),
+      });
+    }
+  }
 
   try {
     sendRegistrationEmailByStage_(payload, Boolean(payload.paymentPaidAt || payload.paymentReceiptUrl));
@@ -667,6 +724,21 @@ function sendVolunteerCoachConfirmationEmail_(formType, values) {
   const fullName = `${firstName} ${lastName}`.trim() || 'Applicant';
   const isCoach = formType === 'coaching_application';
   const programLabel = isCoach ? 'coaching' : 'volunteer';
+  const signedAt = formatEmailTimestamp_(normalizeValue_(values['Volunteer Agreement Signed At']));
+  const signedDocumentUrl = normalizeValue_(values['Volunteer Agreement PDF URL']);
+  const responseRows = buildResponseRowsFromRecord_(values, isCoach ? COACH_HEADERS : VOLUNTEER_HEADERS, {
+    exclude: {
+      form_type: true,
+      pageUrl: true,
+      signature: true,
+    },
+  });
+  const responseRowsHtml = responseRows.map((row) => ''
+    + '<tr>'
+    + '<td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;font-weight:700;color:#1d2f40;vertical-align:top">' + escapeHtml_(row.label) + '</td>'
+    + '<td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#22313f;vertical-align:top">' + escapeHtml_(row.value) + '</td>'
+    + '</tr>'
+  ).join('');
 
   const subject = 'Thank you for your MLS GO application';
   const htmlBody = ''
@@ -682,6 +754,19 @@ function sendVolunteerCoachConfirmationEmail_(formType, values) {
     + '<h1 style="margin:0 0 16px;font-size:30px;line-height:1.1;color:#1d2f40">Thank you for applying</h1>'
     + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">Hello ' + escapeHtml_(fullName) + ',</p>'
     + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">Thank you for submitting your MLS GO ' + programLabel + ' application. We received your information successfully.</p>'
+    + (signedAt ? '<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#586574"><strong style="color:#1d2f40">Signed:</strong> ' + escapeHtml_(signedAt) + '</p>' : '')
+    + (responseRowsHtml
+      ? '<h2 style="margin:0 0 10px;font-size:18px;line-height:1.3;color:#1d2f40">Submitted Responses</h2>'
+        + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 18px;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">'
+        + responseRowsHtml
+        + '</table>'
+      : '')
+    + (signedDocumentUrl
+      ? '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px"><tr>'
+        + '<td style="border-radius:999px;background:#1d2f40">'
+        + '<a href="' + escapeHtml_(signedDocumentUrl) + '" style="display:inline-block;padding:14px 24px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none">Download Signed Documents</a>'
+        + '</td></tr></table>'
+      : '')
     + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">Please keep an eye on your email for updates and next steps from our team.</p>'
     + '<p style="margin:0;font-size:15px;line-height:1.7">If you have any questions, reply to this email or contact <a href="mailto:info@lifeprepacademyfoundation.com" style="color:#1d2f40;font-weight:700;text-decoration:none">info@lifeprepacademyfoundation.com</a>.</p>'
     + '</div>'
@@ -700,10 +785,18 @@ function sendVolunteerCoachConfirmationEmail_(formType, values) {
     `Hello ${fullName},`,
     '',
     `Thank you for submitting your MLS GO ${programLabel} application. We received your information successfully.`,
+    signedAt ? `Signed At: ${signedAt}` : '',
+    responseRows.length ? '' : '',
+    responseRows.length ? 'Submitted Responses:' : '',
+    responseRows.length ? responseRows.map((row) => `- ${row.label}: ${row.value}`).join('\n') : '',
+    signedDocumentUrl ? '' : '',
+    signedDocumentUrl ? `Download signed documents: ${signedDocumentUrl}` : '',
     'Please keep an eye on your email for updates and next steps from our team.',
     '',
     BRAND_DOMAIN,
-  ].join('\n');
+  ].filter(function(line) {
+    return String(line || '').trim() !== '';
+  }).join('\n');
 
   MailApp.sendEmail({
     to: email,
@@ -887,6 +980,12 @@ function buildRegistrationPaidEmailText_(payload) {
 }
 
 function buildRegistrationResponseRows_(payload) {
+  if (payload && Array.isArray(payload.allResponseRows) && payload.allResponseRows.length) {
+    return payload.allResponseRows.filter(function(row) {
+      return normalizeValue_(row && row.value);
+    });
+  }
+
   const emergencyAddress = [
     normalizeValue_(payload.emergencyStreet),
     normalizeValue_(payload.emergencyCity),
@@ -910,6 +1009,51 @@ function buildRegistrationResponseRows_(payload) {
   ];
 
   return rows.filter((row) => normalizeValue_(row.value));
+}
+
+function readSheetRowRecord_(sheet, headers, row) {
+  const values = sheet.getRange(row, 1, 1, headers.length).getValues()[0];
+  const out = {};
+  headers.forEach(function(header, index) {
+    out[header] = normalizeValue_(values[index]);
+  });
+  return out;
+}
+
+function buildResponseRowsFromRecord_(record, headers, options) {
+  const opts = options || {};
+  const exclude = opts.exclude || {};
+  const rows = [];
+
+  headers.forEach(function(header) {
+    if (exclude[header]) return;
+    if (/^(Player|Volunteer) Agreement SHA-256$/i.test(header)) return;
+    if (/^(Player|Volunteer) Agreement File ID$/i.test(header)) return;
+
+    const value = normalizeValue_(record[header]);
+    if (!value) return;
+    rows.push({
+      label: formatResponseLabel_(header),
+      value: value,
+    });
+  });
+
+  return rows;
+}
+
+function formatResponseLabel_(header) {
+  const raw = String(header || '').trim();
+  if (!raw) return '';
+
+  const withSpaces = raw
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return withSpaces.replace(/\b\w/g, function(ch) {
+    return ch.toUpperCase();
+  });
 }
 
 function formatEmailTimestamp_(value) {

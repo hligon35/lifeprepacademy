@@ -258,6 +258,7 @@
   renderWizard();
   initAddressAutocomplete();
   syncAgreementPrefills();
+  updateExperienceSummaryRequirements();
 
   function parseStandaloneFlow() {
     const value = new URLSearchParams(window.location.search).get("flow");
@@ -1027,6 +1028,20 @@
     signatureMethodInput.name = signatureMethodName;
     signatureMethodInput.id = signatureMethodName;
 
+    const enableTypedFallback = (reason) => {
+      typedToggleInput.checked = true;
+      typedInput.classList.remove("hidden");
+      openSignBtn.disabled = true;
+      signatureDataInput.value = "";
+      preview.src = "";
+      preview.classList.add("hidden");
+      signatureMethodInput.value = "typed";
+      signatureStatus.textContent = reason
+        ? `Signing status: ${reason} Type your full legal name to continue.`
+        : "Signing status: Typed signature mode enabled.";
+      typedInput.focus();
+    };
+
     signatureActionRow.append(openSignBtn);
 
     const modal = buildSignatureModal({
@@ -1035,6 +1050,10 @@
         signatureMethodInput.value = "drawn";
         preview.src = dataUrl;
         preview.classList.remove("hidden");
+        typedToggleInput.checked = false;
+        typedInput.value = "";
+        typedInput.classList.add("hidden");
+        openSignBtn.disabled = false;
         signatureStatus.textContent = "Signing status: Drawn signature accepted.";
       },
       onClear: () => {
@@ -1047,7 +1066,10 @@
     });
 
     openSignBtn.addEventListener("click", () => {
-      modal.open();
+      const opened = modal.open();
+      if (!opened) {
+        enableTypedFallback("Draw signature is unavailable on this device.");
+      }
     });
 
     typedToggleInput.addEventListener("change", () => {
@@ -1096,7 +1118,7 @@
 
   function buildSignatureModal({ onAccept, onClear }) {
     const overlay = document.createElement("div");
-    overlay.className = "signature-modal hidden";
+    overlay.className = "signature-modal signature-modal--draw hidden";
     overlay.setAttribute("role", "dialog");
     overlay.setAttribute("aria-modal", "true");
 
@@ -1135,18 +1157,22 @@
     document.body.appendChild(overlay);
 
     const ctx = canvas.getContext("2d");
+    const canDraw = Boolean(ctx && typeof canvas.toDataURL === "function");
     let drawing = false;
     let hasStroke = false;
 
     const resizeCanvas = () => {
+      if (!canDraw) return false;
       const ratio = Math.max(window.devicePixelRatio || 1, 1);
       const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return false;
       canvas.width = Math.floor(rect.width * ratio);
       canvas.height = Math.floor(rect.height * ratio);
       ctx.scale(ratio, ratio);
       ctx.lineWidth = 2;
       ctx.lineCap = "round";
       ctx.strokeStyle = "#111";
+      return true;
     };
 
     const point = (ev) => {
@@ -1155,6 +1181,7 @@
     };
 
     canvas.addEventListener("pointerdown", (ev) => {
+      if (!canDraw) return;
       ev.preventDefault();
       drawing = true;
       hasStroke = true;
@@ -1166,6 +1193,7 @@
     });
 
     canvas.addEventListener("pointermove", (ev) => {
+      if (!canDraw) return;
       if (!drawing) return;
       ev.preventDefault();
       const p = point(ev);
@@ -1182,12 +1210,14 @@
     canvas.addEventListener("pointercancel", endDraw);
 
     clearBtn.addEventListener("click", () => {
+      if (!canDraw) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       hasStroke = false;
       onClear();
     });
 
     acceptBtn.addEventListener("click", () => {
+      if (!canDraw) return;
       if (!hasStroke || !hasMeaningfulInk(canvas)) {
         return;
       }
@@ -1202,8 +1232,16 @@
 
     return {
       open() {
+        if (!canDraw) return false;
+        // Move draw modal to the end of body so it always layers above agreement overlay.
+        document.body.appendChild(overlay);
         overlay.classList.remove("hidden");
-        resizeCanvas();
+        const ready = resizeCanvas();
+        if (!ready) {
+          overlay.classList.add("hidden");
+          return false;
+        }
+        return true;
       },
     };
   }
@@ -1272,6 +1310,10 @@
       ) {
         syncAgreementPrefills();
       }
+
+      if (["volHasExperience", "coachHasExperience"].includes(target.name)) {
+        updateExperienceSummaryRequirements();
+      }
     });
 
     form.addEventListener("change", (event) => {
@@ -1281,7 +1323,28 @@
         applyVisibility();
         renderWizard();
       }
+      if (["volHasExperience", "coachHasExperience"].includes(target.name)) {
+        updateExperienceSummaryRequirements();
+      }
     });
+  }
+
+  function updateExperienceSummaryRequirements() {
+    setConditionalRequired("volHasExperience", "volExperienceSummary");
+    setConditionalRequired("coachHasExperience", "coachExperienceSummary");
+  }
+
+  function setConditionalRequired(controllerName, targetName) {
+    const controller = form.elements.namedItem(controllerName);
+    const target = form.elements.namedItem(targetName);
+    if (!(controller instanceof HTMLInputElement || controller instanceof HTMLSelectElement)) return;
+    if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return;
+
+    const requiresSummary = controller.value === "Yes";
+    target.required = requiresSummary;
+    if (!requiresSummary) {
+      target.setCustomValidity("");
+    }
   }
 
   function flowIncludes(sectionFlow) {
@@ -1699,12 +1762,16 @@
       formMessage.textContent = "";
       return;
     }
-    completeFlow("Volunteer application received.");
+    completeFlow("Volunteer application received.", {
+      redirectToDonation: shouldRedirectToDonation(),
+    });
   }
 
   async function submitCoachingApplication() {
     if (coachingSubmitted) {
-      completeFlow("Coaching application received.");
+      completeFlow("Coaching application received.", {
+        redirectToDonation: shouldRedirectToDonation(),
+      });
       return;
     }
 
@@ -1734,7 +1801,9 @@
     }
     coachingSubmitted = true;
     volunteerSubmitted = true;
-    completeFlow("Coaching application received.");
+    completeFlow("Coaching application received.", {
+      redirectToDonation: shouldRedirectToDonation(),
+    });
   }
 
   function switchFlow(nextFlow, prefillVolunteer) {
@@ -1751,13 +1820,22 @@
     const stageFlow = getCurrentStageFlow();
 
     if (stageFlow === FLOW.VOLUNTEER) {
-      completeFlow("Registration received. Volunteer step skipped.");
+      completeFlow("Registration received. Volunteer step skipped.", {
+        redirectToDonation: shouldRedirectToDonation(),
+      });
       return;
     }
 
     if (stageFlow === FLOW.COACH || stageFlow === "coachSupplement") {
-      completeFlow("Registration received. Coaching step skipped.");
+      completeFlow("Registration received. Coaching step skipped.", {
+        redirectToDonation: shouldRedirectToDonation(),
+      });
     }
+  }
+
+  function shouldRedirectToDonation() {
+    if (standaloneFlow === FLOW.VOLUNTEER || standaloneFlow === FLOW.COACH) return false;
+    return playerSubmitted;
   }
 
   function allSelectedFlowsCompleted() {
@@ -1871,6 +1949,7 @@
     setIfEmpty("volLastName", parent.lastName);
     setIfEmpty("volEmail", parent.email);
     setIfEmpty("volPhone", parent.phone);
+    setIfEmpty("volDob", parent.dob);
     setIfEmpty("volStreet", parent.street);
     setIfEmpty("volApt", parent.apt);
     setIfEmpty("volCity", parent.city);

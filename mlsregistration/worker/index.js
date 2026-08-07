@@ -257,7 +257,7 @@ async function handleSignAgreement(request, env) {
       signedAt: payload.audit.signedAtUtc,
       transactionId: txId,
       fileId: objectKey,
-      pdfUrl: adminUrl,
+      pdfUrl: emailDownloadUrl,
       sha256: completedHash,
       status: "Signed",
       agreementVersion: template.version,

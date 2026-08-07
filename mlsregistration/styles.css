@@ -348,13 +348,21 @@ body {
 }
 
 .checkbox-group-option {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  column-gap: 10px;
 }
 
 .checkbox-group-option input {
-  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+}
+
+.checkbox-group-option span {
+  display: block;
+  line-height: 1.35;
 }
 
 .agreement-doc-links {
@@ -448,6 +456,10 @@ body {
   place-items: center;
   z-index: 9999;
   padding: 12px;
+}
+
+.signature-modal--draw {
+  z-index: 10020;
 }
 
 .signature-modal-panel {
