@@ -240,6 +240,9 @@ function doPost(e) {
   }
 
   const action = normalizeValue_(e.parameter.action);
+  if (action === 'track_email') {
+    return handleEmailTrackingRequest_(e);
+  }
   if (action === 'update_agreement_metadata') {
     return handleAgreementMetadataUpdate_(e.parameter);
   }
@@ -284,15 +287,17 @@ function handleSubmissionUpsert_(values) {
 
     const headerIndex = buildHeaderIndex_(config.headers);
     const rowValues = config.headers.map((header) => formatSheetValue_(header, lookupPayloadValue_(values, header)));
-    applyPendingAgreementDefaults_(rowValues, config.headers, formType);
 
     const existingRow = findRowBySubmissionId_(sheet, config.headers, config.idColumn, submissionId);
     if (existingRow > 0) {
       const existingRecord = readSheetRowRecord_(sheet, config.headers, existingRow);
       preserveSystemManagedColumns_(rowValues, config.headers, existingRecord, formType);
+      applyPendingAgreementDefaults_(rowValues, config.headers, formType);
       sheet.getRange(existingRow, 1, 1, config.headers.length).setValues([rowValues]);
       return json_({ ok: true, upserted: true, updatedExistingRow: true, row: existingRow });
     }
+
+    applyPendingAgreementDefaults_(rowValues, config.headers, formType);
 
     sheet.appendRow(rowValues);
     const insertedRow = sheet.getLastRow();
@@ -776,11 +781,35 @@ function formatSheetValue_(header, value) {
   if (isTimestampHeader_(header)) {
     return formatSheetTimestamp_(value);
   }
+  if (isDobHeader_(header)) {
+    return formatDobValue_(value);
+  }
   return sanitizeForSheet_(value);
 }
 
 function isTimestampHeader_(header) {
   return TIMESTAMP_HEADERS.indexOf(String(header || '').trim()) >= 0;
+}
+
+function isDobHeader_(header) {
+  const normalized = String(header || '').trim().toLowerCase();
+  return normalized === 'dob' || normalized === 'date_of_birth' || normalized === 'dateofbirth' || /(^|_)dob$/.test(normalized) || /(^|_)date_of_birth$/.test(normalized) || /(^|_)dateofbirth$/.test(normalized);
+}
+
+function formatDobValue_(value) {
+  if (value === undefined || value === null || value === '') return '';
+
+  const normalized = normalizeValue_(value);
+  if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(normalized)) {
+    return normalized;
+  }
+
+  const date = new Date(normalized);
+  if (isNaN(date.getTime())) {
+    return sanitizeForSheet_(value);
+  }
+
+  return Utilities.formatDate(date, Session.getScriptTimeZone(), 'MM/dd/yyyy');
 }
 
 function formatSheetTimestamp_(value) {
@@ -817,14 +846,27 @@ function handleEmailTrackingRequest_(e) {
   const targetUrl = normalizeValue_(params.target);
   const linkLabel = normalizeValue_(params.link_label);
 
-  recordEmailTrackingEvent_(token, eventType, emailType, submissionId, recipientEmail, targetUrl, linkLabel, e && e.headers ? e.headers : null, params);
+  try {
+    recordEmailTrackingEvent_(token, eventType, emailType, submissionId, recipientEmail, targetUrl, linkLabel, e && e.headers ? e.headers : null, params);
+  } catch (error) {
+    writeError_('email_tracking', 'Email tracking request failed', {
+      token,
+      eventType,
+      emailType,
+      submissionId,
+      recipientEmail,
+      targetUrl,
+      linkLabel,
+      error: String(error && error.message ? error.message : error),
+    });
+  }
 
   if (eventType === 'clicked' && targetUrl) {
     return HtmlService.createHtmlOutput('<html><head><meta http-equiv="refresh" content="0;url=' + escapeHtml_(targetUrl) + '"></head><body>Redirecting…</body></html>');
   }
 
   const pixel = Utilities.base64Decode('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==');
-  return ContentService.createOutput(Utilities.newBlob(pixel, 'image/gif', 'pixel.gif'));
+  return Utilities.newBlob(pixel, 'image/gif', 'pixel.gif');
 }
 
 function recordEmailTrackingEvent_(trackingId, eventType, emailType, submissionId, recipientEmail, targetUrl, linkLabel, headers, params) {
@@ -837,26 +879,43 @@ function recordEmailTrackingEvent_(trackingId, eventType, emailType, submissionI
     : '';
   const sourceUrl = normalizeValue_(params && params.source_url ? params.source_url : '');
 
-  sheet.appendRow([
-    trackingId || '',
-    eventType || '',
-    emailType || '',
-    submissionId || '',
-    recipientEmail || '',
-    targetUrl || '',
-    linkLabel || '',
-    formatSheetTimestamp_(new Date()),
-    userAgent,
-    ipAddress,
-    sourceUrl,
-  ]);
+  try {
+    sheet.appendRow([
+      trackingId || '',
+      eventType || '',
+      emailType || '',
+      submissionId || '',
+      recipientEmail || '',
+      targetUrl || '',
+      linkLabel || '',
+      formatSheetTimestamp_(new Date()),
+      userAgent,
+      ipAddress,
+      sourceUrl,
+    ]);
+  } catch (error) {
+    writeError_('email_tracking', 'Failed to append email tracking row', {
+      trackingId: trackingId || '',
+      eventType: eventType || '',
+      emailType: emailType || '',
+      submissionId: submissionId || '',
+      recipientEmail: recipientEmail || '',
+      targetUrl: targetUrl || '',
+      linkLabel: linkLabel || '',
+      userAgent,
+      ipAddress,
+      sourceUrl,
+      error: String(error && error.message ? error.message : error),
+    });
+    throw error;
+  }
 }
 
 function createEmailTrackingContext_(payload, emailType) {
   const submissionId = normalizeValue_(payload.registrationSubmissionId || payload.submissionId || payload.submission_id || payload.id || '');
   const recipientEmail = normalizeValue_(payload.parentEmail || payload.email || '').toLowerCase();
   const trackingToken = ['email', emailType, submissionId || 'anonymous', Date.now(), Utilities.getUuid()].filter(Boolean).join('-');
-  const trackingBaseUrl = ScriptApp.getService().getUrl() || 'https://script.google.com/macros/s/unknown/exec';
+  const trackingBaseUrl = getEmailTrackingBaseUrl_(payload);
 
   const openUrl = buildEmailTrackingUrl_(trackingBaseUrl, trackingToken, 'opened', emailType, submissionId, recipientEmail, '', '');
   const makeTrackedUrl = function(targetUrl, linkLabel) {
@@ -870,6 +929,17 @@ function createEmailTrackingContext_(payload, emailType) {
     openUrl: openUrl,
     makeTrackedUrl: makeTrackedUrl,
   };
+}
+
+function getEmailTrackingBaseUrl_(payload) {
+  const configured = normalizeValue_(payload && payload.trackingBaseUrl);
+  if (configured) return configured;
+
+  const scriptProperty = PropertiesService.getScriptProperties().getProperty('EMAIL_TRACKING_BASE_URL');
+  if (scriptProperty) return normalizeValue_(scriptProperty);
+
+  const serviceUrl = normalizeValue_(ScriptApp.getService().getUrl());
+  return serviceUrl || 'https://script.google.com/macros/s/unknown/exec';
 }
 
 function buildEmailTrackingUrl_(trackingBaseUrl, trackingToken, eventType, emailType, submissionId, recipientEmail, targetUrl, linkLabel) {
@@ -1333,6 +1403,9 @@ function formatResponseValue_(header, value) {
   if (!value) return '';
   if (isTimestampHeader_(header)) {
     return formatEmailTimestamp_(value);
+  }
+  if (isDobHeader_(header)) {
+    return formatDobValue_(value);
   }
   return normalizeValue_(value);
 }

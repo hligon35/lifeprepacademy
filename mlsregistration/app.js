@@ -1911,13 +1911,13 @@
 
       const paymentHint = document.createElement("p");
       paymentHint.dataset.paymentHint = "true";
-      paymentHint.textContent = `${PAYMENT_PAUSED_MESSAGE} Your registration fee amount is currently ${paymentAmount} for the selected player count.`;
+      paymentHint.textContent = `${PAYMENT_PAUSED_MESSAGE} Your registration fee amount is currently $${paymentAmount} for the selected player count.`;
       successPanel.appendChild(paymentHint);
 
       const paymentCta = document.createElement("p");
       paymentCta.className = "btn btn-primary";
       paymentCta.dataset.paymentCta = "true";
-      paymentCta.textContent = `Payment temporarily paused — ${paymentAmount} registration fee`;
+      paymentCta.textContent = `Payment temporarily paused — registration total $${paymentAmount}`;
       successPanel.appendChild(paymentCta);
     }
   }
