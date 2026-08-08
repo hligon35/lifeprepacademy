@@ -276,14 +276,14 @@ function handleSubmissionUpsert_(values) {
     const sheet = getSheet_(config.sheetName);
     ensureHeaders_(sheet, config.headers);
 
-    const submissionId = normalizeValue_(values[config.idColumn]);
+    const submissionId = normalizeValue_(lookupPayloadValue_(values, config.idColumn));
     if (!submissionId) {
       writeError_(formType, `Missing ${config.idColumn}`, values);
       return json_({ ok: false, error: `Missing ${config.idColumn}` }, 400);
     }
 
     const headerIndex = buildHeaderIndex_(config.headers);
-    const rowValues = config.headers.map((header) => formatSheetValue_(header, values[header]));
+    const rowValues = config.headers.map((header) => formatSheetValue_(header, lookupPayloadValue_(values, header)));
     applyPendingAgreementDefaults_(rowValues, config.headers, formType);
 
     const existingRow = findRowBySubmissionId_(sheet, config.headers, config.idColumn, submissionId);
@@ -710,6 +710,55 @@ function preserveSystemManagedColumns_(rowValues, headers, existingRecord, formT
       rowValues[col - 1] = existingValue;
     }
   });
+}
+
+function lookupPayloadValue_(values, header) {
+  const candidates = [];
+  const normalizedHeader = normalizeValue_(header);
+  if (normalizedHeader) {
+    candidates.push(normalizedHeader);
+    candidates.push(normalizedHeader.replace(/([a-z0-9])([A-Z])/g, '$1_$2').replace(/\s+/g, '_').toLowerCase());
+    candidates.push(normalizedHeader.replace(/\s+/g, '_').toLowerCase());
+    candidates.push(normalizedHeader.replace(/_/g, '').toLowerCase());
+  }
+
+  const headerAliases = {
+    firstName: ['first_name', 'volFirstName', 'vol_first_name', 'volunteerFirstName', 'volunteer_first_name'],
+    lastName: ['last_name', 'volLastName', 'vol_last_name', 'volunteerLastName', 'volunteer_last_name'],
+    email: ['emailAddress', 'email_address', 'volEmail', 'vol_email', 'volunteerEmail', 'volunteer_email'],
+    phone: ['phoneNumber', 'phone_number', 'volPhone', 'vol_phone', 'volunteerPhone', 'volunteer_phone'],
+    street: ['streetAddress', 'street_address', 'volStreet', 'vol_street', 'volunteerStreet', 'volunteer_street'],
+    apt: ['apartment', 'apartmentNumber', 'apt_number', 'volApt', 'vol_apt', 'volunteerApt', 'volunteer_apt'],
+    city: ['volCity', 'vol_city', 'volunteerCity', 'volunteer_city'],
+    state: ['volState', 'vol_state', 'volunteerState', 'volunteer_state'],
+    zip: ['volZip', 'vol_zip', 'volunteerZip', 'volunteer_zip'],
+    dob: ['dateOfBirth', 'date_of_birth', 'volDob', 'vol_dob', 'volunteerDob', 'volunteer_dob'],
+    roles: ['volunteerRoles', 'volunteer_roles'],
+    hasExperience: ['volHasExperience', 'vol_has_experience', 'volunteerHasExperience', 'volunteer_has_experience'],
+    experienceSummary: ['volExperienceSummary', 'vol_experience_summary', 'volunteerExperienceSummary', 'volunteer_experience_summary'],
+    availabilityNotes: ['volAvailabilityNotes', 'vol_availability_notes', 'volunteerAvailabilityNotes', 'volunteer_availability_notes'],
+    agreement: ['agreeVolunteer', 'agreeVolunteerAgreement', 'volAgreement', 'volunteerAgreement', 'volunteer_agreement'],
+    signature: ['volSignature', 'vol_signature', 'volunteerSignature', 'volunteer_signature'],
+    linkedParentEmail: ['linkedParentEmail', 'linked_parent_email', 'linkedParentEmailAddress', 'linked_parent_email_address'],
+  };
+
+  const aliasList = headerAliases[normalizedHeader] || [];
+  aliasList.forEach(function(alias) {
+    candidates.push(alias);
+  });
+
+  const seen = {};
+  for (var i = 0; i < candidates.length; i += 1) {
+    const candidate = candidates[i];
+    if (!candidate || seen[candidate]) continue;
+    seen[candidate] = true;
+    const direct = values && values[candidate];
+    if (direct !== undefined && direct !== null) {
+      return direct;
+    }
+  }
+
+  return values && values[normalizedHeader];
 }
 
 function writeError_(formType, reason, payload) {
@@ -1167,6 +1216,11 @@ function buildRegistrationResponseRows_(payload) {
     });
   }
 
+  const parsedFormValues = parseRegistrationFormValues_(payload || {});
+  if (parsedFormValues.length) {
+    return parsedFormValues;
+  }
+
   if (payload && payload.formValues && Array.isArray(payload.formValues)) {
     return payload.formValues.filter(function(row) {
       return normalizeValue_(row && row.value);
@@ -1204,6 +1258,8 @@ function parseRegistrationFormValues_(values) {
     values && values.formValues,
     values && values.response_rows_json,
     values && values.all_response_rows_json,
+    values && values.formValuesJson,
+    values && values.form_values,
   ];
 
   for (var i = 0; i < candidates.length; i += 1) {
@@ -1266,11 +1322,19 @@ function buildResponseRowsFromRecord_(record, headers, options) {
     if (!value) return;
     rows.push({
       label: formatResponseLabel_(header),
-      value: value,
+      value: formatResponseValue_(header, value),
     });
   });
 
   return rows;
+}
+
+function formatResponseValue_(header, value) {
+  if (!value) return '';
+  if (isTimestampHeader_(header)) {
+    return formatEmailTimestamp_(value);
+  }
+  return normalizeValue_(value);
 }
 
 function formatResponseLabel_(header) {
