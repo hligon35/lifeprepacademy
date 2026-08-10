@@ -369,6 +369,7 @@ async function handleSignAgreement(request, env, ctx) {
     if (agreementType === "player") {
       const submissionEmailPromise = sendRegistrationSubmissionEmail(env, {
         submissionId,
+        allResponseRows: Array.isArray(payload.fields?.allResponseRows) ? payload.fields.allResponseRows : [],
         parentEmail: payload.fields?.guardianEmail,
         parentName: payload.fields?.guardianName || payload.signer?.printedName,
         participantNames: payload.fields?.participantNames || "",
@@ -1009,7 +1010,14 @@ async function sendRegistrationSubmissionEmail(env, input) {
 
   const parentName = String(input.parentName || "").trim();
   const participantNames = String(input.participantNames || "").trim();
-  const registrationFormValues = [
+  const allResponseRows = Array.isArray(input.allResponseRows)
+    ? input.allResponseRows.map((row) => ({
+      label: String(row?.label || "").trim(),
+      value: String(row?.value || "").trim(),
+    })).filter((row) => row.label && row.value)
+    : [];
+
+  const registrationFormValues = allResponseRows.length ? allResponseRows : [
     { label: "Parent/Guardian Full Name", value: parentName },
     { label: "Relationship to Child", value: String(input.relationshipToChild || "").trim() },
     { label: "Email Address", value: parentEmail },
@@ -1049,6 +1057,7 @@ async function sendRegistrationSubmissionEmail(env, input) {
     signed_document_url: String(input.signedDocumentUrl || "").trim(),
     payment_url: String(input.paymentUrl || "").trim(),
     registration_fee_amount: "75",
+    all_response_rows_json: JSON.stringify(registrationFormValues),
     form_values_json: JSON.stringify(registrationFormValues),
   };
 

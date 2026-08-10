@@ -2067,6 +2067,81 @@
     };
   }
 
+  function toEmailResponseValue(value) {
+    if (typeof value === "boolean") return value ? "Yes" : "No";
+    if (Array.isArray(value)) {
+      return value
+        .map((entry) => String(entry || "").trim())
+        .filter(Boolean)
+        .join(", ");
+    }
+    return String(value || "").trim();
+  }
+
+  function pushEmailResponseRow(rows, label, value) {
+    const normalized = toEmailResponseValue(value);
+    if (!normalized) return;
+    rows.push({ label, value: normalized });
+  }
+
+  function buildRegistrationEmailResponseRows(registrationData) {
+    const rows = [];
+    if (!registrationData) return rows;
+
+    pushEmailResponseRow(rows, "Registration ID", registrationData.registrationSubmissionId || "");
+    pushEmailResponseRow(rows, "Submitted At", registrationData.submittedAt);
+    pushEmailResponseRow(rows, "Parent/Guardian First Name", registrationData.parent?.firstName);
+    pushEmailResponseRow(rows, "Parent/Guardian Last Name", registrationData.parent?.lastName);
+    pushEmailResponseRow(rows, "Parent/Guardian Email", registrationData.parent?.email);
+    pushEmailResponseRow(rows, "Parent/Guardian Phone", registrationData.parent?.phone);
+    pushEmailResponseRow(rows, "Parent/Guardian Date of Birth", registrationData.parent?.dob);
+    pushEmailResponseRow(rows, "Parent/Guardian Street", registrationData.parent?.street);
+    pushEmailResponseRow(rows, "Parent/Guardian Apt", registrationData.parent?.apt);
+    pushEmailResponseRow(rows, "Parent/Guardian City", registrationData.parent?.city);
+    pushEmailResponseRow(rows, "Parent/Guardian State", registrationData.parent?.state);
+    pushEmailResponseRow(rows, "Parent/Guardian Zip", registrationData.parent?.zip);
+
+    pushEmailResponseRow(rows, "Emergency Contact Same As Parent", registrationData.emergency?.sameAsParent);
+    if (!registrationData.emergency?.sameAsParent) {
+      pushEmailResponseRow(rows, "Emergency Contact First Name", registrationData.emergency?.firstName);
+      pushEmailResponseRow(rows, "Emergency Contact Last Name", registrationData.emergency?.lastName);
+      pushEmailResponseRow(rows, "Emergency Contact Relationship", registrationData.emergency?.relationship);
+      pushEmailResponseRow(rows, "Emergency Contact Email", registrationData.emergency?.email);
+      pushEmailResponseRow(rows, "Emergency Contact Phone", registrationData.emergency?.phone);
+      pushEmailResponseRow(rows, "Emergency Contact Street", registrationData.emergency?.street);
+      pushEmailResponseRow(rows, "Emergency Contact Apt", registrationData.emergency?.apt);
+      pushEmailResponseRow(rows, "Emergency Contact City", registrationData.emergency?.city);
+      pushEmailResponseRow(rows, "Emergency Contact State", registrationData.emergency?.state);
+      pushEmailResponseRow(rows, "Emergency Contact Zip", registrationData.emergency?.zip);
+    }
+
+    const players = Array.isArray(registrationData.players) ? registrationData.players : [];
+    pushEmailResponseRow(rows, "Player Count", players.length);
+    players.forEach((player, index) => {
+      const n = index + 1;
+      pushEmailResponseRow(rows, `Player ${n} First Name`, player?.firstName);
+      pushEmailResponseRow(rows, `Player ${n} Last Name`, player?.lastName);
+      pushEmailResponseRow(rows, `Player ${n} Date of Birth`, player?.dob);
+      pushEmailResponseRow(rows, `Player ${n} Gender`, player?.gender);
+      pushEmailResponseRow(rows, `Player ${n} Grade`, player?.grade);
+      pushEmailResponseRow(rows, `Player ${n} Jersey Size`, player?.jersey);
+      pushEmailResponseRow(rows, `Player ${n} Shorts Size`, player?.shorts);
+      pushEmailResponseRow(rows, `Player ${n} Socks Size`, player?.socks);
+      pushEmailResponseRow(rows, `Player ${n} Race`, player?.race);
+      pushEmailResponseRow(rows, `Player ${n} Race Other`, player?.raceOther);
+      pushEmailResponseRow(rows, `Player ${n} Favorite Club`, player?.favoriteClub);
+      pushEmailResponseRow(rows, `Player ${n} Heard About Program`, player?.hearAbout);
+      pushEmailResponseRow(rows, `Player ${n} Add Another`, player?.addAnother);
+    });
+
+    pushEmailResponseRow(rows, "Help Choice", registrationData.helpChoice);
+    pushEmailResponseRow(rows, "Agree Waiver", registrationData.agreements?.waiver);
+    pushEmailResponseRow(rows, "Agree Privacy", registrationData.agreements?.privacy);
+    pushEmailResponseRow(rows, "Agree Marketing", registrationData.agreements?.marketing);
+
+    return rows;
+  }
+
   function collectVolunteerData() {
     return {
       submittedAt: new Date().toISOString(),
@@ -2248,6 +2323,7 @@
       },
       fields: {
         registrationSubmissionId: registrationData.registrationSubmissionId,
+        allResponseRows: buildRegistrationEmailResponseRows(registrationData),
         printedFullName: signer.printedName,
         relationshipToChild: "Parent/Legal Guardian",
         participantNames: registrationData.players

@@ -1109,9 +1109,7 @@ function buildRegistrationSubmissionEmailHtml_(payload) {
   const participantNames = escapeHtml_(payload.participantNames || 'Your registered participant(s)');
   const signedAt = escapeHtml_(formatEmailTimestamp_(payload.signedAt));
   const signedDocumentUrl = escapeHtml_(payload.signedDocumentTrackingUrl || payload.signedDocumentUrl || BRAND_URL);
-  const paymentUrl = escapeHtml_(payload.paymentTrackingUrl || payload.paymentUrl || BRAND_URL);
   const openTrackingUrl = escapeHtml_(payload.emailOpenTrackingUrl || '');
-  const fee = escapeHtml_(payload.registrationFeeAmount || '75');
   const responseRows = buildRegistrationResponseRows_(payload);
   const responseRowsHtml = responseRows.map((row) => ''
     + '<tr>'
@@ -1144,12 +1142,6 @@ function buildRegistrationSubmissionEmailHtml_(payload) {
     + '<td style="border-radius:999px;background:#1d2f40">'
     + '<a href="' + signedDocumentUrl + '" style="display:inline-block;padding:14px 24px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none">Download Signed Documents</a>'
     + '</td></tr></table>'
-    + '<p style="margin:0 0 12px;font-size:15px;line-height:1.7">If you have not already paid your registration fee, please submit the program fee of $' + fee + '.</p>'
-    + '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px"><tr>'
-    + '<td style="border-radius:999px;background:#c16a2b">'
-    + '<a href="' + paymentUrl + '" style="display:inline-block;padding:14px 24px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none">Pay Registration Fee</a>'
-    + '</td></tr></table>'
-    + '<p style="margin:0 0 12px;font-size:15px;line-height:1.7">You will receive a payment receipt by email once payment is available.</p>'
     + '<p style="margin:0;font-size:15px;line-height:1.7">If you have any questions, reply to this email or contact <a href="mailto:info@lifeprepacademyfoundation.com" style="color:#1d2f40;font-weight:700;text-decoration:none">info@lifeprepacademyfoundation.com</a>.</p>'
     + (openTrackingUrl ? '<img src="' + openTrackingUrl + '" alt="" width="1" height="1" style="display:block;border:0;width:1px;height:1px">' : '')
     + '</div>'
@@ -1180,9 +1172,6 @@ function buildRegistrationSubmissionEmailText_(payload) {
   }
   lines.push('');
   lines.push('Download signed documents: ' + (payload.signedDocumentTrackingUrl || payload.signedDocumentUrl || BRAND_URL));
-  lines.push('If you have not already paid your registration fee, complete payment: ' + (payload.paymentTrackingUrl || payload.paymentUrl || BRAND_URL));
-  lines.push('');
-  lines.push('You will receive a payment receipt by email once payment is available.');
   lines.push('');
   lines.push(BRAND_DOMAIN);
   return lines.join('\n');
