@@ -18,11 +18,45 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://127.0.0.1:3000",
   "http://localhost:3000",
 ];
-function buildPlayerRegistrationPaymentUrl() {
-  return "https://quest.build/lpafoundation/paducah-go-soccer/1598/71794/686";
+function splitName(fullName) {
+  const parts = String(fullName || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return { firstName: "", lastName: "" };
+  if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(" "),
+  };
 }
 
-const PLAYER_REGISTRATION_PAYMENT_URL = buildPlayerRegistrationPaymentUrl();
+function buildPlayerRegistrationPaymentUrl(options = {}) {
+  const base = "https://quest.build/get-tickets/1598/71794/info?teamId=686";
+  const firstName = String(options.firstName || "").trim();
+  const lastName = String(options.lastName || "").trim();
+  const email = String(options.email || "").trim();
+  const zip = String(options.zip || "").trim();
+
+  try {
+    const url = new URL(base);
+    if (firstName) {
+      url.searchParams.set("firstName", firstName);
+      url.searchParams.set("firstname", firstName);
+    }
+    if (lastName) {
+      url.searchParams.set("lastName", lastName);
+      url.searchParams.set("lastname", lastName);
+    }
+    if (email) {
+      url.searchParams.set("email", email);
+    }
+    if (zip) {
+      url.searchParams.set("zip", zip);
+      url.searchParams.set("postalCode", zip);
+    }
+    return url.toString();
+  } catch (_error) {
+    return base;
+  }
+}
 
 export default {
   async fetch(request, env, ctx) {
@@ -367,6 +401,7 @@ async function handleSignAgreement(request, env, ctx) {
 
     let registrationEmail = null;
     if (agreementType === "player") {
+      const parentNameParts = splitName(payload.fields?.guardianName || payload.signer?.printedName || "");
       const submissionEmailPromise = sendRegistrationSubmissionEmail(env, {
         submissionId,
         allResponseRows: Array.isArray(payload.fields?.allResponseRows) ? payload.fields.allResponseRows : [],
@@ -386,7 +421,12 @@ async function handleSignAgreement(request, env, ctx) {
         emergencyZip: payload.fields?.emergencyZip || "",
         signedAt: payload.audit?.signedAtUtc || "",
         signedDocumentUrl: emailDownloadUrl,
-        paymentUrl: PLAYER_REGISTRATION_PAYMENT_URL,
+        paymentUrl: buildPlayerRegistrationPaymentUrl({
+          firstName: payload.fields?.guardianFirstName || parentNameParts.firstName,
+          lastName: payload.fields?.guardianLastName || parentNameParts.lastName,
+          email: payload.fields?.guardianEmail || "",
+          zip: payload.fields?.guardianZip || payload.fields?.parentZip || "",
+        }),
       });
       if (ctx && typeof ctx.waitUntil === "function") {
         ctx.waitUntil(
@@ -578,7 +618,12 @@ async function handlePaymentWebhook(request, env) {
     participantNames: context.participantNames,
     signedAt: context.signedAt,
     signedDocumentUrl,
-    paymentUrl: PLAYER_REGISTRATION_PAYMENT_URL,
+    paymentUrl: buildPlayerRegistrationPaymentUrl({
+      firstName: splitName(context.parentName).firstName,
+      lastName: splitName(context.parentName).lastName,
+      email: context.parentEmail || "",
+      zip: "",
+    }),
     paymentReceiptUrl: normalized.receiptUrl,
     registrationFeeAmount: normalized.amount || "75",
     paidAt: normalized.paidAt,

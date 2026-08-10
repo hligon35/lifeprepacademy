@@ -27,7 +27,7 @@
   const REGISTRATION_FEE_AMOUNT_PER_PLAYER = 75;
   const PAYMENT_MODE = "redirect";
   const PAYMENT_PROVIDER = "quest";
-  const PAYMENT_REDIRECT_URL = "https://quest.build/lpafoundation/paducah-go-soccer/1598/71794/686";
+  const PAYMENT_REDIRECT_URL = "https://quest.build/get-tickets/1598/71794/info?teamId=686";
   const PAYMENT_REDIRECT_DELAY_MS = 1200;
   const ENABLE_GOOGLE_FORM_MIRROR = false;
 
@@ -1904,6 +1904,7 @@
 
     if (options.redirectToDonation) {
       const paymentAmount = calculateRegistrationFeeAmount();
+      const paymentRedirectUrl = buildPaymentRedirectUrl(completedRegistrationData);
       const paymentNote = document.createElement("p");
       paymentNote.dataset.paymentNote = "true";
       paymentNote.textContent =
@@ -1917,7 +1918,7 @@
 
       const paymentCta = document.createElement("a");
       paymentCta.className = "btn btn-primary";
-      paymentCta.href = PAYMENT_REDIRECT_URL;
+      paymentCta.href = paymentRedirectUrl || PAYMENT_REDIRECT_URL;
       paymentCta.target = "_blank";
       paymentCta.rel = "noopener noreferrer";
       paymentCta.setAttribute("role", "button");
@@ -1929,9 +1930,9 @@
       paymentCta.textContent = `Continue to Payment — registration total $${paymentAmount}`;
       successPanel.appendChild(paymentCta);
 
-      if (PAYMENT_MODE === "redirect" && PAYMENT_PROVIDER === "quest" && PAYMENT_REDIRECT_URL) {
+      if (PAYMENT_MODE === "redirect" && PAYMENT_PROVIDER === "quest" && paymentRedirectUrl) {
         donationRedirectTimer = window.setTimeout(() => {
-          window.location.assign(PAYMENT_REDIRECT_URL);
+          window.location.assign(paymentRedirectUrl);
         }, PAYMENT_REDIRECT_DELAY_MS);
       }
     }
@@ -2003,6 +2004,44 @@
 
   function buildDonateUrl() {
     return "";
+  }
+
+  function sanitizePaymentParam(value) {
+    return String(value || "").trim();
+  }
+
+  function buildPaymentRedirectUrl(registrationData) {
+    const baseUrl = sanitizePaymentParam(PAYMENT_REDIRECT_URL);
+    if (!baseUrl) return "";
+
+    try {
+      const url = new URL(baseUrl);
+      const parent = registrationData?.parent || {};
+      const firstName = sanitizePaymentParam(parent.firstName);
+      const lastName = sanitizePaymentParam(parent.lastName);
+      const email = sanitizePaymentParam(parent.email);
+      const zip = sanitizePaymentParam(parent.zip);
+
+      if (firstName) {
+        url.searchParams.set("firstName", firstName);
+        url.searchParams.set("firstname", firstName);
+      }
+      if (lastName) {
+        url.searchParams.set("lastName", lastName);
+        url.searchParams.set("lastname", lastName);
+      }
+      if (email) {
+        url.searchParams.set("email", email);
+      }
+      if (zip) {
+        url.searchParams.set("zip", zip);
+        url.searchParams.set("postalCode", zip);
+      }
+
+      return url.toString();
+    } catch (_error) {
+      return baseUrl;
+    }
   }
 
   function collectRegistrationData() {

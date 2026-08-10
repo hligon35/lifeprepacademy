@@ -16,6 +16,6 @@ test('buildPaymentConfig defaults to redirect mode with Quest payment URL', () =
   assert.equal(config.status, 'ready');
   assert.equal(config.amount, 75);
   assert.equal(config.currency, 'USD');
-  assert.equal(config.paymentUrl, 'https://quest.build/lpafoundation/paducah-go-soccer/1598/71794/686');
+  assert.equal(config.paymentUrl, 'https://quest.build/get-tickets/1598/71794/info?teamId=686');
   assert.match(config.instructions, /secure payment/i);
 });

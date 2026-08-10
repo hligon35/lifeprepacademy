@@ -8,7 +8,7 @@ function buildPaymentConfig(options = {}) {
   const playerCount = Number(options.playerCount || 1);
   const currency = String(options.currency || 'USD').trim().toUpperCase() || 'USD';
   const amount = calculateRegistrationFeeAmount(playerCount, feePerPlayer);
-  const paymentUrl = String(options.paymentUrl || 'https://quest.build/lpafoundation/paducah-go-soccer/1598/71794/686').trim();
+  const paymentUrl = String(options.paymentUrl || 'https://quest.build/get-tickets/1598/71794/info?teamId=686').trim();
 
   return {
     mode: 'redirect',
