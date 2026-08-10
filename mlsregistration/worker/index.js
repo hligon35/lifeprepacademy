@@ -19,7 +19,7 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:3000",
 ];
 function buildPlayerRegistrationPaymentUrl() {
-  return null;
+  return "https://quest.build/lpafoundation/paducah-go-soccer/1598/71794/686";
 }
 
 const PLAYER_REGISTRATION_PAYMENT_URL = buildPlayerRegistrationPaymentUrl();
