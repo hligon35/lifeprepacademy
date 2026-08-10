@@ -25,9 +25,10 @@
   const ELECTRONIC_CONSENT_TEXT =
     "I have reviewed the complete agreement, consent to conduct this transaction electronically, and adopt the signature entered below as my electronic signature. I understand that my electronic signature has the same intended effect as my handwritten signature.";
   const REGISTRATION_FEE_AMOUNT_PER_PLAYER = 75;
-  const PAYMENT_MODE = "paused";
-  const PAYMENT_PROVIDER = "none";
-  const PAYMENT_PAUSED_MESSAGE = "Payment is temporarily paused while we transition to a new payment provider. Your registration is saved, and we will email a secure payment link when the service is available.";
+  const PAYMENT_MODE = "redirect";
+  const PAYMENT_PROVIDER = "quest";
+  const PAYMENT_REDIRECT_URL = "https://quest.build/lpafoundation/paducah-go-soccer/1598/71794/686";
+  const PAYMENT_REDIRECT_DELAY_MS = 1200;
   const ENABLE_GOOGLE_FORM_MIRROR = false;
 
   const FLOW = {
@@ -1906,19 +1907,33 @@
       const paymentNote = document.createElement("p");
       paymentNote.dataset.paymentNote = "true";
       paymentNote.textContent =
-        "Your registration has been submitted. We will email you a secure payment link as soon as payments resume.";
+        "Your registration has been submitted. Redirecting you to secure payment now.";
       successPanel.appendChild(paymentNote);
 
       const paymentHint = document.createElement("p");
       paymentHint.dataset.paymentHint = "true";
-      paymentHint.textContent = `${PAYMENT_PAUSED_MESSAGE} Your registration fee amount is currently $${paymentAmount} for the selected player count.`;
+      paymentHint.textContent = `If redirect does not start automatically, use the button below to continue to secure payment. Registration total: $${paymentAmount}.`;
       successPanel.appendChild(paymentHint);
 
-      const paymentCta = document.createElement("p");
+      const paymentCta = document.createElement("a");
       paymentCta.className = "btn btn-primary";
+      paymentCta.href = PAYMENT_REDIRECT_URL;
+      paymentCta.target = "_blank";
+      paymentCta.rel = "noopener noreferrer";
+      paymentCta.setAttribute("role", "button");
+      paymentCta.style.display = "inline-block";
+      paymentCta.style.textDecoration = "none";
+      paymentCta.style.textAlign = "center";
+      paymentCta.style.width = "100%";
       paymentCta.dataset.paymentCta = "true";
-      paymentCta.textContent = `Payment temporarily paused — registration total $${paymentAmount}`;
+      paymentCta.textContent = `Continue to Payment — registration total $${paymentAmount}`;
       successPanel.appendChild(paymentCta);
+
+      if (PAYMENT_MODE === "redirect" && PAYMENT_PROVIDER === "quest" && PAYMENT_REDIRECT_URL) {
+        donationRedirectTimer = window.setTimeout(() => {
+          window.location.assign(PAYMENT_REDIRECT_URL);
+        }, PAYMENT_REDIRECT_DELAY_MS);
+      }
     }
   }
 

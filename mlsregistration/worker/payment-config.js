@@ -8,18 +8,19 @@ function buildPaymentConfig(options = {}) {
   const playerCount = Number(options.playerCount || 1);
   const currency = String(options.currency || 'USD').trim().toUpperCase() || 'USD';
   const amount = calculateRegistrationFeeAmount(playerCount, feePerPlayer);
+  const paymentUrl = String(options.paymentUrl || 'https://quest.build/lpafoundation/paducah-go-soccer/1598/71794/686').trim();
 
   return {
-    mode: 'paused',
-    provider: 'none',
-    status: 'temporarily-paused',
+    mode: 'redirect',
+    provider: 'quest',
+    status: 'ready',
     amount,
     currency,
     feePerPlayer,
     playerCount,
-    paymentUrl: null,
-    paymentUrlLabel: 'Payment temporarily paused',
-    instructions: 'Payment is temporarily paused while we transition to a new payment provider. Your registration is saved, and we will email a secure payment link when the service is available.',
+    paymentUrl,
+    paymentUrlLabel: 'Continue to secure payment',
+    instructions: 'Continue to secure payment to complete your registration fee.',
   };
 }
 
