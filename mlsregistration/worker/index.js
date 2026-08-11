@@ -28,30 +28,34 @@ function splitName(fullName) {
   };
 }
 
+function appendPaymentParamVariants(url, keys, value) {
+  const normalized = String(value || "").trim();
+  if (!normalized) return;
+  keys.forEach((key) => {
+    url.searchParams.set(key, normalized);
+  });
+}
+
 function buildPlayerRegistrationPaymentUrl(options = {}) {
   const base = "https://quest.build/get-tickets/1598/71794/info?teamId=686";
   const firstName = String(options.firstName || "").trim();
   const lastName = String(options.lastName || "").trim();
   const email = String(options.email || "").trim();
   const zip = String(options.zip || "").trim();
+  const submissionId = String(options.submissionId || "").trim();
+  const amount = String(options.amount || "").trim();
+  const currency = String(options.currency || "USD").trim();
 
   try {
     const url = new URL(base);
-    if (firstName) {
-      url.searchParams.set("firstName", firstName);
-      url.searchParams.set("firstname", firstName);
-    }
-    if (lastName) {
-      url.searchParams.set("lastName", lastName);
-      url.searchParams.set("lastname", lastName);
-    }
-    if (email) {
-      url.searchParams.set("email", email);
-    }
-    if (zip) {
-      url.searchParams.set("zip", zip);
-      url.searchParams.set("postalCode", zip);
-    }
+    appendPaymentParamVariants(url, ["firstName", "firstname", "first_name", "givenName", "given_name"], firstName);
+    appendPaymentParamVariants(url, ["lastName", "lastname", "last_name", "familyName", "family_name"], lastName);
+    appendPaymentParamVariants(url, ["fullName", "full_name", "name"], [firstName, lastName].filter(Boolean).join(" "));
+    appendPaymentParamVariants(url, ["email", "emailAddress", "email_address", "customerEmail", "customer_email"], email);
+    appendPaymentParamVariants(url, ["zip", "zipCode", "zipcode", "postalCode", "postal_code", "postal"], zip);
+    appendPaymentParamVariants(url, ["registration_submission_id", "submission_id", "submissionId", "registrationId", "reference", "external_reference"], submissionId);
+    appendPaymentParamVariants(url, ["payment_amount", "amount", "total"], amount);
+    appendPaymentParamVariants(url, ["payment_currency", "currency"], currency || "USD");
     return url.toString();
   } catch (_error) {
     return base;
@@ -90,7 +94,7 @@ export default {
       return json({ ok: false, error: "Method not allowed" }, 405, request, env);
     }
 
-    if (url.pathname === "/api/payment-webhook/cornerstone" && request.method === "POST") {
+    if (url.pathname === "/api/payment-webhook/cornerstone" && (request.method === "POST" || request.method === "GET")) {
       return handlePaymentWebhook(request, env);
     }
     if (url.pathname === "/api/payment-webhook/cornerstone") {
@@ -426,6 +430,9 @@ async function handleSignAgreement(request, env, ctx) {
           lastName: payload.fields?.guardianLastName || parentNameParts.lastName,
           email: payload.fields?.guardianEmail || "",
           zip: payload.fields?.guardianZip || payload.fields?.parentZip || "",
+          submissionId,
+          amount: "75",
+          currency: "USD",
         }),
       });
       if (ctx && typeof ctx.waitUntil === "function") {
@@ -623,6 +630,9 @@ async function handlePaymentWebhook(request, env) {
       lastName: splitName(context.parentName).lastName,
       email: context.parentEmail || "",
       zip: "",
+      submissionId: normalized.submissionId,
+      amount: normalized.amount || "75",
+      currency: normalized.currency || "USD",
     }),
     paymentReceiptUrl: normalized.receiptUrl,
     registrationFeeAmount: normalized.amount || "75",
@@ -1180,11 +1190,23 @@ function isAuthorizedWebhookRequest(request, expectedToken) {
   const headerToken = request.headers.get("x-webhook-token") || "";
   if (headerToken === expectedToken) return true;
 
+  const apiKeyHeader = request.headers.get("x-api-key") || "";
+  if (apiKeyHeader === expectedToken) return true;
+
   const url = new URL(request.url);
   return url.searchParams.get("token") === expectedToken;
 }
 
 async function parseWebhookPayload(request) {
+  if (request.method === "GET") {
+    const out = {};
+    const url = new URL(request.url);
+    for (const [key, value] of url.searchParams.entries()) {
+      out[key] = value;
+    }
+    return out;
+  }
+
   const contentType = request.headers.get("Content-Type") || "";
   if (contentType.includes("application/json")) {
     return request.json().catch(() => null);
@@ -1204,25 +1226,132 @@ async function parseWebhookPayload(request) {
 }
 
 function normalizePaymentWebhookPayload(payload) {
+  const metadata = payload && typeof payload.metadata === "object" ? payload.metadata : {};
+  const data = payload && typeof payload.data === "object" ? payload.data : {};
+  const payment = payload && typeof payload.payment === "object" ? payload.payment : {};
+  const transaction = payload && typeof payload.transaction === "object" ? payload.transaction : {};
+
   const paidStatus = String(
-    payload.payment_status || payload.status || payload.event || payload.transaction_status || "",
+    payload.payment_status
+      || payload.status
+      || payload.event
+      || payload.event_type
+      || payload.transaction_status
+      || payload.result
+      || payload.outcome
+      || data.payment_status
+      || data.status
+      || payment.status
+      || transaction.status
+      || metadata.payment_status
+      || "",
+  ).trim().toLowerCase();
+
+  const paidFlag = String(
+    payload.paid
+      || payload.is_paid
+      || payload.success
+      || data.paid
+      || data.is_paid
+      || payment.paid
+      || payment.is_paid
+      || metadata.paid
+      || "",
   ).trim().toLowerCase();
 
   return {
     submissionId: String(
-      payload.registration_submission_id || payload.submission_id || payload.registrationId || payload.reference || "",
+      payload.registration_submission_id
+        || payload.submission_id
+        || payload.submissionId
+        || payload.registrationId
+        || payload.reference
+        || payload.external_reference
+        || payload.order_id
+        || payload.cart_id
+        || payload.invoice_id
+        || data.registration_submission_id
+        || data.submission_id
+        || data.reference
+        || payment.reference
+        || transaction.reference
+        || metadata.registration_submission_id
+        || metadata.submission_id
+        || metadata.reference
+        || metadata.external_reference
+        || "",
     ).trim(),
     agreementTransactionId: String(
-      payload.agreement_transaction_id || payload.transaction_id || payload.agreementTxId || "",
+      payload.agreement_transaction_id
+        || payload.transaction_id
+        || payload.agreementTxId
+        || data.agreement_transaction_id
+        || metadata.agreement_transaction_id
+        || "",
     ).trim(),
     paymentTransactionId: String(
-      payload.payment_transaction_id || payload.payment_id || payload.gateway_transaction_id || payload.charge_id || "",
+      payload.payment_transaction_id
+        || payload.payment_id
+        || payload.gateway_transaction_id
+        || payload.charge_id
+        || payload.id
+        || data.payment_transaction_id
+        || data.payment_id
+        || payment.id
+        || transaction.id
+        || "",
     ).trim(),
-    amount: String(payload.payment_amount || payload.amount || payload.total || "").trim(),
-    currency: String(payload.payment_currency || payload.currency || "USD").trim(),
-    receiptUrl: String(payload.payment_receipt_url || payload.receipt_url || payload.receiptUrl || "").trim(),
-    paidAt: String(payload.payment_paid_at || payload.paid_at || payload.completed_at || new Date().toISOString()).trim(),
-    paid: ["paid", "completed", "complete", "success", "succeeded"].includes(paidStatus),
+    amount: String(
+      payload.payment_amount
+        || payload.amount
+        || payload.total
+        || payload.gross_amount
+        || data.payment_amount
+        || data.amount
+        || payment.amount
+        || transaction.amount
+        || metadata.payment_amount
+        || "",
+    ).trim(),
+    currency: String(
+      payload.payment_currency
+        || payload.currency
+        || data.payment_currency
+        || data.currency
+        || payment.currency
+        || transaction.currency
+        || metadata.payment_currency
+        || "USD",
+    ).trim(),
+    receiptUrl: String(
+      payload.payment_receipt_url
+        || payload.receipt_url
+        || payload.receiptUrl
+        || payload.receipt
+        || payload.invoice_url
+        || data.payment_receipt_url
+        || data.receipt_url
+        || payment.receipt_url
+        || transaction.receipt_url
+        || metadata.payment_receipt_url
+        || "",
+    ).trim(),
+    paidAt: String(
+      payload.payment_paid_at
+        || payload.paid_at
+        || payload.completed_at
+        || payload.updated_at
+        || payload.timestamp
+        || data.payment_paid_at
+        || data.paid_at
+        || data.completed_at
+        || payment.paid_at
+        || transaction.completed_at
+        || metadata.payment_paid_at
+        || new Date().toISOString(),
+    ).trim(),
+    paid: ["paid", "completed", "complete", "success", "succeeded", "captured", "approved"].includes(paidStatus)
+      || ["true", "1", "yes", "y"].includes(paidFlag),
   };
 }
 

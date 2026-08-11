@@ -25,8 +25,11 @@
   const ELECTRONIC_CONSENT_TEXT =
     "I have reviewed the complete agreement, consent to conduct this transaction electronically, and adopt the signature entered below as my electronic signature. I understand that my electronic signature has the same intended effect as my handwritten signature.";
   const REGISTRATION_FEE_AMOUNT_PER_PLAYER = 75;
-  const PAYMENT_MODE = "redirect";
-  const PAYMENT_PROVIDER = "quest";
+  const PAYMENT_MODE_QUERY_PARAM = "paymentMode";
+  const PAYMENT_MODE_DEFAULT = "paused";
+  const PAYMENT_MODE = resolvePaymentMode();
+  const PAYMENT_PROVIDER = PAYMENT_MODE === "redirect" ? "quest" : "none";
+  const PAYMENT_PAUSED_MESSAGE = "Payment is temporarily paused while we transition to a new payment provider. Your registration is saved, and we will email a secure payment link when the service is available.";
   const PAYMENT_REDIRECT_URL = "https://quest.build/get-tickets/1598/71794/info?teamId=686";
   const PAYMENT_REDIRECT_DELAY_MS = 1200;
   const ENABLE_GOOGLE_FORM_MIRROR = false;
@@ -224,6 +227,7 @@
   const formSubtitle = document.getElementById("form-subtitle");
   const formMessage = document.getElementById("form-message");
   const flowStatus = document.getElementById("flow-status");
+  const paymentPageNote = document.getElementById("payment-page-note");
   const backBtn = document.getElementById("back-btn");
   const nextBtn = document.getElementById("next-btn");
   const skipBtn = document.getElementById("skip-btn");
@@ -254,6 +258,7 @@
   let donationRedirectTimer = 0;
 
   buildPage();
+  applyPaymentModePageNote();
   wireEvents();
   updateFlowMeta();
   applyVisibility();
@@ -267,6 +272,20 @@
     if (value === "volunteer") return FLOW.VOLUNTEER;
     if (value === "coach") return FLOW.COACH;
     return null;
+  }
+
+  function resolvePaymentMode() {
+    const rawValue = new URLSearchParams(window.location.search).get(PAYMENT_MODE_QUERY_PARAM);
+    const normalized = String(rawValue || PAYMENT_MODE_DEFAULT).trim().toLowerCase();
+    if (normalized === "redirect") return "redirect";
+    return "paused";
+  }
+
+  function applyPaymentModePageNote() {
+    if (!paymentPageNote) return;
+    paymentPageNote.textContent = PAYMENT_MODE === "redirect"
+      ? "After submission, you will be redirected to our secure payment page to complete registration."
+      : "Payments are temporarily paused while we update our payment system. Your registration is still saved, and we’ll email you a secure payment link when it’s ready.";
   }
 
   function buildPage() {
@@ -1907,27 +1926,38 @@
       const paymentRedirectUrl = buildPaymentRedirectUrl(completedRegistrationData);
       const paymentNote = document.createElement("p");
       paymentNote.dataset.paymentNote = "true";
-      paymentNote.textContent =
-        "Your registration has been submitted. Redirecting you to secure payment now.";
+      paymentNote.textContent = PAYMENT_MODE === "redirect"
+        ? "Your registration has been submitted. Redirecting you to secure payment now."
+        : "Your registration has been submitted. We will email you a secure payment link as soon as payments resume.";
       successPanel.appendChild(paymentNote);
 
       const paymentHint = document.createElement("p");
       paymentHint.dataset.paymentHint = "true";
-      paymentHint.textContent = `If redirect does not start automatically, use the button below to continue to secure payment. Registration total: $${paymentAmount}.`;
+      paymentHint.textContent = PAYMENT_MODE === "redirect"
+        ? `If redirect does not start automatically, use the button below to continue to secure payment. Registration total: $${paymentAmount}.`
+        : `${PAYMENT_PAUSED_MESSAGE} Your registration fee amount is currently $${paymentAmount} for the selected player count.`;
       successPanel.appendChild(paymentHint);
 
-      const paymentCta = document.createElement("a");
+      const paymentCta = PAYMENT_MODE === "redirect"
+        ? document.createElement("a")
+        : document.createElement("p");
       paymentCta.className = "btn btn-primary";
-      paymentCta.href = paymentRedirectUrl || PAYMENT_REDIRECT_URL;
-      paymentCta.target = "_blank";
-      paymentCta.rel = "noopener noreferrer";
-      paymentCta.setAttribute("role", "button");
-      paymentCta.style.display = "inline-block";
-      paymentCta.style.textDecoration = "none";
-      paymentCta.style.textAlign = "center";
-      paymentCta.style.width = "100%";
       paymentCta.dataset.paymentCta = "true";
-      paymentCta.textContent = `Continue to Payment — registration total $${paymentAmount}`;
+
+      if (paymentCta instanceof HTMLAnchorElement) {
+        paymentCta.href = paymentRedirectUrl || PAYMENT_REDIRECT_URL;
+        paymentCta.target = "_blank";
+        paymentCta.rel = "noopener noreferrer";
+        paymentCta.setAttribute("role", "button");
+        paymentCta.style.display = "inline-block";
+        paymentCta.style.textDecoration = "none";
+        paymentCta.style.textAlign = "center";
+        paymentCta.style.width = "100%";
+        paymentCta.textContent = `Continue to Payment — registration total $${paymentAmount}`;
+      } else {
+        paymentCta.textContent = `Payment temporarily paused — registration total $${paymentAmount}`;
+      }
+
       successPanel.appendChild(paymentCta);
 
       if (PAYMENT_MODE === "redirect" && PAYMENT_PROVIDER === "quest" && paymentRedirectUrl) {
@@ -2010,6 +2040,14 @@
     return String(value || "").trim();
   }
 
+  function appendPaymentParamVariants(url, keys, value) {
+    const normalized = sanitizePaymentParam(value);
+    if (!normalized) return;
+    keys.forEach((key) => {
+      url.searchParams.set(key, normalized);
+    });
+  }
+
   function buildPaymentRedirectUrl(registrationData) {
     const baseUrl = sanitizePaymentParam(PAYMENT_REDIRECT_URL);
     if (!baseUrl) return "";
@@ -2021,22 +2059,17 @@
       const lastName = sanitizePaymentParam(parent.lastName);
       const email = sanitizePaymentParam(parent.email);
       const zip = sanitizePaymentParam(parent.zip);
+      const submissionId = sanitizePaymentParam(registrationData?.registrationSubmissionId);
+      const paymentAmount = String(calculateRegistrationFeeAmount());
 
-      if (firstName) {
-        url.searchParams.set("firstName", firstName);
-        url.searchParams.set("firstname", firstName);
-      }
-      if (lastName) {
-        url.searchParams.set("lastName", lastName);
-        url.searchParams.set("lastname", lastName);
-      }
-      if (email) {
-        url.searchParams.set("email", email);
-      }
-      if (zip) {
-        url.searchParams.set("zip", zip);
-        url.searchParams.set("postalCode", zip);
-      }
+      appendPaymentParamVariants(url, ["firstName", "firstname", "first_name", "givenName", "given_name"], firstName);
+      appendPaymentParamVariants(url, ["lastName", "lastname", "last_name", "familyName", "family_name"], lastName);
+      appendPaymentParamVariants(url, ["fullName", "full_name", "name"], [firstName, lastName].filter(Boolean).join(" "));
+      appendPaymentParamVariants(url, ["email", "emailAddress", "email_address", "customerEmail", "customer_email"], email);
+      appendPaymentParamVariants(url, ["zip", "zipCode", "zipcode", "postalCode", "postal_code", "postal"], zip);
+      appendPaymentParamVariants(url, ["registration_submission_id", "submission_id", "submissionId", "registrationId", "reference", "external_reference"], submissionId);
+      appendPaymentParamVariants(url, ["payment_amount", "amount", "total"], paymentAmount);
+      appendPaymentParamVariants(url, ["payment_currency", "currency"], "USD");
 
       return url.toString();
     } catch (_error) {
