@@ -237,6 +237,7 @@
 
   const playerToggleNames = ["addPlayer2", "addPlayer3", "addPlayer4"];
   const standaloneFlow = parseStandaloneFlow();
+  const initialSectionId = parseInitialSectionId();
 
   let activeFlow = standaloneFlow || FLOW.PLAYER;
   let followUpPlan = "none";
@@ -262,6 +263,7 @@
   wireEvents();
   updateFlowMeta();
   applyVisibility();
+  setActiveSectionById(initialSectionId);
   renderWizard();
   initAddressAutocomplete();
   syncAgreementPrefills();
@@ -272,6 +274,18 @@
     if (value === "volunteer") return FLOW.VOLUNTEER;
     if (value === "coach") return FLOW.COACH;
     return null;
+  }
+
+  function parseInitialSectionId() {
+    const value = new URLSearchParams(window.location.search).get("section");
+    const normalized = String(value || "").trim().toLowerCase();
+    if (!normalized) return "";
+
+    if (normalized === "agreements" || normalized === "agreement" || normalized === "waiver") {
+      return "agreements-section";
+    }
+
+    return "";
   }
 
   function resolvePaymentMode() {
@@ -1417,6 +1431,15 @@
   function getActiveSectionId() {
     const visible = getVisibleSections();
     return visible[activeSectionIndex]?.id || "";
+  }
+
+  function setActiveSectionById(sectionId) {
+    if (!sectionId) return;
+    const visible = getVisibleSections();
+    const index = visible.findIndex((section) => section.id === sectionId);
+    if (index >= 0) {
+      activeSectionIndex = index;
+    }
   }
 
   function alignActiveSection(previousId) {
