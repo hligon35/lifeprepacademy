@@ -27,7 +27,7 @@
     "I have reviewed the complete agreement, consent to conduct this transaction electronically, and adopt the signature entered below as my electronic signature. I understand that my electronic signature has the same intended effect as my handwritten signature.";
   const REGISTRATION_FEE_AMOUNT_PER_PLAYER = 75;
   const PAYMENT_MODE_QUERY_PARAM = "paymentMode";
-  const PAYMENT_MODE_DEFAULT = "paused";
+  const PAYMENT_MODE_DEFAULT = "redirect";
   const PAYMENT_MODE = resolvePaymentMode();
   const PAYMENT_PROVIDER = PAYMENT_MODE === "redirect" ? "quest" : "none";
   const PAYMENT_PAUSED_MESSAGE = "Payment is temporarily paused while we transition to a new payment provider. Your registration is saved, and we will email a secure payment link when the service is available.";
@@ -581,20 +581,6 @@
 
     const grid = createGrid([
       createCheckboxField({
-        label: "MLS GO Player Registration Agreement and Waiver",
-        name: "agreeWaiver",
-        required: true,
-        requireLinksViewed: true,
-        description:
-          "I have read and understand the MLS GO Player Registration Agreement and Waiver, accept its terms for myself and every participant listed in this registration, and intend to be legally bound.",
-        links: [
-          {
-            href: MLS_PLAYER_WAIVER_URL,
-            text: "View MLS GO Player Registration Agreement and Waiver (PDF)",
-          },
-        ],
-      }),
-      createCheckboxField({
         label: "PPF Liability Form",
         name: "agreePpfLiability",
         required: true,
@@ -605,6 +591,20 @@
           {
             href: PPF_LIABILITY_FORM_URL,
             text: "View PPF Liability Form (PDF)",
+          },
+        ],
+      }),
+      createCheckboxField({
+        label: "MLS GO Player Registration Agreement and Waiver",
+        name: "agreeWaiver",
+        required: true,
+        requireLinksViewed: true,
+        description:
+          "I have read and understand the MLS GO Player Registration Agreement and Waiver, accept its terms for myself and every participant listed in this registration, and intend to be legally bound.",
+        links: [
+          {
+            href: MLS_PLAYER_WAIVER_URL,
+            text: "View MLS GO Player Registration Agreement and Waiver (PDF)",
           },
         ],
       }),
