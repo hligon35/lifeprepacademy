@@ -4,6 +4,7 @@ const SHEET_NAMES = {
   PLAYERS: 'Players',
   VOLUNTEERS: 'Volunteers',
   COACHES: 'Coaches',
+  SCHOLARSHIPS: 'Scholarships',
   ERRORS: 'Errors',
 };
 
@@ -42,6 +43,25 @@ const BRAND_URL = 'https://www.lifeprepacademyfoundation.com/';
 const BRAND_DOMAIN = 'lifeprepacademyfoundation.com';
 const REGISTRATION_BANNER_URL = 'https://mlsregistration.lifeprepacademyfoundation.com/LPAFxPGS.PNG';
 const REGISTRATION_PAYMENT_FALLBACK = 'If the registration fee is not prefilled on the payment page, select Other and enter $75.';
+
+const SCHOLARSHIP_HEADERS = [
+  'submitted_at',
+  'registration_submission_id',
+  'page_url',
+  'parent_first_name',
+  'parent_last_name',
+  'parent_email',
+  'parent_phone',
+  'scholarship_requested',
+  'scholarship_level',
+  'scholarship_household_size',
+  'scholarship_household_income',
+  'scholarship_eligibility',
+  'scholarship_circumstances',
+  'scholarship_contribution_amount',
+  'scholarship_participation_commitment',
+  'scholarship_parent_acknowledgement',
+];
 
 const PLAYER_HEADERS = [
   'submitted_at',
@@ -206,6 +226,11 @@ const FORM_CONFIG = {
   mls_registration: {
     sheetName: SHEET_NAMES.PLAYERS,
     headers: PLAYER_HEADERS,
+    idColumn: 'registration_submission_id',
+  },
+  scholarship_application: {
+    sheetName: SHEET_NAMES.SCHOLARSHIPS,
+    headers: SCHOLARSHIP_HEADERS,
     idColumn: 'registration_submission_id',
   },
   volunteer_application: {
@@ -607,6 +632,7 @@ function handleRegistrationContextLookup_(values) {
 
 function initializeSheets() {
   ensureHeaders_(getSheet_(SHEET_NAMES.PLAYERS), PLAYER_HEADERS);
+  ensureHeaders_(getSheet_(SHEET_NAMES.SCHOLARSHIPS), SCHOLARSHIP_HEADERS);
   ensureHeaders_(getSheet_(SHEET_NAMES.VOLUNTEERS), VOLUNTEER_HEADERS);
   ensureHeaders_(getSheet_(SHEET_NAMES.COACHES), COACH_HEADERS);
   ensureHeaders_(getSheet_(SHEET_NAMES.ERRORS), ERROR_HEADERS);
@@ -991,6 +1017,7 @@ function sendRegistrationEmailByStage_(payload, paymentConfirmed) {
   const body = paymentConfirmed
     ? buildRegistrationPaidEmailText_(payload)
     : buildRegistrationSubmissionEmailText_(payload);
+  const attachments = buildRegistrationResponseAttachment_(payload);
 
   MailApp.sendEmail({
     to: payload.parentEmail,
@@ -999,6 +1026,7 @@ function sendRegistrationEmailByStage_(payload, paymentConfirmed) {
     htmlBody,
     name: 'LifePrep Academy Foundation',
     replyTo: 'info@lifeprepacademyfoundation.com',
+    attachments: attachments ? [attachments] : undefined,
   });
 }
 
@@ -1309,6 +1337,69 @@ function buildRegistrationResponseRows_(payload) {
   ];
 
   return rows.filter((row) => normalizeValue_(row.value));
+}
+
+function buildRegistrationResponseAttachment_(payload) {
+  const responseRows = buildRegistrationResponseRows_(payload);
+  if (!responseRows.length) return null;
+
+  const parentName = normalizeValue_(payload.parentName) || 'Parent/Guardian';
+  const participantNames = normalizeValue_(payload.participantNames) || 'Participant';
+  const registrationId = normalizeValue_(payload.registrationSubmissionId) || 'N/A';
+  const exportedAt = formatEmailTimestamp_(new Date());
+  const responseTableHtml = responseRows.map(function(row) {
+    const label = escapeHtml_(normalizeValue_(row.label) || 'Question');
+    const value = escapeHtml_(normalizeValue_(row.value) || '—');
+    return '<tr>'
+      + '<td style="padding:10px 12px;border-bottom:1px solid #e7e1d6;font-size:12px;font-weight:700;color:#1d2f40;vertical-align:top;">' + label + '</td>'
+      + '<td style="padding:10px 12px;border-bottom:1px solid #e7e1d6;font-size:12px;color:#22313f;vertical-align:top;">' + value + '</td>'
+      + '</tr>';
+  }).join('');
+
+  const html = ''
+    + '<!doctype html><html><head><meta charset="utf-8"><title>MLS GO Registration Summary</title>'
+    + '<style>'
+    + 'body { font-family: Arial, sans-serif; margin: 0; background: #f7f4ef; color: #22313f; }'
+    + '.page { width: 100%; margin: 0 auto; background: #ffffff; }'
+    + '.header { background: linear-gradient(90deg, #1d2f40 0%, #3d5a72 100%); color: #ffffff; padding: 28px 32px; }'
+    + '.brand { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700; opacity: 0.9; }'
+    + 'h1 { margin: 12px 0 6px; font-size: 28px; line-height: 1.2; color: #ffffff; }'
+    + '.subhead { margin: 0; font-size: 13px; color: rgba(255,255,255,0.8); }'
+    + '.content { padding: 24px 32px 18px; }'
+    + '.meta { margin: 0 0 18px; padding: 14px 16px; border: 1px solid #e7e1d6; background: #faf7f1; border-radius: 10px; }'
+    + '.meta-row { margin: 4px 0; font-size: 12px; color: #22313f; }'
+    + '.meta-label { font-weight: 700; color: #1d2f40; }'
+    + 'table { width: 100%; border-collapse: collapse; border: 1px solid #e7e1d6; border-radius: 10px; overflow: hidden; }'
+    + 'th { text-align: left; background: #f3efe9; color: #1d2f40; padding: 10px 12px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }'
+    + 'td { border-bottom: 1px solid #e7e1d6; }'
+    + '.footer { margin-top: 18px; padding-top: 12px; border-top: 1px solid #e7e1d6; font-size: 11px; color: #586574; }'
+    + '</style></head><body>'
+    + '<div class="page">'
+    + '<div class="header">'
+    + '<div class="brand">LifePrep Academy Foundation</div>'
+    + '<h1>MLS GO Registration Summary</h1>'
+    + '<p class="subhead">Prepared for ' + escapeHtml_(parentName) + '</p>'
+    + '</div>'
+    + '<div class="content">'
+    + '<div class="meta">'
+    + '<div class="meta-row"><span class="meta-label">Participant(s):</span> ' + escapeHtml_(participantNames) + '</div>'
+    + '<div class="meta-row"><span class="meta-label">Registration ID:</span> ' + escapeHtml_(registrationId) + '</div>'
+    + '<div class="meta-row"><span class="meta-label">Exported:</span> ' + escapeHtml_(exportedAt) + '</div>'
+    + '</div>'
+    + '<table>'
+    + '<tr><th style="width: 38%;">Question</th><th style="width: 62%;">Response</th></tr>'
+    + responseTableHtml
+    + '</table>'
+    + '<div class="footer">MLS GO registration summary generated by LifePrep Academy Foundation.</div>'
+    + '</div>'
+    + '</div>'
+    + '</body></html>';
+
+  const pdfBlob = HtmlService.createHtmlOutput(html)
+    .setTitle('MLS GO Registration Summary')
+    .getAs('application/pdf');
+  pdfBlob.setName('MLS-GO-Registration-Summary.pdf');
+  return pdfBlob;
 }
 
 function parseRegistrationFormValues_(values) {

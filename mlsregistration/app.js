@@ -18,6 +18,7 @@
     "https://www.mlssoccer.com/legal/privacy-policy";
   const MLS_TERMS_OF_SERVICE_URL =
     "https://www.mlssoccer.com/legal/terms-of-service";
+  const PPF_LIABILITY_FORM_URL = `${REGISTRATION_API_ORIGIN}/documents/PPF%20Liability%20Form.pdf`;
   const PLAYER_AGREEMENT_TEMPLATE_URL = `${REGISTRATION_API_ORIGIN}/documents/MLS GO Player Registration Agreement.pdf`;
   const VOLUNTEER_AGREEMENT_TEMPLATE_URL = `${REGISTRATION_API_ORIGIN}/documents/MLS GO Volunteer Agreement.pdf`;
   const SIGNING_ENDPOINT = `${API_ORIGIN}/api/sign-agreement`;
@@ -311,6 +312,7 @@
       buildPlayerSection(2),
       buildPlayerSection(3),
       buildPlayerSection(4),
+      buildScholarshipSection(),
       buildHelpSection(),
       buildAgreementsSection(),
       buildVolunteerContactSection(),
@@ -448,6 +450,100 @@
     return section;
   }
 
+  function buildScholarshipSection() {
+    const section = createSection(
+      "Scholarship Request",
+      "Paducah GO Soccer, operated by LifePrep Academy Foundation, is committed to ensuring that cost is not a barrier to participation. Scholarships are confidential and awarded based on demonstrated financial need and available program funds.",
+      false,
+      "scholarship-section",
+      FLOW.PLAYER,
+    );
+
+    const scholarshipFields = createGrid([
+      createSelectField({
+        label: "Are you requesting financial assistance for registration fees?",
+        name: "scholarshipRequested",
+        required: true,
+        options: ["Yes", "No"],
+      }),
+      createSelectField({
+        label: "What level of assistance are you requesting?",
+        name: "scholarshipLevel",
+        required: true,
+        conditionalOn: "scholarshipRequested",
+        conditionalValue: "Yes",
+        options: ["Full scholarship", "Partial scholarship", "Payment plan", "Reduced fee"],
+      }),
+      createTextField({
+        label: "Household Size",
+        name: "scholarshipHouseholdSize",
+        required: true,
+        inputMode: "numeric",
+        conditionalOn: "scholarshipRequested",
+        conditionalValue: "Yes",
+      }),
+      createTextField({
+        label: "Estimated Annual Household Income",
+        name: "scholarshipHouseholdIncome",
+        required: true,
+        placeholder: "$0 - $100,000",
+        conditionalOn: "scholarshipRequested",
+        conditionalValue: "Yes",
+      }),
+      createCheckboxGroupField({
+        label: "Please select any eligibility indicators that apply to your family.",
+        name: "scholarshipEligibility",
+        required: true,
+        conditionalOn: "scholarshipRequested",
+        conditionalValue: "Yes",
+        options: [
+          "SNAP benefits",
+          "Medicaid",
+          "Free or reduced lunch",
+          "Temporary Assistance for Needy Families (TANF)",
+          "Unemployment",
+          "Other financial hardship",
+        ],
+      }),
+      createTextField({
+        label: "Briefly describe any circumstances affecting your ability to pay for registration.",
+        name: "scholarshipCircumstances",
+        conditionalOn: "scholarshipRequested",
+        conditionalValue: "Yes",
+        placeholder: "Optional",
+      }),
+      createTextField({
+        label: "What contribution amount can your family reasonably afford?",
+        name: "scholarshipContributionAmount",
+        required: true,
+        placeholder: "$0",
+        conditionalOn: "scholarshipRequested",
+        conditionalValue: "Yes",
+      }),
+      createCheckboxField({
+        label: "Participation Commitment",
+        name: "scholarshipParticipationCommitment",
+        required: true,
+        conditionalOn: "scholarshipRequested",
+        conditionalValue: "Yes",
+        description:
+          "I understand that scholarship assistance is confidential, awarded based on demonstrated need and available program funds, and that my family is committed to participating in the program and supporting its expectations.",
+      }),
+      createCheckboxField({
+        label: "Parent/Guardian Acknowledgement",
+        name: "scholarshipParentAcknowledgement",
+        required: true,
+        conditionalOn: "scholarshipRequested",
+        conditionalValue: "Yes",
+        description:
+          "I confirm that the information above is accurate and understand that scholarship decisions are reviewed confidentially.",
+      }),
+    ]);
+
+    section.append(scholarshipFields);
+    return section;
+  }
+
   function buildHelpSection() {
     const section = createSection(
       "Help With the Program",
@@ -495,6 +591,20 @@
           {
             href: MLS_PLAYER_WAIVER_URL,
             text: "View MLS GO Player Registration Agreement and Waiver (PDF)",
+          },
+        ],
+      }),
+      createCheckboxField({
+        label: "PPF Liability Form",
+        name: "agreePpfLiability",
+        required: true,
+        requireLinksViewed: true,
+        description:
+          "I have reviewed the PPF Liability Form, understand the coverage and responsibilities described within, and agree to the terms for the program participation described in this form.",
+        links: [
+          {
+            href: PPF_LIABILITY_FORM_URL,
+            text: "View PPF Liability Form (PDF)",
           },
         ],
       }),
@@ -797,12 +907,17 @@
   }
 
   function createSelectField(options) {
-    const { label, name, required = false, options: selectOptions } = options;
+    const { label, name, required = false, options: selectOptions, conditionalOn, conditionalValue } = options;
     const wrap = createFieldWrap(label, name, required);
     const select = document.createElement("select");
     select.id = name;
     select.name = name;
     if (required) select.required = true;
+    if (conditionalOn && conditionalValue) {
+      select.dataset.conditionalOn = conditionalOn;
+      select.dataset.conditionalValue = conditionalValue;
+      wrap.classList.add("hidden");
+    }
 
     const placeholder = document.createElement("option");
     placeholder.value = "";
@@ -829,9 +944,16 @@
       descriptionHtml,
       links = [],
       requireLinksViewed = false,
+      conditionalOn,
+      conditionalValue,
     } = options;
     const wrap = document.createElement("div");
     wrap.className = "field-group";
+    if (conditionalOn && conditionalValue) {
+      wrap.dataset.conditionalOn = conditionalOn;
+      wrap.dataset.conditionalValue = conditionalValue;
+      wrap.classList.add("hidden");
+    }
 
     const labelEl = document.createElement("label");
     labelEl.className = "toggle-label";
@@ -933,10 +1055,15 @@
   }
 
   function createCheckboxGroupField(options) {
-    const { label, name, required = false, options: values } = options;
+    const { label, name, required = false, options: values, conditionalOn, conditionalValue } = options;
     const wrap = document.createElement("div");
     wrap.className = "field-group";
     if (required) wrap.dataset.requiredGroup = name;
+    if (conditionalOn && conditionalValue) {
+      wrap.dataset.conditionalOn = conditionalOn;
+      wrap.dataset.conditionalValue = conditionalValue;
+      wrap.classList.add("hidden");
+    }
 
     const heading = document.createElement("label");
     heading.className = "toggle-label";
@@ -1335,6 +1462,12 @@
         syncConditionalFields(target.name, target.value);
       }
 
+      if (target.name === "scholarshipRequested") {
+        syncConditionalFields(target.name, target.value);
+        applyVisibility();
+        renderWizard();
+      }
+
       if (playerToggleNames.includes(target.name)) {
         applyVisibility();
         renderWizard();
@@ -1471,6 +1604,7 @@
     syncConditionalFields("p2Race", getTextValue("p2Race"));
     syncConditionalFields("p3Race", getTextValue("p3Race"));
     syncConditionalFields("p4Race", getTextValue("p4Race"));
+    syncConditionalFields("scholarshipRequested", getTextValue("scholarshipRequested"));
 
     alignActiveSection(previousId);
   }
@@ -1726,6 +1860,7 @@
 
     try {
       await postRegistrationCopy(registrationData);
+      await postScholarshipCopy(registrationData);
       registrationSyncWarning = "";
     } catch (error) {
       console.warn("registration-upsert-failed", error);
@@ -2166,9 +2301,21 @@
             zip: getTextValue("emergencyZip"),
           },
       players,
+      scholarship: {
+        requested: getTextValue("scholarshipRequested"),
+        level: getTextValue("scholarshipLevel"),
+        householdSize: getTextValue("scholarshipHouseholdSize"),
+        householdIncome: getTextValue("scholarshipHouseholdIncome"),
+        eligibility: getCheckedValues("scholarshipEligibility"),
+        circumstances: getTextValue("scholarshipCircumstances"),
+        contributionAmount: getTextValue("scholarshipContributionAmount"),
+        participationCommitment: getCheckboxValue("scholarshipParticipationCommitment"),
+        parentAcknowledgement: getCheckboxValue("scholarshipParentAcknowledgement"),
+      },
       helpChoice: getTextValue("helpChoice"),
       agreements: {
         waiver: getCheckboxValue("agreeWaiver"),
+        liability: getCheckboxValue("agreePpfLiability"),
         privacy: getCheckboxValue("agreePrivacy"),
         marketing: getCheckboxValue("agreePrivacy"),
       },
@@ -2245,7 +2392,17 @@
     });
 
     pushEmailResponseRow(rows, "Help Choice", registrationData.helpChoice);
+    pushEmailResponseRow(rows, "Scholarship Requested", registrationData.scholarship?.requested);
+    pushEmailResponseRow(rows, "Scholarship Level", registrationData.scholarship?.level);
+    pushEmailResponseRow(rows, "Scholarship Household Size", registrationData.scholarship?.householdSize);
+    pushEmailResponseRow(rows, "Scholarship Household Income", registrationData.scholarship?.householdIncome);
+    pushEmailResponseRow(rows, "Scholarship Eligibility", registrationData.scholarship?.eligibility);
+    pushEmailResponseRow(rows, "Scholarship Circumstances", registrationData.scholarship?.circumstances);
+    pushEmailResponseRow(rows, "Scholarship Contribution Amount", registrationData.scholarship?.contributionAmount);
+    pushEmailResponseRow(rows, "Scholarship Participation Commitment", registrationData.scholarship?.participationCommitment);
+    pushEmailResponseRow(rows, "Scholarship Parent Acknowledgement", registrationData.scholarship?.parentAcknowledgement);
     pushEmailResponseRow(rows, "Agree Waiver", registrationData.agreements?.waiver);
+    pushEmailResponseRow(rows, "Agree PPF Liability", registrationData.agreements?.liability);
     pushEmailResponseRow(rows, "Agree Privacy", registrationData.agreements?.privacy);
     pushEmailResponseRow(rows, "Agree Marketing", registrationData.agreements?.marketing);
 
@@ -2676,6 +2833,30 @@
     });
 
     await postUpsertViaWorker("mls_registration", values);
+  }
+
+  async function postScholarshipCopy(registrationData) {
+    const scholarship = registrationData?.scholarship || {};
+    const values = {
+      submitted_at: registrationData.submittedAt,
+      registration_submission_id: registrationData.registrationSubmissionId || "",
+      page_url: registrationData.pageUrl,
+      parent_first_name: registrationData.parent?.firstName || "",
+      parent_last_name: registrationData.parent?.lastName || "",
+      parent_email: registrationData.parent?.email || "",
+      parent_phone: registrationData.parent?.phone || "",
+      scholarship_requested: scholarship.requested || "No",
+      scholarship_level: scholarship.level || "",
+      scholarship_household_size: scholarship.householdSize || "",
+      scholarship_household_income: scholarship.householdIncome || "",
+      scholarship_eligibility: Array.isArray(scholarship.eligibility) ? scholarship.eligibility.join(", ") : "",
+      scholarship_circumstances: scholarship.circumstances || "",
+      scholarship_contribution_amount: scholarship.contributionAmount || "",
+      scholarship_participation_commitment: scholarship.participationCommitment ? "yes" : "no",
+      scholarship_parent_acknowledgement: scholarship.parentAcknowledgement ? "yes" : "no",
+    };
+
+    await postAuxFlow("scholarship_application", values);
   }
 
   async function postAuxFlow(formType, data) {

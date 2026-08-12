@@ -1,0 +1,17 @@
+{
+  "signatureMode": "typed",
+  "signer": {
+    "printedName": "Jordan Parent"
+  },
+  "signature": {
+    "method": "typed",
+    "typed": "Jordan Parent"
+  },
+  "fields": {
+    "participantSignatureDate": "08/12/2026",
+    "participantName": "Aiden Parent",
+    "participantAge": "12",
+    "parentSignatureDate": "08/12/2026",
+    "parentName": "Jordan Parent"
+  }
+}

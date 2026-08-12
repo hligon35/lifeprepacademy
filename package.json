@@ -14,7 +14,9 @@
     "preview:player-pdf": "node mlsregistration/preview/live-pdf-preview.mjs",
     "preview:player-pdf:watch": "node mlsregistration/preview/live-pdf-preview.mjs --watch",
     "preview:volunteer-pdf": "node mlsregistration/preview/live-pdf-preview.mjs --volunteer",
-    "preview:volunteer-pdf:watch": "node mlsregistration/preview/live-pdf-preview.mjs --volunteer --watch"
+    "preview:volunteer-pdf:watch": "node mlsregistration/preview/live-pdf-preview.mjs --volunteer --watch",
+    "preview:ppf-pdf": "node mlsregistration/preview/live-pdf-preview.mjs --ppf",
+    "preview:ppf-pdf:watch": "node mlsregistration/preview/live-pdf-preview.mjs --ppf --watch"
   },
   "devDependencies": {
     "csso": "^5.0.5",

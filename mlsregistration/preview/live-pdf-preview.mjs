@@ -11,7 +11,11 @@ const mapPath = path.resolve(__dirname, "..", "worker", "pdf-field-maps.js");
 const outputDir = path.resolve(__dirname, "live");
 
 const MAX_TYPED_SIGNATURE_LEN = 60;
-const agreementType = process.argv.includes("--volunteer") ? "volunteer" : "player";
+const agreementType = process.argv.includes("--volunteer")
+  ? "volunteer"
+  : process.argv.includes("--ppf")
+    ? "ppf"
+    : "player";
 const watchMode = process.argv.includes("--watch");
 
 const PREVIEW_CONFIG = {
@@ -28,6 +32,13 @@ const PREVIEW_CONFIG = {
     outputPdfPath: path.resolve(outputDir, "volunteer-agreement-preview.pdf"),
     outputMetaPath: path.resolve(outputDir, "volunteer-preview-meta.json"),
     mapExport: "VOLUNTEER_AGREEMENT_FIELD_MAP",
+  },
+  ppf: {
+    templatePath: path.resolve(__dirname, "..", "documents", "PPF Liability Form.pdf"),
+    samplePath: path.resolve(__dirname, "ppf-liability-preview-sample.json"),
+    outputPdfPath: path.resolve(outputDir, "ppf-liability-preview.pdf"),
+    outputMetaPath: path.resolve(outputDir, "ppf-liability-preview-meta.json"),
+    mapExport: "PPF_LIABILITY_FIELD_MAP",
   },
 };
 

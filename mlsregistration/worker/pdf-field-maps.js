@@ -30,3 +30,18 @@ export const VOLUNTEER_AGREEMENT_FIELD_MAP = {
     primary: { x: 150, y: 440, width: 385, height: 34 },
   },
 };
+
+export const PPF_LIABILITY_FIELD_MAP = {
+  pageFromEnd: 1,
+  defaultFontSize: 10,
+  fields: {
+    participantSignatureDate: { x: 215, y: 545, maxWidth: 100, fontSize: 12 },
+    participantName: { x: 350, y: 545, maxWidth: 220, fontSize: 12 },
+    participantAge: { x: 525, y: 545, maxWidth: 70, fontSize: 12 },
+    parentSignatureDate: { x: 215, y: 455, maxWidth: 100, fontSize: 12 },
+    parentName: { x: 350, y: 455, maxWidth: 230, fontSize: 12 },
+  },
+  signatureBounds: {
+    primary: { x: 50, y: 445, width: 400, height: 32 },
+  },
+};
