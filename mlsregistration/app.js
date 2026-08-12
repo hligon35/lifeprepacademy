@@ -887,14 +887,18 @@
     const input = document.createElement("input");
     input.id = name;
     input.name = name;
-    input.type = type;
-    input.placeholder = placeholder || "";
+    input.type = /dob/i.test(name) && type === "date" ? "text" : type;
+    input.placeholder = placeholder || (/dob/i.test(name) ? "MM/DD/YYYY" : "");
     if (inputMode) input.inputMode = inputMode;
     if (autocomplete) input.autocomplete = autocomplete;
     if (required) input.required = true;
 
     if (addressField) input.dataset.addressField = "true";
     if (name.toLowerCase().includes("phone")) input.dataset.phoneField = "true";
+    if (/dob/i.test(name)) {
+      input.dataset.dobField = "true";
+      input.maxLength = 10;
+    }
 
     if (conditionalOn && conditionalValue) {
       input.dataset.conditionalOn = conditionalOn;
@@ -1452,6 +1456,7 @@
       if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) return;
 
       if (target.dataset.phoneField === "true") formatPhoneField(target);
+      if (target.dataset.dobField === "true") formatDobField(target);
 
       if (target.name === "emergencySameAsParent") {
         const emergencyFields = form.querySelector('[data-emergency-fields="true"]');
@@ -1726,6 +1731,8 @@
     for (const field of requiredFields) {
       if (field instanceof HTMLInputElement && field.type === "checkbox") {
         if (!field.checked) return field;
+      } else if (field.dataset.dobField === "true") {
+        if (!isValidDobValue(field.value)) return field;
       } else if (!field.value || !String(field.value).trim()) {
         return field;
       }
@@ -1733,6 +1740,7 @@
 
     const groups = Array.from(section.querySelectorAll("[data-required-group]"));
     for (const group of groups) {
+      if (group.closest(".hidden")) continue;
       const key = group.dataset.requiredGroup;
       if (!key) continue;
       const checked = group.querySelectorAll(`input[name="${key}[]"]:checked`).length;
@@ -3005,6 +3013,61 @@
       formatted = `(${digits}`;
     }
     input.value = formatted;
+  }
+
+  function isValidDobValue(value) {
+    const text = String(value || "").trim();
+    if (!text) return false;
+
+    const match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!match) return false;
+
+    const month = Number(match[1]);
+    const day = Number(match[2]);
+    const year = Number(match[3]);
+
+    if (!Number.isInteger(month) || !Number.isInteger(day) || !Number.isInteger(year)) return false;
+    if (month < 1 || month > 12) return false;
+    if (day < 1 || day > 31) return false;
+
+    const date = new Date(year, month - 1, day);
+    return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+  }
+
+  function validateDobField(input) {
+    if (!(input instanceof HTMLInputElement)) return;
+    if (!input.value || !String(input.value).trim()) {
+      input.setCustomValidity("");
+      return;
+    }
+
+    if (!isValidDobValue(input.value)) {
+      input.setCustomValidity("Please enter a valid date in MM/DD/YYYY format.");
+      return;
+    }
+
+    input.setCustomValidity("");
+  }
+
+  function formatDobField(input) {
+    const digits = input.value.replace(/\D/g, "").slice(0, 8);
+    let formatted = digits;
+    if (digits.length > 4) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+    } else if (digits.length > 2) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    }
+
+    input.value = formatted;
+    validateDobField(input);
+
+    if (digits.length >= 8) {
+      window.setTimeout(() => {
+        const wrap = input.closest(".field-group");
+        const nextField = wrap?.nextElementSibling?.querySelector("input, select, textarea");
+        if (nextField && typeof nextField.focus === "function") nextField.focus();
+      }, 0);
+    }
   }
 
   function fetchGoogleMapsApiKey() {
