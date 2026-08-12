@@ -1719,10 +1719,14 @@
   async function submitPlayerRegistration() {
     if (playerSubmitted) return;
 
-    formMessage.textContent = "Submitting registration...";
+    const scholarshipRequested = getTextValue("scholarshipRequested");
+    const isScholarshipRequest = String(scholarshipRequested || "").trim() === "Yes";
+    formMessage.textContent = isScholarshipRequest
+      ? "Submitting registration..."
+      : "Submitting registration... Do not close the window. You are being redirected to a secure payment process.";
     registrationEmailWarning = "";
     registrationSyncWarning = "";
-    scholarshipFollowUpMessage = getTextValue("scholarshipRequested") === "Yes"
+    scholarshipFollowUpMessage = isScholarshipRequest
       ? "More information will be emailed on how to apply for the scholarship."
       : "";
 
@@ -1801,6 +1805,9 @@
     try {
       await postRegistrationCopy(registrationData);
       await postScholarshipCopy(registrationData);
+      if (String(registrationData.scholarship?.requested || "").trim() === "Yes") {
+        await sendScholarshipApplicationEmail(registrationData);
+      }
       registrationSyncWarning = "";
     } catch (error) {
       console.warn("registration-upsert-failed", error);
@@ -2726,6 +2733,34 @@
       },
       body: params.toString(),
     }, 6000);
+  }
+
+  async function sendScholarshipApplicationEmail(registrationData) {
+    const requested = String(registrationData?.scholarship?.requested || "").trim();
+    if (requested !== "Yes") return;
+    const parentEmail = String(registrationData?.parent?.email || "").trim();
+    if (!parentEmail || !GOOGLE_APPS_SCRIPT_URL) return;
+
+    const params = new URLSearchParams();
+    params.append("action", "send_scholarship_application_email");
+    params.append("form_type", "scholarship_application");
+    params.append("registration_submission_id", registrationData.registrationSubmissionId || "");
+    params.append("parent_email", parentEmail);
+    params.append("parent_name", `${registrationData.parent?.firstName || ""} ${registrationData.parent?.lastName || ""}`.trim());
+    params.append("participant_names", Array.isArray(registrationData.players)
+      ? registrationData.players.map((player) => `${player.firstName || ""} ${player.lastName || ""}`.trim()).filter(Boolean).join(", ")
+      : "");
+    params.append("scholarship_requested", requested);
+    params.append("submitted_at", registrationData.submittedAt || new Date().toISOString());
+
+    await fetchWithTimeout(GOOGLE_APPS_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      },
+      body: params.toString(),
+    }, 7000);
   }
 
   async function postRegistrationCopy(data) {

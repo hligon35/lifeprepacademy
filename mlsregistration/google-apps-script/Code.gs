@@ -284,6 +284,9 @@ function doPost(e) {
   if (action === 'send_registration_paid_email') {
     return handleRegistrationPaidEmail_(e.parameter);
   }
+  if (action === 'send_scholarship_application_email') {
+    return handleScholarshipApplicationEmail_(e.parameter);
+  }
   if (action === 'send_volunteer_coach_confirmation_email') {
     return handleVolunteerCoachConfirmationEmail_(e.parameter);
   }
@@ -423,6 +426,95 @@ function handleVolunteerCoachConfirmationEmail_(values) {
     });
     return json_({ ok: false, error: String(error && error.message ? error.message : error) }, 500);
   }
+}
+
+function handleScholarshipApplicationEmail_(values) {
+  const expected = PropertiesService.getScriptProperties().getProperty('AGREEMENT_UPDATE_TOKEN') || '';
+  const provided = normalizeValue_(values.update_token || values.token || values.agreement_update_token);
+  if (!expected || provided !== expected) {
+    return json_({ ok: false, error: 'Unauthorized update token' }, 403);
+  }
+
+  const parentEmail = normalizeValue_(values.parent_email || values.email).toLowerCase();
+  if (!parentEmail || !isValidEmail_(parentEmail)) {
+    return json_({ ok: false, error: 'Invalid parent_email' }, 400);
+  }
+
+  const payload = {
+    registrationSubmissionId: normalizeValue_(values.registration_submission_id || values.submission_id || values.registrationSubmissionId || values.submissionId),
+    parentEmail,
+    parentName: normalizeValue_(values.parent_name),
+    participantNames: normalizeValue_(values.participant_names),
+    submittedAt: normalizeValue_(values.submitted_at),
+    requested: normalizeValue_(values.scholarship_requested || values.requested) || 'Yes',
+  };
+
+  try {
+    sendScholarshipApplicationEmailByTemplate_(payload);
+    return json_({ ok: true, emailed: true });
+  } catch (error) {
+    writeError_('mls_registration', 'Scholarship notification email failed', {
+      parent_email: parentEmail,
+      error: String(error && error.message ? error.message : error),
+    });
+    return json_({ ok: false, error: String(error && error.message ? error.message : error) }, 500);
+  }
+}
+
+function sendScholarshipApplicationEmailByTemplate_(payload) {
+  const email = normalizeValue_(payload.parentEmail).toLowerCase();
+  const parentName = normalizeValue_(payload.parentName) || 'Parent/Guardian';
+  const participantNames = normalizeValue_(payload.participantNames) || 'your participant(s)';
+  const submittedAt = payload.submittedAt ? formatEmailTimestamp_(payload.submittedAt) : formatEmailTimestamp_(new Date());
+  const subject = 'Financial Hardship Scholarship Information';
+  const htmlBody = ''
+    + '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+    + '<body style="margin:0;padding:0;background:#f5f2ea;font-family:Arial,sans-serif;color:#22313f">'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#f5f2ea">'
+    + '<tr><td style="padding:24px 12px">'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:720px;margin:0 auto;border-collapse:collapse">'
+    + '<tr><td style="background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid rgba(34,49,63,0.12)">'
+    + '<img src="' + REGISTRATION_BANNER_URL + '" alt="LifePrep Academy Foundation MLS GO" style="display:block;width:100%;height:auto">'
+    + '<div style="padding:32px 30px 24px">'
+    + '<div style="font-size:12px;line-height:1.2;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#c16a2b;margin:0 0 12px">Financial Hardship Scholarship</div>'
+    + '<h1 style="margin:0 0 16px;font-size:30px;line-height:1.1;color:#1d2f40">Thank you for requesting scholarship support</h1>'
+    + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">Hello ' + escapeHtml_(parentName) + ',</p>'
+    + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">We received your request for support for ' + escapeHtml_(participantNames) + '. More information will be emailed to you on how to apply for the scholarship.</p>'
+    + '<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#586574"><strong style="color:#1d2f40">Submitted:</strong> ' + escapeHtml_(submittedAt) + '</p>'
+    + '<p style="margin:0;font-size:15px;line-height:1.7">If you have any questions, reply to this email or contact <a href="mailto:info@lifeprepacademyfoundation.com" style="color:#1d2f40;font-weight:700;text-decoration:none">info@lifeprepacademyfoundation.com</a>.</p>'
+    + '</div>'
+    + '</td></tr>'
+    + '<tr><td style="padding:16px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#6b7280">'
+    + '<a href="' + BRAND_URL + '" style="color:#1d2f40;font-weight:700;text-decoration:none">' + BRAND_DOMAIN + '</a>'
+    + '</td></tr>'
+    + '</table>'
+    + '</td></tr>'
+    + '</table>'
+    + '</body></html>';
+
+  const body = [
+    'Thank you for requesting scholarship support.',
+    '',
+    'Hello ' + parentName + ',',
+    '',
+    'We received your request for support for ' + participantNames + '.',
+    'More information will be emailed to you on how to apply for the scholarship.',
+    '',
+    'Submitted: ' + submittedAt,
+    '',
+    'If you have any questions, please contact info@lifeprepacademyfoundation.com.',
+    '',
+    BRAND_DOMAIN,
+  ].join('\n');
+
+  MailApp.sendEmail({
+    to: email,
+    subject,
+    body,
+    htmlBody,
+    name: 'LifePrep Academy Foundation',
+    replyTo: 'info@lifeprepacademyfoundation.com',
+  });
 }
 
 function handleRegistrationPaidEmail_(values) {
