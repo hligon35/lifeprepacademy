@@ -142,6 +142,7 @@ const PLAYER_HEADERS = [
   'player_4_favorite_club',
   'player_4_hear_about',
   'help_choice',
+  'scholarship_requested',
   'agree_waiver',
   'agree_privacy',
   'agree_marketing',

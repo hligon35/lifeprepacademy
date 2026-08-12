@@ -256,6 +256,7 @@
   let signerDownloadUrl = "";
   let registrationEmailWarning = "";
   let registrationSyncWarning = "";
+  let scholarshipFollowUpMessage = "";
   let googleMapsApiKeyPromise;
   let donationRedirectTimer = 0;
 
@@ -452,8 +453,8 @@
 
   function buildScholarshipSection() {
     const section = createSection(
-      "Scholarship Request",
-      "Paducah GO Soccer, operated by LifePrep Academy Foundation, is committed to ensuring that cost is not a barrier to participation. Scholarships are confidential and awarded based on demonstrated financial need and available program funds.",
+      "Financial Hardship Scholarship",
+      "If you need assistance with registration fees, we will email you information on how to apply after your registration is complete.",
       false,
       "scholarship-section",
       FLOW.PLAYER,
@@ -461,82 +462,10 @@
 
     const scholarshipFields = createGrid([
       createSelectField({
-        label: "Are you requesting financial assistance for registration fees?",
+        label: "Do you need assistance with registration fees?",
         name: "scholarshipRequested",
         required: true,
         options: ["Yes", "No"],
-      }),
-      createSelectField({
-        label: "What level of assistance are you requesting?",
-        name: "scholarshipLevel",
-        required: true,
-        conditionalOn: "scholarshipRequested",
-        conditionalValue: "Yes",
-        options: ["Full scholarship", "Partial scholarship", "Payment plan", "Reduced fee"],
-      }),
-      createTextField({
-        label: "Household Size",
-        name: "scholarshipHouseholdSize",
-        required: true,
-        inputMode: "numeric",
-        conditionalOn: "scholarshipRequested",
-        conditionalValue: "Yes",
-      }),
-      createTextField({
-        label: "Estimated Annual Household Income",
-        name: "scholarshipHouseholdIncome",
-        required: true,
-        placeholder: "$0 - $100,000",
-        conditionalOn: "scholarshipRequested",
-        conditionalValue: "Yes",
-      }),
-      createCheckboxGroupField({
-        label: "Please select any eligibility indicators that apply to your family.",
-        name: "scholarshipEligibility",
-        required: true,
-        conditionalOn: "scholarshipRequested",
-        conditionalValue: "Yes",
-        options: [
-          "SNAP benefits",
-          "Medicaid",
-          "Free or reduced lunch",
-          "Temporary Assistance for Needy Families (TANF)",
-          "Unemployment",
-          "Other financial hardship",
-        ],
-      }),
-      createTextField({
-        label: "Briefly describe any circumstances affecting your ability to pay for registration.",
-        name: "scholarshipCircumstances",
-        conditionalOn: "scholarshipRequested",
-        conditionalValue: "Yes",
-        placeholder: "Optional",
-      }),
-      createTextField({
-        label: "What contribution amount can your family reasonably afford?",
-        name: "scholarshipContributionAmount",
-        required: true,
-        placeholder: "$0",
-        conditionalOn: "scholarshipRequested",
-        conditionalValue: "Yes",
-      }),
-      createCheckboxField({
-        label: "Participation Commitment",
-        name: "scholarshipParticipationCommitment",
-        required: true,
-        conditionalOn: "scholarshipRequested",
-        conditionalValue: "Yes",
-        description:
-          "I understand that scholarship assistance is confidential, awarded based on demonstrated need and available program funds, and that my family is committed to participating in the program and supporting its expectations.",
-      }),
-      createCheckboxField({
-        label: "Parent/Guardian Acknowledgement",
-        name: "scholarshipParentAcknowledgement",
-        required: true,
-        conditionalOn: "scholarshipRequested",
-        conditionalValue: "Yes",
-        description:
-          "I confirm that the information above is accurate and understand that scholarship decisions are reviewed confidentially.",
       }),
     ]);
 
@@ -1793,6 +1722,9 @@
     formMessage.textContent = "Submitting registration...";
     registrationEmailWarning = "";
     registrationSyncWarning = "";
+    scholarshipFollowUpMessage = getTextValue("scholarshipRequested") === "Yes"
+      ? "More information will be emailed on how to apply for the scholarship."
+      : "";
 
     const registrationData = collectRegistrationData();
     registrationData.agreementSigning = await requestAgreementSignature({
@@ -2155,6 +2087,13 @@
       syncWarning.dataset.syncWarning = "true";
       syncWarning.textContent = registrationSyncWarning;
       successPanel.appendChild(syncWarning);
+    }
+
+    if (scholarshipFollowUpMessage) {
+      const scholarshipMessage = document.createElement("p");
+      scholarshipMessage.dataset.scholarshipFollowUp = "true";
+      scholarshipMessage.textContent = scholarshipFollowUpMessage;
+      successPanel.appendChild(scholarshipMessage);
     }
   }
 
@@ -2816,6 +2755,7 @@
       emergency_state: data.emergency.state,
       emergency_zip: data.emergency.zip,
       player_count: String(data.players.length),
+      scholarship_requested: String(data.scholarship?.requested || "No"),
       help_choice: data.helpChoice,
       agree_waiver: data.agreements.waiver ? "yes" : "no",
       agree_privacy: data.agreements.privacy ? "yes" : "no",
@@ -2845,6 +2785,11 @@
 
   async function postScholarshipCopy(registrationData) {
     const scholarship = registrationData?.scholarship || {};
+    const requested = String(scholarship.requested || "No").trim();
+    if (requested !== "Yes") {
+      return;
+    }
+
     const values = {
       submitted_at: registrationData.submittedAt,
       registration_submission_id: registrationData.registrationSubmissionId || "",
@@ -2853,7 +2798,7 @@
       parent_last_name: registrationData.parent?.lastName || "",
       parent_email: registrationData.parent?.email || "",
       parent_phone: registrationData.parent?.phone || "",
-      scholarship_requested: scholarship.requested || "No",
+      scholarship_requested: requested,
       scholarship_level: scholarship.level || "",
       scholarship_household_size: scholarship.householdSize || "",
       scholarship_household_income: scholarship.householdIncome || "",
