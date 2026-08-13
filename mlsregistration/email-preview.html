@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MLS GO Form Email Preview</title>
+  <style>
+    :root {
+      --ink: #1d2f40;
+      --muted: #66727d;
+      --paper: #ffffff;
+      --wash: #f4f0e8;
+      --line: #d9d2c7;
+      --accent: #c16a2b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--wash);
+      font: 16px/1.6 Georgia, "Times New Roman", serif;
+    }
+    main { width: min(1080px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 64px; }
+    header { border-bottom: 3px solid var(--accent); margin-bottom: 28px; padding-bottom: 20px; }
+    h1 { margin: 0 0 8px; font: 700 32px/1.15 Arial, sans-serif; letter-spacing: 0; }
+    header p { margin: 0; color: var(--muted); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+    article { background: var(--paper); border: 1px solid var(--line); padding: 22px; box-shadow: 0 8px 24px rgba(29, 47, 64, .07); }
+    h2 { margin: 0 0 16px; font: 700 19px/1.25 Arial, sans-serif; }
+    dl { margin: 0; }
+    dt { margin-top: 14px; color: var(--accent); font: 700 11px/1.2 Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+    dt:first-child { margin-top: 0; }
+    dd { margin: 5px 0 0; white-space: pre-wrap; }
+    .note { margin-top: 28px; color: var(--muted); font: 13px/1.5 Arial, sans-serif; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>MLS GO Form Emails</h1>
+      <p>Live preview of the active email subjects and message bodies currently used by the form.</p>
+    </header>
+    <section class="grid" aria-label="Form email previews">
+      <article>
+        <h2>Player Registration</h2>
+        <dl>
+          <dt>Subject</dt>
+          <dd>Thank you for registering with LifePrep Academy Foundation</dd>
+          <dt>Message</dt>
+          <dd>Thank you for registering. Please keep an eye on your inbox for important information.</dd>
+        </dl>
+      </article>
+      <article>
+        <h2>Payment Confirmation</h2>
+        <dl>
+          <dt>Subject</dt>
+          <dd>Thank you for registering with LifePrep Academy Foundation</dd>
+          <dt>Message</dt>
+          <dd>Thank you for registering. Please keep an eye on your inbox for important information.</dd>
+        </dl>
+      </article>
+      <article>
+        <h2>Financial Hardship Scholarship</h2>
+        <dl>
+          <dt>Subject</dt>
+          <dd>Thank you for applying with LifePrep Academy Foundation</dd>
+          <dt>Message</dt>
+          <dd>Thank you for applying. Please keep an eye on your inbox for important information.</dd>
+        </dl>
+      </article>
+      <article>
+        <h2>Volunteer Application</h2>
+        <dl>
+          <dt>Subject</dt>
+          <dd>Thank you for applying with LifePrep Academy Foundation</dd>
+          <dt>Message</dt>
+          <dd>Thank you for applying. Please keep an eye on your inbox for important information.</dd>
+        </dl>
+      </article>
+      <article>
+        <h2>Coaching Application</h2>
+        <dl>
+          <dt>Subject</dt>
+          <dd>Thank you for applying with LifePrep Academy Foundation</dd>
+          <dt>Message</dt>
+          <dd>Thank you for applying. Please keep an eye on your inbox for important information.</dd>
+        </dl>
+      </article>
+    </section>
+    <p class="note">Documents and form responses are stored in the organization records and are not attached or linked in these emails.</p>
+  </main>
+</body>
+</html>
