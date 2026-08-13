@@ -214,7 +214,7 @@ const COACH_HEADERS = [
 const ERROR_HEADERS = ['submitted_at', 'form_type', 'reason', 'payload'];
 const EMAIL_TRACKING_SHEET_NAME = 'Email Tracking';
 const EMAIL_TRACKING_HEADERS = ['tracking_id', 'event_type', 'email_type', 'submission_id', 'recipient_email', 'target_url', 'link_label', 'created_at', 'user_agent', 'ip_address', 'source_url'];
-const SHEET_TIMESTAMP_FORMAT = 'MM/dd/yy-hh:mm a';
+const SHEET_TIMESTAMP_FORMAT = 'M/d/yyyy h:mm:ss a';
 const TIMESTAMP_HEADERS = [
   'submitted_at',
   'submittedAt',
@@ -463,55 +463,13 @@ function handleScholarshipApplicationEmail_(values) {
 
 function sendScholarshipApplicationEmailByTemplate_(payload) {
   const email = normalizeValue_(payload.parentEmail).toLowerCase();
-  const parentName = normalizeValue_(payload.parentName) || 'Parent/Guardian';
-  const participantNames = normalizeValue_(payload.participantNames) || 'your participant(s)';
-  const submittedAt = payload.submittedAt ? formatEmailTimestamp_(payload.submittedAt) : formatEmailTimestamp_(new Date());
-  const subject = 'Financial Hardship Scholarship Information';
-  const htmlBody = ''
-    + '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
-    + '<body style="margin:0;padding:0;background:#f5f2ea;font-family:Arial,sans-serif;color:#22313f">'
-    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#f5f2ea">'
-    + '<tr><td style="padding:24px 12px">'
-    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:720px;margin:0 auto;border-collapse:collapse">'
-    + '<tr><td style="background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid rgba(34,49,63,0.12)">'
-    + '<img src="' + REGISTRATION_BANNER_URL + '" alt="LifePrep Academy Foundation MLS GO" style="display:block;width:100%;height:auto">'
-    + '<div style="padding:32px 30px 24px">'
-    + '<div style="font-size:12px;line-height:1.2;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#c16a2b;margin:0 0 12px">Financial Hardship Scholarship</div>'
-    + '<h1 style="margin:0 0 16px;font-size:30px;line-height:1.1;color:#1d2f40">Thank you for requesting scholarship support</h1>'
-    + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">Hello ' + escapeHtml_(parentName) + ',</p>'
-    + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">We received your request for support for ' + escapeHtml_(participantNames) + '. More information will be emailed to you on how to apply for the scholarship.</p>'
-    + '<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#586574"><strong style="color:#1d2f40">Submitted:</strong> ' + escapeHtml_(submittedAt) + '</p>'
-    + '<p style="margin:0;font-size:15px;line-height:1.7">If you have any questions, reply to this email or contact <a href="mailto:info@lifeprepacademyfoundation.com" style="color:#1d2f40;font-weight:700;text-decoration:none">info@lifeprepacademyfoundation.com</a>.</p>'
-    + '</div>'
-    + '</td></tr>'
-    + '<tr><td style="padding:16px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#6b7280">'
-    + '<a href="' + BRAND_URL + '" style="color:#1d2f40;font-weight:700;text-decoration:none">' + BRAND_DOMAIN + '</a>'
-    + '</td></tr>'
-    + '</table>'
-    + '</td></tr>'
-    + '</table>'
-    + '</body></html>';
-
-  const body = [
-    'Thank you for requesting scholarship support.',
-    '',
-    'Hello ' + parentName + ',',
-    '',
-    'We received your request for support for ' + participantNames + '.',
-    'More information will be emailed to you on how to apply for the scholarship.',
-    '',
-    'Submitted: ' + submittedAt,
-    '',
-    'If you have any questions, please contact info@lifeprepacademyfoundation.com.',
-    '',
-    BRAND_DOMAIN,
-  ].join('\n');
+  const subject = 'Thank you for applying with LifePrep Academy Foundation';
+  const body = 'Thank you for applying. Please keep an eye on your inbox for important information.';
 
   MailApp.sendEmail({
     to: email,
     subject,
     body,
-    htmlBody,
     name: 'LifePrep Academy Foundation',
     replyTo: 'info@lifeprepacademyfoundation.com',
   });
@@ -1094,132 +1052,28 @@ function safeStringify_(value) {
 }
 
 function sendRegistrationEmailByStage_(payload, paymentConfirmed) {
-  const trackingContext = createEmailTrackingContext_(payload, paymentConfirmed ? 'registration_paid_confirmation' : 'registration_confirmation');
-  payload.emailTrackingToken = trackingContext.trackingToken;
-  payload.emailOpenTrackingUrl = trackingContext.openUrl;
-  payload.paymentTrackingUrl = trackingContext.makeTrackedUrl(payload.paymentUrl || BRAND_URL, 'payment_button');
-  payload.signedDocumentTrackingUrl = trackingContext.makeTrackedUrl(payload.signedDocumentUrl || BRAND_URL, 'download_documents_button');
-  payload.paymentReceiptTrackingUrl = trackingContext.makeTrackedUrl(payload.paymentReceiptUrl || BRAND_URL, 'payment_receipt_button');
-
-  const subject = paymentConfirmed
-    ? 'Thank you for completing your MLS GO registration'
-    : 'Thank you for registering for MLS GO';
-  const htmlBody = paymentConfirmed
-    ? buildRegistrationPaidEmailHtml_(payload)
-    : buildRegistrationSubmissionEmailHtml_(payload);
-  const body = paymentConfirmed
-    ? buildRegistrationPaidEmailText_(payload)
-    : buildRegistrationSubmissionEmailText_(payload);
-  const attachments = buildRegistrationResponseAttachment_(payload);
-
+  const subject = 'Thank you for registering with LifePrep Academy Foundation';
+  const body = 'Thank you for registering. Please keep an eye on your inbox for important information.';
   MailApp.sendEmail({
     to: payload.parentEmail,
     subject,
     body,
-    htmlBody,
     name: 'LifePrep Academy Foundation',
     replyTo: 'info@lifeprepacademyfoundation.com',
-    attachments: attachments ? [attachments] : undefined,
   });
 }
 
 function sendVolunteerCoachConfirmationEmail_(formType, values) {
   const email = normalizeValue_(values.email).toLowerCase();
-  const trackingContext = createEmailTrackingContext_({
-    registrationSubmissionId: normalizeValue_(values.submission_id || values.submissionId || ''),
-    parentEmail: email,
-  }, formType === 'coaching_application' ? 'coaching_application_confirmation' : 'volunteer_application_confirmation');
   if (!email || !isValidEmail_(email)) {
     throw new Error('Invalid email for volunteer/coach confirmation');
   }
-
-  const firstName = normalizeValue_(values.firstName);
-  const lastName = normalizeValue_(values.lastName);
-  const fullName = `${firstName} ${lastName}`.trim() || 'Applicant';
-  const isCoach = formType === 'coaching_application';
-  const programLabel = isCoach ? 'coaching' : 'volunteer';
-  const signedAt = formatEmailTimestamp_(normalizeValue_(values['Volunteer Agreement Signed At']));
-  const signedDocumentUrl = normalizeValue_(values['Volunteer Agreement PDF URL']);
-  const trackedSignedDocumentUrl = trackingContext.makeTrackedUrl(signedDocumentUrl || BRAND_URL, 'download_documents_button');
-  const trackedOpenUrl = trackingContext.openUrl;
-  const responseRows = buildResponseRowsFromRecord_(values, isCoach ? COACH_HEADERS : VOLUNTEER_HEADERS, {
-    exclude: {
-      form_type: true,
-      pageUrl: true,
-      signature: true,
-    },
-  });
-  const responseRowsHtml = responseRows.map((row) => ''
-    + '<tr>'
-    + '<td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;font-weight:700;color:#1d2f40;vertical-align:top">' + escapeHtml_(row.label) + '</td>'
-    + '<td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#22313f;vertical-align:top">' + escapeHtml_(row.value) + '</td>'
-    + '</tr>'
-  ).join('');
-
-  const subject = 'Thank you for your MLS GO application';
-  const htmlBody = ''
-    + '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
-    + '<body style="margin:0;padding:0;background:#f5f2ea;font-family:Arial,sans-serif;color:#22313f">'
-    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#f5f2ea">'
-    + '<tr><td style="padding:24px 12px">'
-    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:720px;margin:0 auto;border-collapse:collapse">'
-    + '<tr><td style="background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid rgba(34,49,63,0.12)">'
-    + '<img src="' + REGISTRATION_BANNER_URL + '" alt="LifePrep Academy Foundation MLS GO" style="display:block;width:100%;height:auto">'
-    + '<div style="padding:32px 30px 24px">'
-    + '<div style="font-size:12px;line-height:1.2;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#c16a2b;margin:0 0 12px">MLS GO</div>'
-    + '<h1 style="margin:0 0 16px;font-size:30px;line-height:1.1;color:#1d2f40">Thank you for applying</h1>'
-    + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">Hello ' + escapeHtml_(fullName) + ',</p>'
-    + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">Thank you for submitting your MLS GO ' + programLabel + ' application. We received your information successfully.</p>'
-    + (signedAt ? '<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#586574"><strong style="color:#1d2f40">Signed:</strong> ' + escapeHtml_(signedAt) + '</p>' : '')
-    + (responseRowsHtml
-      ? '<h2 style="margin:0 0 10px;font-size:18px;line-height:1.3;color:#1d2f40">Submitted Responses</h2>'
-        + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 18px;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">'
-        + responseRowsHtml
-        + '</table>'
-      : '')
-    + (signedDocumentUrl
-      ? '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px"><tr>'
-        + '<td style="border-radius:999px;background:#1d2f40">'
-        + '<a href="' + escapeHtml_(trackedSignedDocumentUrl) + '" style="display:inline-block;padding:14px 24px;font-size:15px;font-weight:700;line-height:1.2;color:#ffffff;text-decoration:none">Download Signed Documents</a>'
-        + '</td></tr></table>'
-      : '')
-    + '<p style="margin:0 0 16px;font-size:16px;line-height:1.7">Please keep an eye on your email for updates and next steps from our team.</p>'
-    + '<p style="margin:0;font-size:15px;line-height:1.7">If you have any questions, reply to this email or contact <a href="mailto:info@lifeprepacademyfoundation.com" style="color:#1d2f40;font-weight:700;text-decoration:none">info@lifeprepacademyfoundation.com</a>.</p>'
-    + (trackedOpenUrl ? '<img src="' + escapeHtml_(trackedOpenUrl) + '" alt="" width="1" height="1" style="display:block;border:0;width:1px;height:1px">' : '')
-    + '</div>'
-    + '</td></tr>'
-    + '<tr><td style="padding:16px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#6b7280">'
-    + '<a href="' + BRAND_URL + '" style="color:#1d2f40;font-weight:700;text-decoration:none">' + BRAND_DOMAIN + '</a>'
-    + '</td></tr>'
-    + '</table>'
-    + '</td></tr>'
-    + '</table>'
-    + '</body></html>';
-
-  const body = [
-    'Thank you for your MLS GO application.',
-    '',
-    `Hello ${fullName},`,
-    '',
-    `Thank you for submitting your MLS GO ${programLabel} application. We received your information successfully.`,
-    signedAt ? `Signed At: ${signedAt}` : '',
-    responseRows.length ? '' : '',
-    responseRows.length ? 'Submitted Responses:' : '',
-    responseRows.length ? responseRows.map((row) => `- ${row.label}: ${row.value}`).join('\n') : '',
-    signedDocumentUrl ? '' : '',
-    signedDocumentUrl ? `Download signed documents: ${trackedSignedDocumentUrl}` : '',
-    'Please keep an eye on your email for updates and next steps from our team.',
-    '',
-    BRAND_DOMAIN,
-  ].filter(function(line) {
-    return String(line || '').trim() !== '';
-  }).join('\n');
-
+  const subject = 'Thank you for applying with LifePrep Academy Foundation';
+  const body = 'Thank you for applying. Please keep an eye on your inbox for important information.';
   MailApp.sendEmail({
     to: email,
     subject,
     body,
-    htmlBody,
     name: 'LifePrep Academy Foundation',
     replyTo: 'info@lifeprepacademyfoundation.com',
   });

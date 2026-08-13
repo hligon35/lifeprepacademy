@@ -233,7 +233,7 @@ async function handleSignAgreement(request, env, ctx) {
 
   const txId = payload.transactionId || crypto.randomUUID();
   const existing = await doFetch(env, `/transaction?txId=${encodeURIComponent(txId)}`);
-  if (existing.value?.status === "signed") {
+  if (existing.value?.status === "viewed") {
     const signerUrl = await buildSignerUrl(request.url, txId, env);
     const emailDownloadUrl = await buildSignerUrl(request.url, txId, env, EMAIL_SIGNER_LINK_TTL_MS);
     return json({
@@ -269,7 +269,7 @@ async function handleSignAgreement(request, env, ctx) {
         submissionId,
         agreementType,
         signerName: payload.signer.printedName,
-        signedAt: payload.audit.signedAtUtc,
+        signedAt: payload.audit.viewedAtUtc,
         transactionId: txId,
         fileId: "",
         pdfUrl: "",
@@ -288,7 +288,7 @@ async function handleSignAgreement(request, env, ctx) {
         submissionId,
         agreementType,
         signerName: payload.signer.printedName,
-        signedAt: payload.audit.signedAtUtc,
+        signedAt: payload.audit.viewedAtUtc,
         transactionId: txId,
         fileId: "",
         pdfUrl: "",
@@ -326,12 +326,12 @@ async function handleSignAgreement(request, env, ctx) {
       submissionId,
       agreementType,
       signerName: payload.signer.printedName,
-      signedAt: payload.audit.signedAtUtc,
+      signedAt: payload.audit.viewedAtUtc,
       transactionId: txId,
       fileId: objectKey,
       pdfUrl: emailDownloadUrl,
       sha256: completedHash,
-      status: "Signed",
+      status: "Viewed",
       agreementVersion: template.version,
     });
     let sheetUpdate = { ok: true, pending: Boolean(ctx && typeof ctx.waitUntil === "function"), error: "" };
@@ -347,23 +347,6 @@ async function handleSignAgreement(request, env, ctx) {
               error: result.error,
             });
             return result;
-          }
-
-          if (agreementType === "volunteer") {
-            return sendVolunteerCoachConfirmationEmail(env, {
-              formType,
-              submissionId,
-            }).then((emailResult) => {
-              if (!emailResult.ok) {
-                console.warn("volunteer-coach-email-failed", {
-                  txId,
-                  formType,
-                  submissionId,
-                  error: emailResult.error,
-                });
-              }
-              return emailResult;
-            });
           }
 
           return result;
@@ -387,78 +370,6 @@ async function handleSignAgreement(request, env, ctx) {
         });
       }
 
-      if (agreementType === "volunteer" && sheetUpdate.ok) {
-        const emailResult = await sendVolunteerCoachConfirmationEmail(env, {
-          formType,
-          submissionId,
-        });
-        if (!emailResult.ok) {
-          console.warn("volunteer-coach-email-failed", {
-            txId,
-            formType,
-            submissionId,
-            error: emailResult.error,
-          });
-        }
-      }
-    }
-
-    let registrationEmail = null;
-    if (agreementType === "player") {
-      const parentNameParts = splitName(payload.fields?.guardianName || payload.signer?.printedName || "");
-      const submissionEmailPromise = sendRegistrationSubmissionEmail(env, {
-        submissionId,
-        allResponseRows: Array.isArray(payload.fields?.allResponseRows) ? payload.fields.allResponseRows : [],
-        parentEmail: payload.fields?.guardianEmail,
-        parentName: payload.fields?.guardianName || payload.signer?.printedName,
-        participantNames: payload.fields?.participantNames || "",
-        relationshipToChild: payload.fields?.relationshipToChild || "",
-        primaryPhone: payload.fields?.primaryPhone || payload.fields?.parentPhone || "",
-        alternatePhone: payload.fields?.alternatePhone || "",
-        emergencyContactName: payload.fields?.emergencyContactName || "",
-        emergencyRelationship: payload.fields?.emergencyRelationship || "",
-        emergencyEmail: payload.fields?.emergencyEmail || "",
-        emergencyPhone: payload.fields?.emergencyPhone || "",
-        emergencyStreet: payload.fields?.emergencyStreet || "",
-        emergencyCity: payload.fields?.emergencyCity || "",
-        emergencyState: payload.fields?.emergencyState || "",
-        emergencyZip: payload.fields?.emergencyZip || "",
-        signedAt: payload.audit?.signedAtUtc || "",
-        signedDocumentUrl: emailDownloadUrl,
-        paymentUrl: buildPlayerRegistrationPaymentUrl({
-          firstName: payload.fields?.guardianFirstName || parentNameParts.firstName,
-          lastName: payload.fields?.guardianLastName || parentNameParts.lastName,
-          email: payload.fields?.guardianEmail || "",
-          zip: payload.fields?.guardianZip || payload.fields?.parentZip || "",
-          submissionId,
-          amount: "75",
-          currency: "USD",
-        }),
-      });
-      if (ctx && typeof ctx.waitUntil === "function") {
-        ctx.waitUntil(
-          submissionEmailPromise.then((submissionEmail) => {
-            if (!submissionEmail.ok) {
-              console.warn("registration-submission-email-failed", {
-                txId,
-                submissionId,
-                error: submissionEmail.error,
-              });
-            }
-          }).catch((error) => {
-            console.warn("registration-submission-email-failed", {
-              txId,
-              submissionId,
-              error: String(error?.message || error),
-            });
-          }),
-        );
-      }
-      registrationEmail = {
-        ok: true,
-        pending: true,
-        error: "",
-      };
     }
 
     await doFetch(env, "/transaction", {
@@ -466,7 +377,7 @@ async function handleSignAgreement(request, env, ctx) {
       body: JSON.stringify({
         txId,
         value: {
-          status: "signed",
+          status: "viewed",
           agreementType,
           formType,
           submissionId,
@@ -475,7 +386,7 @@ async function handleSignAgreement(request, env, ctx) {
           completedHash,
           transactionId: txId,
           signerName: payload.signer.printedName,
-          signedAt: payload.audit.signedAtUtc,
+          viewedAt: payload.audit.viewedAtUtc,
         },
       }),
     });
@@ -484,14 +395,13 @@ async function handleSignAgreement(request, env, ctx) {
       ok: true,
       transactionId: txId,
       agreementType,
-      signedAt: payload.audit.signedAtUtc,
+      viewedAt: payload.audit.viewedAtUtc,
       signerDownloadUrl: signerUrl,
       emailDownloadUrl,
       sheetUpdate: {
         ok: Boolean(sheetUpdate.ok),
         error: sheetUpdate.ok ? "" : String(sheetUpdate.error || "Sheet update failed"),
       },
-      registrationEmail,
     }, 200, request, env);
   } catch (error) {
     console.error("sign-agreement-failed", {
@@ -508,7 +418,7 @@ async function handleSignAgreement(request, env, ctx) {
       submissionId,
       agreementType,
       signerName: payload.signer.printedName,
-      signedAt: payload.audit.signedAtUtc,
+      viewedAt: payload.audit.viewedAtUtc,
       transactionId: txId,
       fileId: "",
       pdfUrl: "",
@@ -567,10 +477,34 @@ async function handleFormUpsert(request, env) {
       }, 502, request, env);
     }
 
-    return json({ ok: true, result: parsed }, 200, request, env);
+    let email = { ok: true, skipped: true };
+    if (formType === "mls_registration") {
+      email = await postRegistrationEmailAction(env, "send_registration_receipt_email", {
+        registration_submission_id: values.registration_submission_id || "",
+        parent_email: values.parent_email || "",
+        parent_name: `${values.parent_first_name || ""} ${values.parent_last_name || ""}`.trim(),
+        participant_names: buildParticipantNames(values),
+      });
+    } else if (formType === "volunteer_application" || formType === "coaching_application") {
+      email = await sendVolunteerCoachConfirmationEmail(env, {
+        formType,
+        submissionId: values.submission_id || "",
+      });
+    }
+
+    return json({ ok: true, result: parsed, email }, 200, request, env);
   } catch (error) {
     return json({ ok: false, error: String(error?.message || error) }, 502, request, env);
   }
+}
+
+function buildParticipantNames(values) {
+  const names = [];
+  for (let index = 1; index <= 4; index += 1) {
+    const name = `${values[`player_${index}_first_name`] || ""} ${values[`player_${index}_last_name`] || ""}`.trim();
+    if (name) names.push(name);
+  }
+  return names.join(", ");
 }
 
 async function handlePaymentWebhook(request, env) {
@@ -713,31 +647,13 @@ function validateSigningPayload(payload, env) {
     return { ok: false, error: "Missing formType" };
   }
 
-  const signer = payload.signer || {};
-  if (!signer.printedName || !String(signer.printedName).trim()) {
-    return { ok: false, error: "Missing signer printed name" };
-  }
-
   const consentVersion = payload.audit?.consentVersion;
   if (!consentVersion || consentVersion !== env.E_CONSENT_TEXT_VERSION) {
     return { ok: false, error: "Invalid or mismatched consent version" };
   }
 
-  if (payload.signature?.method === "typed") {
-    const typed = payload.signature?.typed;
-    if (!typed || typed.length < 2 || typed.length > MAX_TYPED_SIGNATURE_LEN) {
-      return { ok: false, error: "Invalid typed signature" };
-    }
-  } else if (payload.signature?.method === "drawn") {
-    const dataUrl = payload.signature?.dataUrl || "";
-    if (!dataUrl.startsWith("data:image/png;base64,")) {
-      return { ok: false, error: "Invalid signature image format" };
-    }
-    if (dataUrl.length > MAX_SIGNATURE_DATA_URL_BYTES) {
-      return { ok: false, error: "Signature payload too large" };
-    }
-  } else {
-    return { ok: false, error: "Invalid signature method" };
+  if (!payload.audit?.viewedAtUtc) {
+    return { ok: false, error: "Missing viewed timestamp" };
   }
 
   if (payload.agreementType === "player") {
@@ -774,35 +690,6 @@ async function generateSignedPdf({ payload, templateBytes, env, txId, templateHa
     const value = String(fieldData[fieldName] || "").trim();
     if (!value) continue;
     drawWrappedText(targetPage, value, cfg, helvetica);
-  }
-
-  const signatureBounds = map.signatureBounds.primary;
-  if (payload.signature.method === "drawn") {
-    const pngBytes = decodeDataUrl(payload.signature.dataUrl);
-    const png = await pdfDoc.embedPng(pngBytes);
-    drawImageFit(targetPage, png, signatureBounds);
-  } else {
-    drawTypedSignature(targetPage, payload.signature.typed, signatureBounds, helveticaBold);
-  }
-
-  if (payload.agreementType === "player" && env.PLAYER_SIGNATURE_PLACEMENT_MODE === "both_signature_lines") {
-    const secondBounds = map.signatureBounds.parent;
-    if (payload.signature.method === "drawn") {
-      const pngBytes = decodeDataUrl(payload.signature.dataUrl);
-      const png = await pdfDoc.embedPng(pngBytes);
-      drawImageFit(targetPage, png, secondBounds);
-    } else {
-      drawTypedSignature(targetPage, payload.signature.typed, secondBounds, helveticaBold);
-    }
-  }
-
-  if (String(env.APPEND_SIGNING_CERTIFICATE || "").toLowerCase() === "true") {
-    appendCertificatePage(pdfDoc, {
-      payload,
-      txId,
-      templateHash,
-      templateVersion: AGREEMENT_TEMPLATES[payload.agreementType].version,
-    }, helvetica, helveticaBold);
   }
 
   return pdfDoc.save();

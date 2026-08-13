@@ -316,6 +316,7 @@
       buildScholarshipSection(),
       buildHelpSection(),
       buildAgreementsSection(),
+      buildVolunteerAgreementSection(),
       buildVolunteerContactSection(),
       buildVolunteerRoleSection(),
       buildVolunteerExperienceSection(),
@@ -502,7 +503,7 @@
   function buildAgreementsSection() {
     const section = createSection(
       "MLS GO Agreements",
-      "Review and accept the required program terms. Signature capture happens on final submit.",
+      "Review each required document before accepting the program terms.",
       false,
       "agreements-section",
       FLOW.PLAYER,
@@ -579,6 +580,32 @@
         createSelectField({ label: "State", name: "volState", required: true, options: STATE_ABBREVIATIONS }),
         createTextField({ label: "ZIP Code", name: "volZip", required: true, inputMode: "numeric", autocomplete: "postal-code" }),
       ]),
+    );
+    return section;
+  }
+
+  function buildVolunteerAgreementSection() {
+    const section = createSection(
+      "Volunteer Agreement",
+      "Review the agreement before accepting the terms for your application.",
+      false,
+      "volunteer-agreement-section",
+      FLOW.VOLUNTEER,
+    );
+    section.append(
+      createCheckboxField({
+        label: "MLS GO Volunteer Agreement",
+        name: "agreeVolunteerAgreement",
+        required: true,
+        requireLinksViewed: true,
+        description: "I have reviewed the MLS GO Volunteer Agreement and agree to the terms for my application.",
+        links: [
+          {
+            href: VOLUNTEER_AGREEMENT_TEMPLATE_URL,
+            text: "View MLS GO Volunteer Agreement (PDF)",
+          },
+        ],
+      }),
     );
     return section;
   }
@@ -745,11 +772,6 @@
         required: true,
         description:
           "I understand coaching roles require background screening and compliance with program policies.",
-      }),
-      createTextField({
-        label: "Coaching Signature (Full Name)",
-        name: "coachSignature",
-        required: true,
       }),
     ]);
     grid.classList.add("form-grid--one");
@@ -1678,13 +1700,6 @@
       }
     }
 
-    const signatureRequiredFields = Array.from(section.querySelectorAll('[data-signature-required="true"]'));
-    for (const field of signatureRequiredFields) {
-      if (!field.value || !String(field.value).trim()) {
-        return section.querySelector(".signature-action-row button") || field;
-      }
-    }
-
     return null;
   }
 
@@ -1731,15 +1746,6 @@
       : "";
 
     const registrationData = collectRegistrationData();
-    registrationData.agreementSigning = await requestAgreementSignature({
-      prefix: "playerSubmitSign",
-      title: "Player Registration Agreement Signing",
-      agreementUrl: PLAYER_AGREEMENT_TEMPLATE_URL,
-      signerNameLabel: "Printed Parent/Legal Guardian Name",
-      defaultPrintedName: `${registrationData.parent.firstName} ${registrationData.parent.lastName}`.trim(),
-    });
-    registrationData.signature = registrationData.agreementSigning.printedName;
-    syncParentIdentityFromAgreement(registrationData);
     registrationSubmissionId = registrationSubmissionId || generateSubmissionId("reg");
     registrationData.registrationSubmissionId = registrationSubmissionId;
     const params = new URLSearchParams();
@@ -1794,8 +1800,6 @@
         ? "I agree that MLS GO, Major League Soccer, the MLS Clubs, Soccer United Marketing, MLS NEXT Pro, MLS NEXT and each of their respective clubs, affiliates and partners, can use my information to send me newsletters, offers, additional information and other communications about their products and initiatives in accordance with the Privacy Policy and Terms of Use."
         : "",
     );
-    appendIfPresent(params, AGREEMENT_ENTRY_MAP.signature, registrationData.signature);
-
     params.append("fvv", "1");
     params.append("draftResponse", "[]");
     params.append("pageHistory", "0");
@@ -1805,9 +1809,6 @@
     try {
       await postRegistrationCopy(registrationData);
       await postScholarshipCopy(registrationData);
-      if (String(registrationData.scholarship?.requested || "").trim() === "Yes") {
-        await sendScholarshipApplicationEmail(registrationData);
-      }
       registrationSyncWarning = "";
     } catch (error) {
       console.warn("registration-upsert-failed", error);
@@ -1828,7 +1829,7 @@
     const helpChoice = mapHelpChoice(getTextValue("helpChoice"));
     followUpPlan = helpChoice;
 
-    void startPlayerAgreementFollowUp(registrationData);
+    void generatePlayerAgreementDocument(registrationData);
 
     if (helpChoice === HELP_OPTION.VOLUNTEER) {
       switchFlow(FLOW.VOLUNTEER, true);
@@ -1853,14 +1854,13 @@
     completeFlow("Registration received.", { redirectToDonation: true });
   }
 
-  async function startPlayerAgreementFollowUp(registrationData) {
+  async function generatePlayerAgreementDocument(registrationData) {
     try {
-      await signPlayerAgreement(registrationData);
-      playerAgreementSigned = true;
+      await generatePlayerAgreement(registrationData);
     } catch (error) {
-      console.warn("player-agreement-follow-up-failed", error);
-      registrationEmailWarning =
-        "Your registration was received, but we could not finish the signed-document workflow right now. Please contact info@lifeprepacademyfoundation.com so we can resend it.";
+      console.warn("player-agreement-generation-failed", error);
+      registrationSyncWarning =
+        "Your registration was received, but we could not add the completed document to our records right now. Please contact info@lifeprepacademyfoundation.com so we can verify your entry.";
     }
     renderCompletionMessages();
   }
@@ -1873,21 +1873,11 @@
 
     formMessage.textContent = "Submitting volunteer application...";
     const data = collectVolunteerData();
-    data.agreementSigning = await requestAgreementSignature({
-      prefix: "volunteerSubmitSign",
-      title: "Volunteer Agreement Signing",
-      agreementUrl: VOLUNTEER_AGREEMENT_TEMPLATE_URL,
-      signerNameLabel: "Printed Volunteer Legal Name",
-      defaultPrintedName: `${data.firstName} ${data.lastName}`.trim(),
-    });
-    data.agreement = Boolean(data.agreementSigning?.consentAccepted);
-    data.signature = data.agreementSigning.printedName;
-    syncVolunteerIdentityFromAgreement(data);
+    data.agreement = true;
     volunteerSubmissionId = volunteerSubmissionId || generateSubmissionId("vol");
     data.submission_id = volunteerSubmissionId;
     await postAuxFlow("volunteer_application", data);
-    await signVolunteerAgreement(data, "volunteer_application", volunteerSubmissionId);
-    volunteerAgreementSigned = true;
+    await generateVolunteerAgreement(data, "volunteer_application", volunteerSubmissionId);
     volunteerSubmitted = true;
     afterVolunteerSubmission();
   }
@@ -1916,28 +1906,11 @@
 
     formMessage.textContent = "Submitting coaching application...";
     const data = collectCoachingData();
-    if (!volunteerAgreementSigned) {
-      data.agreementSigning = await requestAgreementSignature({
-        prefix: "coachSubmitSign",
-        title: "Volunteer Agreement Signing",
-        agreementUrl: VOLUNTEER_AGREEMENT_TEMPLATE_URL,
-        signerNameLabel: "Printed Volunteer Legal Name",
-        defaultPrintedName: `${data.firstName} ${data.lastName}`.trim(),
-      });
-      data.agreement = Boolean(data.agreementSigning?.consentAccepted);
-      data.signature = data.agreementSigning.printedName;
-    } else {
-      data.agreement = true;
-      data.signature = `${data.firstName} ${data.lastName}`.trim();
-    }
-    syncVolunteerIdentityFromAgreement(data);
+    data.agreement = true;
     coachingSubmissionId = coachingSubmissionId || generateSubmissionId("coach");
     data.submission_id = coachingSubmissionId;
     await postAuxFlow("coaching_application", data);
-    if (!volunteerAgreementSigned) {
-      await signVolunteerAgreement(data, "coaching_application", coachingSubmissionId);
-      volunteerAgreementSigned = true;
-    }
+    await generateVolunteerAgreement(data, "coaching_application", coachingSubmissionId);
     coachingSubmitted = true;
     volunteerSubmitted = true;
     completeFlow("Coaching application received.", {
@@ -2010,7 +1983,7 @@
     const heading = successPanel.querySelector("h2");
     const copy = successPanel.querySelector("p");
     if (heading) heading.textContent = "We’ve got your submission";
-    if (copy) copy.textContent = message || "Thanks! We received your submission and will be in touch soon.";
+    if (copy) copy.textContent = "Thank you for registering. Please keep an eye on your inbox for important information.";
 
     const existingPaymentCta = successPanel.querySelector('[data-payment-cta="true"]');
     if (existingPaymentCta) existingPaymentCta.remove();
@@ -2518,34 +2491,27 @@
     };
   }
 
-  async function signPlayerAgreement(registrationData) {
+  async function generatePlayerAgreement(registrationData) {
     if (playerAgreementSigned) return;
 
-    const signer = registrationData.agreementSigning;
-    if (!signer?.consentAccepted) {
-      throw new Error("Player agreement consent is required.");
-    }
+    const viewedAtUtc = new Date().toISOString();
+    const printedName = `${registrationData.parent.firstName} ${registrationData.parent.lastName}`.trim();
 
     const payload = {
       agreementType: "player",
       formType: "mls_registration",
       submissionId: registrationData.registrationSubmissionId,
       signer: {
-        printedName: signer.printedName,
-      },
-      signature: {
-        method: signer.signatureMethod,
-        dataUrl: signer.signatureMethod === "drawn" ? signer.signatureData : undefined,
-        typed: signer.signatureMethod === "typed" ? signer.typedSignature : undefined,
+        printedName,
       },
       audit: {
-        signedAtUtc: new Date().toISOString(),
+        viewedAtUtc,
         consentVersion: E_CONSENT_TEXT_VERSION,
       },
       fields: {
         registrationSubmissionId: registrationData.registrationSubmissionId,
         allResponseRows: buildRegistrationEmailResponseRows(registrationData),
-        printedFullName: signer.printedName,
+        printedFullName: printedName,
         relationshipToChild: "Parent/Legal Guardian",
         participantNames: registrationData.players
           .map((p) => `${p.firstName} ${p.lastName}`.trim())
@@ -2591,7 +2557,7 @@
         emergencyZip: registrationData.emergency?.sameAsParent
           ? registrationData.parent.zip
           : registrationData.emergency?.zip || "",
-        signingDate: new Date().toISOString().slice(0, 10),
+        signingDate: viewedAtUtc.slice(0, 10),
       },
     };
 
@@ -2604,54 +2570,36 @@
     });
 
     if (!res.ok) {
-      throw new Error("Player agreement signing failed.");
+      throw new Error("Player agreement document generation failed.");
     }
     const result = await res.json().catch(() => ({}));
     playerAgreementTransactionId = result.transactionId || playerAgreementTransactionId;
     signerDownloadUrl = result.signerDownloadUrl || signerDownloadUrl;
-    if (result?.registrationEmail && result.registrationEmail.ok === false) {
-      registrationEmailWarning =
-        "Your registration was saved, but we could not send the confirmation email with signed-document links right now. Please contact info@lifeprepacademyfoundation.com so we can resend it.";
-    } else {
-      registrationEmailWarning = "";
-    }
     if (result?.sheetUpdate && result.sheetUpdate.ok === false) {
       registrationSyncWarning =
-        "Your registration was signed, but we could not sync agreement details to our records right now. Please contact info@lifeprepacademyfoundation.com so we can verify your entry.";
+        "Your registration was received, but we could not add the completed document to our records right now. Please contact info@lifeprepacademyfoundation.com so we can verify your entry.";
     }
   }
 
-  async function signVolunteerAgreement(data, formType, submissionId) {
+  async function generateVolunteerAgreement(data, formType, submissionId) {
     if (volunteerAgreementSigned) return;
-    if (!data?.agreementSigning?.consentAccepted) {
-      throw new Error("Volunteer agreement consent is required.");
-    }
-
-    const ageYears = calculateAgeYears(data.dob);
-    if (ageYears < 18) {
-      throw new Error("Volunteer signer must be at least 18 years old.");
-    }
+    const viewedAtUtc = new Date().toISOString();
+    const printedName = `${data.firstName} ${data.lastName}`.trim();
 
     const payload = {
       agreementType: "volunteer",
       formType,
       submissionId,
       signer: {
-        printedName: data.agreementSigning.printedName,
-        ageYears,
-      },
-      signature: {
-        method: data.agreementSigning.signatureMethod,
-        dataUrl: data.agreementSigning.signatureMethod === "drawn" ? data.agreementSigning.signatureData : undefined,
-        typed: data.agreementSigning.signatureMethod === "typed" ? data.agreementSigning.typedSignature : undefined,
+        printedName,
       },
       audit: {
-        signedAtUtc: new Date().toISOString(),
+        viewedAtUtc,
         consentVersion: E_CONSENT_TEXT_VERSION,
       },
       fields: {
-        legalName: data.agreementSigning.printedName,
-        signingDate: new Date().toISOString().slice(0, 10),
+        legalName: printedName,
+        signingDate: viewedAtUtc.slice(0, 10),
       },
     };
 
@@ -2664,7 +2612,7 @@
     });
 
     if (!res.ok) {
-      throw new Error("Volunteer agreement signing failed.");
+      throw new Error("Volunteer agreement document generation failed.");
     }
     const result = await res.json().catch(() => ({}));
     signerDownloadUrl = result.signerDownloadUrl || signerDownloadUrl;
