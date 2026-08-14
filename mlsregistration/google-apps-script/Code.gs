@@ -42,6 +42,10 @@ const VOLUNTEER_AGREEMENT_COLUMNS = [
 const BRAND_URL = 'https://www.lifeprepacademyfoundation.com/';
 const BRAND_DOMAIN = 'lifeprepacademyfoundation.com';
 const REGISTRATION_BANNER_URL = 'https://mlsregistration.lifeprepacademyfoundation.com/LPAFxPGS.PNG';
+const REGISTRATION_FOOTER_URL = 'https://mlsregistration.lifeprepacademyfoundation.com/MLSGO_26_Email_Footer_2.jpg';
+const EMAIL_HEADER_LINK_URL = 'https://lifeprepacademyfoundation.com';
+const EMAIL_FOOTER_LINK_URL = 'https://lifeprepacademyfoundation.com/mls-go.html';
+const INTERNAL_SUBMISSION_RECIPIENTS = 'hligon@getsparqd.com,bhall@lifeprepacademyfoundation.com';
 const REGISTRATION_PAYMENT_FALLBACK = 'If the registration fee is not prefilled on the payment page, select Other and enter $75.';
 
 const SCHOLARSHIP_HEADERS = [
@@ -330,11 +334,131 @@ function handleSubmissionUpsert_(values) {
 
     sheet.appendRow(rowValues);
     const insertedRow = sheet.getLastRow();
+    sendInternalSubmissionNotification_(formType, config, values, rowValues);
 
     return json_({ ok: true, upserted: true, updatedExistingRow: false, row: insertedRow });
   } finally {
     lock.releaseLock();
   }
+}
+
+function sendInternalSubmissionNotification_(formType, config, values, rowValues) {
+  const record = {};
+  config.headers.forEach(function(header, index) {
+    record[header] = normalizeValue_(rowValues[index]);
+  });
+
+  const submissionId = normalizeValue_(record[config.idColumn] || lookupPayloadValue_(values, config.idColumn));
+  const submittedAt = normalizeValue_(record.submitted_at || record.submittedAt || lookupPayloadValue_(values, 'submitted_at'));
+  const firstName = normalizeValue_(record.parent_first_name || record.firstName);
+  const lastName = normalizeValue_(record.parent_last_name || record.lastName);
+  const applicantName = `${firstName} ${lastName}`.trim();
+  const applicantEmail = normalizeValue_(record.parent_email || record.email);
+  const participantNames = getInternalParticipantNames_(record, formType);
+  const paymentStatus = normalizeValue_(record['Player Payment Status']) || 'Payment Pending';
+  const paymentTransactionId = normalizeValue_(record['Player Payment Transaction ID']) || 'Not available';
+  const paymentAmount = normalizeValue_(record['Player Payment Amount']) || 'Not available';
+  const paymentPaidAt = normalizeValue_(record['Player Payment Paid At']) || 'Not paid';
+  const formLabel = getInternalFormLabel_(formType);
+  const subject = `New ${formLabel} submission | ${submissionId || 'ID unavailable'}`;
+  const body = [
+    'A new LifePrep Academy Foundation MLS GO youth program form has been submitted.',
+    '',
+    `Submission type: ${formLabel}`,
+    `Submission ID: ${submissionId || 'Unavailable'}`,
+    `Submitted at: ${submittedAt || 'Unavailable'}`,
+    `Applicant: ${applicantName || 'Unavailable'}`,
+    `Email: ${applicantEmail || 'Unavailable'}`,
+    `Participant(s): ${participantNames || 'Not applicable'}`,
+    '',
+    'Payment pairing information:',
+    `Payment status: ${paymentStatus}`,
+    `Payment transaction ID: ${paymentTransactionId}`,
+    `Payment amount: ${paymentAmount}`,
+    `Payment paid at: ${paymentPaidAt}`,
+  ].join('\n');
+
+  try {
+    MailApp.sendEmail({
+      to: INTERNAL_SUBMISSION_RECIPIENTS,
+      subject,
+      body,
+      htmlBody: buildInternalSubmissionNotificationHtml_({
+        formLabel,
+        submissionId,
+        submittedAt,
+        applicantName,
+        applicantEmail,
+        participantNames,
+        paymentStatus,
+        paymentTransactionId,
+        paymentAmount,
+        paymentPaidAt,
+      }),
+      name: 'LifePrep Academy Foundation MLS GO',
+      replyTo: 'info@lifeprepacademyfoundation.com',
+    });
+  } catch (error) {
+    writeError_(formType, 'Internal submission notification email failed', {
+      submission_id: submissionId,
+      recipient: INTERNAL_SUBMISSION_RECIPIENTS,
+      error: String(error && error.message ? error.message : error),
+    });
+  }
+}
+
+function getInternalFormLabel_(formType) {
+  const labels = {
+    mls_registration: 'MLS GO Youth Program Registration',
+    scholarship_application: 'Financial Hardship Scholarship Application',
+    volunteer_application: 'MLS GO Youth Program Volunteer Application',
+    coaching_application: 'MLS GO Youth Program Coaching Application',
+  };
+  return labels[formType] || 'MLS GO Youth Program Form';
+}
+
+function getInternalParticipantNames_(record, formType) {
+  if (formType !== 'mls_registration') return '';
+  const names = [];
+  for (let index = 1; index <= 4; index += 1) {
+    const name = `${normalizeValue_(record[`player_${index}_first_name`])} ${normalizeValue_(record[`player_${index}_last_name`])}`.trim();
+    if (name) names.push(name);
+  }
+  return names.join(', ');
+}
+
+function buildInternalSubmissionNotificationHtml_(data) {
+  const safe = function(value) { return escapeHtml_(value || 'Unavailable'); };
+  const row = function(label, value) {
+    return '<tr><td style="padding:9px 10px;border-bottom:1px solid #d9d2c7;font-weight:700;color:#1d2f40;vertical-align:top">'
+      + escapeHtml_(label) + '</td><td style="padding:9px 10px;border-bottom:1px solid #d9d2c7;color:#22313f;vertical-align:top">'
+      + safe(value) + '</td></tr>';
+  };
+  const headerUrl = escapeHtml_(REGISTRATION_BANNER_URL);
+  const footerUrl = escapeHtml_(REGISTRATION_FOOTER_URL);
+  const headerLink = escapeHtml_(EMAIL_HEADER_LINK_URL);
+  const footerLink = escapeHtml_(EMAIL_FOOTER_LINK_URL);
+
+  return '<!doctype html><html><body style="margin:0;padding:0;background:#f4f0e8;font-family:Arial,sans-serif;color:#1d2f40">'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#f4f0e8"><tr><td style="padding:24px 12px">'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:700px;margin:0 auto;background:#ffffff;border:1px solid #d9d2c7;border-collapse:collapse">'
+    + '<tr><td><a href="' + headerLink + '"><img src="' + headerUrl + '" alt="LifePrep Academy Foundation MLS GO youth program" style="display:block;width:100%;height:auto;border:0"></a></td></tr>'
+    + '<tr><td style="padding:28px 30px 30px"><p style="margin:0 0 8px;color:#c16a2b;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">Internal Notification</p>'
+    + '<h1 style="margin:0 0 20px;font-size:26px;line-height:1.2;color:#1d2f40">New ' + safe(data.formLabel) + '</h1>'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse">'
+    + row('Submission ID', data.submissionId)
+    + row('Submitted at', data.submittedAt)
+    + row('Applicant', data.applicantName)
+    + row('Email', data.applicantEmail)
+    + row('Participant(s)', data.participantNames || 'Not applicable')
+    + row('Payment status', data.paymentStatus)
+    + row('Payment transaction ID', data.paymentTransactionId)
+    + row('Payment amount', data.paymentAmount)
+    + row('Payment paid at', data.paymentPaidAt)
+    + '</table></td></tr>'
+    + '<tr><td><a href="' + footerLink + '"><img src="' + footerUrl + '" alt="LifePrep Academy Foundation MLS GO youth program" style="display:block;width:100%;height:auto;border:0"></a></td></tr>'
+    + '<tr><td style="padding:16px 30px 24px;text-align:center;color:#66727d;font-size:12px;line-height:1.5">LifePrep Academy Foundation<br>MLS GO youth program</td></tr>'
+    + '</table></td></tr></table></body></html>';
 }
 
 function handleAgreementMetadataUpdate_(values) {
@@ -463,13 +587,18 @@ function handleScholarshipApplicationEmail_(values) {
 
 function sendScholarshipApplicationEmailByTemplate_(payload) {
   const email = normalizeValue_(payload.parentEmail).toLowerCase();
-  const subject = 'Thank you for applying with LifePrep Academy Foundation';
-  const body = 'Thank you for applying. Please keep an eye on your inbox for important information.';
+  const subject = 'Financial Hardship Scholarship Application Received';
+  const body = 'Thank you for submitting a Financial Hardship Scholarship application for LifePrep Academy Foundation\'s MLS GO youth program. We have successfully received your application. Please monitor your inbox for important information and next steps from our team.';
 
   MailApp.sendEmail({
     to: email,
     subject,
     body,
+    htmlBody: buildBrandedSubmissionEmailHtml_({
+      title: 'Financial Hardship Scholarship Application Received',
+      greeting: 'Thank you for submitting a Financial Hardship Scholarship application for LifePrep Academy Foundation\'s MLS GO youth program.',
+      message: 'We have successfully received your application. Please monitor your inbox for important information and next steps from our team.',
+    }),
     name: 'LifePrep Academy Foundation',
     replyTo: 'info@lifeprepacademyfoundation.com',
   });
@@ -1052,12 +1181,17 @@ function safeStringify_(value) {
 }
 
 function sendRegistrationEmailByStage_(payload, paymentConfirmed) {
-  const subject = 'Thank you for registering with LifePrep Academy Foundation';
-  const body = 'Thank you for registering. Please keep an eye on your inbox for important information.';
+  const subject = 'MLS GO Youth Program Registration Received';
+  const body = 'Thank you for registering for LifePrep Academy Foundation\'s MLS GO youth program. We have successfully received your registration. Please monitor your inbox for important information and next steps from our team.';
   MailApp.sendEmail({
     to: payload.parentEmail,
     subject,
     body,
+    htmlBody: buildBrandedSubmissionEmailHtml_({
+      title: 'MLS GO Youth Program Registration Received',
+      greeting: 'Thank you for registering for LifePrep Academy Foundation\'s MLS GO youth program.',
+      message: 'We have successfully received your registration. Please monitor your inbox for important information and next steps from our team.',
+    }),
     name: 'LifePrep Academy Foundation',
     replyTo: 'info@lifeprepacademyfoundation.com',
   });
@@ -1068,15 +1202,50 @@ function sendVolunteerCoachConfirmationEmail_(formType, values) {
   if (!email || !isValidEmail_(email)) {
     throw new Error('Invalid email for volunteer/coach confirmation');
   }
-  const subject = 'Thank you for applying with LifePrep Academy Foundation';
-  const body = 'Thank you for applying. Please keep an eye on your inbox for important information.';
+  const isCoach = formType === 'coaching_application';
+  const submissionType = isCoach ? 'Coaching Application' : 'Volunteer Application';
+  const action = isCoach ? 'applying to coach with' : 'applying to volunteer with';
+  const subject = `MLS GO Youth Program ${submissionType} Received`;
+  const body = `Thank you for ${action} LifePrep Academy Foundation's MLS GO youth program. We have successfully received your application. Please monitor your inbox for important information and next steps from our team.`;
   MailApp.sendEmail({
     to: email,
     subject,
     body,
+    htmlBody: buildBrandedSubmissionEmailHtml_({
+      title: `MLS GO Youth Program ${submissionType} Received`,
+      greeting: `Thank you for ${action} LifePrep Academy Foundation's MLS GO youth program.`,
+      message: 'We have successfully received your application. Please monitor your inbox for important information and next steps from our team.',
+    }),
     name: 'LifePrep Academy Foundation',
     replyTo: 'info@lifeprepacademyfoundation.com',
   });
+}
+
+function buildBrandedSubmissionEmailHtml_(options) {
+  const title = escapeHtml_(options.title || 'Submission Received');
+  const greeting = escapeHtml_(options.greeting || 'Thank you for your submission.');
+  const message = escapeHtml_(options.message || 'Please monitor your inbox for important information and next steps from our team.');
+  const imageUrl = escapeHtml_(REGISTRATION_BANNER_URL);
+  const footerImageUrl = escapeHtml_(REGISTRATION_FOOTER_URL);
+  const headerLinkUrl = escapeHtml_(EMAIL_HEADER_LINK_URL);
+  const footerLinkUrl = escapeHtml_(EMAIL_FOOTER_LINK_URL);
+
+  return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+    + '<body style="margin:0;padding:0;background:#f4f0e8;font-family:Arial,sans-serif;color:#1d2f40">'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#f4f0e8">'
+    + '<tr><td style="padding:24px 12px">'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:680px;margin:0 auto;border-collapse:collapse;background:#ffffff;border:1px solid #d9d2c7">'
+    + '<tr><td><a href="' + headerLinkUrl + '" style="display:block"><img src="' + imageUrl + '" alt="LifePrep Academy Foundation MLS GO youth program" style="display:block;width:100%;height:auto;border:0"></a></td></tr>'
+    + '<tr><td style="padding:34px 30px 30px">'
+    + '<p style="margin:0 0 10px;color:#c16a2b;font-size:12px;line-height:1.3;font-weight:700;letter-spacing:.12em;text-transform:uppercase">LifePrep Academy Foundation</p>'
+    + '<h1 style="margin:0 0 22px;color:#1d2f40;font-size:28px;line-height:1.2">' + title + '</h1>'
+    + '<p style="margin:0 0 16px;color:#22313f;font-size:16px;line-height:1.7">' + greeting + '</p>'
+    + '<p style="margin:0;color:#22313f;font-size:16px;line-height:1.7">' + message + '</p>'
+    + '</td></tr>'
+    + '<tr><td style="padding:0 30px 24px"><div style="height:1px;background:#d9d2c7"></div></td></tr>'
+    + '<tr><td><a href="' + footerLinkUrl + '" style="display:block"><img src="' + footerImageUrl + '" alt="LifePrep Academy Foundation MLS GO youth program" style="display:block;width:100%;height:auto;border:0"></a></td></tr>'
+    + '<tr><td style="padding:18px 30px 26px;text-align:center;color:#66727d;font-size:12px;line-height:1.6">LifePrep Academy Foundation<br>MLS GO youth program<br><a href="https://www.lifeprepacademyfoundation.com/" style="color:#1d2f40;font-weight:700;text-decoration:none">lifeprepacademyfoundation.com</a></td></tr>'
+    + '</table></td></tr></table></body></html>';
 }
 
 function buildRegistrationSubmissionEmailHtml_(payload) {

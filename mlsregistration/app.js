@@ -1847,11 +1847,11 @@
     }
 
     if (helpChoice === HELP_OPTION.NO || standaloneFlow) {
-      completeFlow("Registration received.", { redirectToDonation: true });
+      completeFlow("MLS GO youth program registration received.", { redirectToDonation: true });
       return;
     }
 
-    completeFlow("Registration received.", { redirectToDonation: true });
+    completeFlow("MLS GO youth program registration received.", { redirectToDonation: true });
   }
 
   async function generatePlayerAgreementDocument(registrationData) {
@@ -1891,14 +1891,14 @@
       formMessage.textContent = "";
       return;
     }
-    completeFlow("Volunteer application received.", {
+    completeFlow("MLS GO youth program volunteer application received.", {
       redirectToDonation: shouldRedirectToDonation(),
     });
   }
 
   async function submitCoachingApplication() {
     if (coachingSubmitted) {
-      completeFlow("Coaching application received.", {
+      completeFlow("MLS GO youth program coaching application received.", {
         redirectToDonation: shouldRedirectToDonation(),
       });
       return;
@@ -1913,7 +1913,7 @@
     await generateVolunteerAgreement(data, "coaching_application", coachingSubmissionId);
     coachingSubmitted = true;
     volunteerSubmitted = true;
-    completeFlow("Coaching application received.", {
+    completeFlow("MLS GO youth program coaching application received.", {
       redirectToDonation: shouldRedirectToDonation(),
     });
   }
@@ -1932,14 +1932,14 @@
     const stageFlow = getCurrentStageFlow();
 
     if (stageFlow === FLOW.VOLUNTEER) {
-      completeFlow("Registration received. Volunteer step skipped.", {
+      completeFlow("MLS GO youth program registration received. The volunteer step was skipped.", {
         redirectToDonation: shouldRedirectToDonation(),
       });
       return;
     }
 
     if (stageFlow === FLOW.COACH || stageFlow === "coachSupplement") {
-      completeFlow("Registration received. Coaching step skipped.", {
+      completeFlow("MLS GO youth program registration received. The coaching step was skipped.", {
         redirectToDonation: shouldRedirectToDonation(),
       });
     }
@@ -1983,7 +1983,7 @@
     const heading = successPanel.querySelector("h2");
     const copy = successPanel.querySelector("p");
     if (heading) heading.textContent = "We’ve got your submission";
-    if (copy) copy.textContent = "Thank you for registering. Please keep an eye on your inbox for important information.";
+    if (copy) copy.textContent = "Thank you. Your submission has been received successfully. Please monitor your inbox for important information and next steps from our team.";
 
     const existingPaymentCta = successPanel.querySelector('[data-payment-cta="true"]');
     if (existingPaymentCta) existingPaymentCta.remove();
