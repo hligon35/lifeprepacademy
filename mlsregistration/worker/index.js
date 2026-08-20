@@ -1,7 +1,9 @@
+import PostalMime from "postal-mime";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { AGREEMENT_TEMPLATES } from "./template-hashes.js";
 import { PLAYER_AGREEMENT_FIELD_MAP, VOLUNTEER_AGREEMENT_FIELD_MAP } from "./pdf-field-maps.js";
 import { buildPaymentConfig } from "./payment-config.js";
+import { parseQuestReceiptEmail } from "./receipt-parser.mjs";
 
 const MAX_SIGNATURE_DATA_URL_BYTES = 1024 * 1024;
 const MAX_TYPED_SIGNATURE_LEN = 120;
@@ -120,6 +122,9 @@ export default {
     }
 
     return env.ASSETS.fetch(request);
+  },
+  async email(message, env, ctx) {
+    await handlePaymentReceiptEmail(message, env, ctx);
   },
 };
 
@@ -579,6 +584,120 @@ async function handlePaymentWebhook(request, env) {
   return json({ ok: true, paid: true, emailed: true, submissionId: normalized.submissionId });
 }
 
+async function handlePaymentReceiptEmail(message, env, ctx) {
+  const rawBuffer = await new Response(message.raw).arrayBuffer();
+  const parsed = await PostalMime.parse(rawBuffer);
+  const receipt = parseQuestReceiptEmail({
+    subject: parsed.subject || message.headers.get("subject") || "",
+    text: parsed.text || "",
+    html: parsed.html || "",
+    date: message.headers.get("date") || "",
+  });
+
+  if (!receipt) {
+    console.log("payment-receipt-email-ignored", {
+      from: message.from,
+      to: message.to,
+      subject: parsed.subject || message.headers.get("subject") || "",
+    });
+    return;
+  }
+
+  const resolved = await resolvePaymentReceiptContext(env, receipt);
+  if (!resolved.ok) {
+    console.warn("payment-receipt-email-unmatched", {
+      orderId: receipt.orderId,
+      parentEmail: receipt.parentEmail,
+      error: resolved.error,
+    });
+    return;
+  }
+
+  const { submissionId, context } = resolved;
+  if (String(context.paymentStatus || "").trim().toLowerCase() === "paid") {
+    console.log("payment-receipt-email-duplicate", {
+      submissionId,
+      orderId: receipt.orderId,
+      parentEmail: context.parentEmail,
+    });
+    return;
+  }
+
+  const paymentUpdate = await updatePaymentInSheets(env, {
+    submissionId,
+    paymentStatus: "Paid",
+    paymentAmount: receipt.amount,
+    paymentCurrency: receipt.currency,
+    paymentPaidAt: receipt.paidAt,
+    paymentTransactionId: receipt.paymentTransactionId,
+    paymentReceiptUrl: receipt.receiptUrl,
+  });
+  if (!paymentUpdate.ok) {
+    console.warn("payment-receipt-sheet-update-failed", {
+      submissionId,
+      orderId: receipt.orderId,
+      error: paymentUpdate.error,
+    });
+    return;
+  }
+
+  let signedDocumentUrl = "";
+  if (context.transactionId) {
+    try {
+      signedDocumentUrl = await buildSignerUrl(`${PRIMARY_APP_ORIGIN}/`, context.transactionId, env, EMAIL_SIGNER_LINK_TTL_MS);
+    } catch (error) {
+      console.warn("payment-receipt-signer-url-failed", {
+        submissionId,
+        transactionId: context.transactionId,
+        error: String(error?.message || error),
+      });
+    }
+  }
+
+  const emailWork = sendRegistrationPaidEmail(env, {
+    submissionId,
+    parentEmail: context.parentEmail,
+    parentName: context.parentName,
+    participantNames: context.participantNames,
+    signedAt: context.signedAt,
+    signedDocumentUrl,
+    paymentUrl: buildPlayerRegistrationPaymentUrl({
+      firstName: splitName(context.parentName).firstName,
+      lastName: splitName(context.parentName).lastName,
+      email: context.parentEmail || receipt.parentEmail,
+      zip: receipt.postalCode || "",
+      submissionId,
+      amount: receipt.amount || "75",
+      currency: receipt.currency || "USD",
+    }),
+    paymentReceiptUrl: receipt.receiptUrl,
+    registrationFeeAmount: receipt.amount || "75",
+    paidAt: receipt.paidAt,
+  }).then((result) => {
+    if (!result.ok) {
+      console.warn("payment-receipt-email-send-failed", {
+        submissionId,
+        orderId: receipt.orderId,
+        error: result.error,
+      });
+    }
+    return result;
+  }).catch((error) => {
+    console.warn("payment-receipt-email-send-failed", {
+      submissionId,
+      orderId: receipt.orderId,
+      error: String(error?.message || error),
+    });
+    return { ok: false, error: String(error?.message || error) };
+  });
+
+  if (ctx && typeof ctx.waitUntil === "function") {
+    ctx.waitUntil(emailWork);
+  } else {
+    await emailWork;
+  }
+}
+
 async function handleSignerDownload(request, env) {
   const url = new URL(request.url);
   const txId = url.pathname.split("/").pop();
@@ -867,10 +986,80 @@ async function getRegistrationContext(env, submissionId) {
       participantNames: String(parsed.participantNames || "").trim(),
       transactionId: String(parsed.transactionId || "").trim(),
       signedAt: String(parsed.signedAt || "").trim(),
+      paymentStatus: String(parsed.paymentStatus || "").trim(),
+      paymentTransactionId: String(parsed.paymentTransactionId || "").trim(),
     };
   } catch (error) {
     return { ok: false, error: String(error?.message || error) };
   }
+}
+
+async function lookupRegistrationForPaymentReceipt(env, input) {
+  if (!env.APPS_SCRIPT_URL || !env.APPS_SCRIPT_UPDATE_TOKEN) {
+    return { ok: false, error: "Missing Apps Script lookup configuration" };
+  }
+
+  const params = new URLSearchParams();
+  params.append("action", "lookup_registration_for_payment_receipt");
+  appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
+  params.append("form_type", "mls_registration");
+  params.append("parent_email", String(input.parentEmail || "").trim().toLowerCase());
+  params.append("parent_name", String(input.parentName || "").trim());
+  params.append("payment_amount", String(input.amount || "").trim());
+  params.append("payment_paid_at", String(input.paidAt || "").trim());
+  params.append("payment_transaction_id", String(input.paymentTransactionId || "").trim());
+  params.append("payment_receipt_url", String(input.receiptUrl || "").trim());
+  params.append("event_name", String(input.eventName || "").trim());
+  params.append("player_count", String(input.playerCount || "").trim());
+
+  try {
+    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
+    const parsed = safeJsonParse(text);
+    if (!parsed?.ok) {
+      return { ok: false, error: parsed?.error || "Apps Script payment receipt lookup failed" };
+    }
+    return {
+      ok: true,
+      submissionId: String(parsed.submissionId || "").trim(),
+      parentEmail: String(parsed.parentEmail || "").trim(),
+      parentName: String(parsed.parentName || "").trim(),
+      participantNames: String(parsed.participantNames || "").trim(),
+      transactionId: String(parsed.transactionId || "").trim(),
+      signedAt: String(parsed.signedAt || "").trim(),
+      paymentStatus: String(parsed.paymentStatus || "").trim(),
+      paymentTransactionId: String(parsed.paymentTransactionId || "").trim(),
+    };
+  } catch (error) {
+    return { ok: false, error: String(error?.message || error) };
+  }
+}
+
+async function resolvePaymentReceiptContext(env, receipt) {
+  if (receipt.submissionId) {
+    const context = await getRegistrationContext(env, receipt.submissionId);
+    if (!context.ok) return context;
+    return { ok: true, submissionId: receipt.submissionId, context };
+  }
+
+  const lookup = await lookupRegistrationForPaymentReceipt(env, receipt);
+  if (!lookup.ok) return lookup;
+  if (!lookup.submissionId) {
+    return { ok: false, error: "Receipt lookup returned no submission id" };
+  }
+
+  return {
+    ok: true,
+    submissionId: lookup.submissionId,
+    context: {
+      parentEmail: lookup.parentEmail,
+      parentName: lookup.parentName,
+      participantNames: lookup.participantNames,
+      transactionId: lookup.transactionId,
+      signedAt: lookup.signedAt,
+      paymentStatus: lookup.paymentStatus,
+      paymentTransactionId: lookup.paymentTransactionId,
+    },
+  };
 }
 
 async function readTemplateBytes(env, templatePath) {

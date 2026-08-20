@@ -282,6 +282,9 @@ function doPost(e) {
   if (action === 'get_registration_context') {
     return handleRegistrationContextLookup_(e.parameter);
   }
+  if (action === 'lookup_registration_for_payment_receipt') {
+    return handlePaymentReceiptLookup_(e.parameter);
+  }
   if (action === 'send_registration_receipt_email') {
     return handleRegistrationReceiptEmail_(e.parameter);
   }
@@ -801,12 +804,105 @@ function handleRegistrationContextLookup_(values) {
 
   return json_({
     ok: true,
+    submissionId: submissionId,
     parentEmail: getValue('parent_email'),
     parentName: `${getValue('parent_first_name')} ${getValue('parent_last_name')}`.trim(),
     participantNames: playerNames.join(', '),
     transactionId: getValue('Player Agreement Transaction ID'),
     signedAt: getValue('Player Agreement Signed At'),
     paymentStatus: getValue('Player Payment Status'),
+    paymentTransactionId: getValue('Player Payment Transaction ID'),
+  });
+}
+
+function handlePaymentReceiptLookup_(values) {
+  const expected = PropertiesService.getScriptProperties().getProperty('AGREEMENT_UPDATE_TOKEN') || '';
+  const provided = normalizeValue_(values.update_token || values.token || values.agreement_update_token);
+  if (!expected || provided !== expected) {
+    return json_({ ok: false, error: 'Unauthorized update token' }, 403);
+  }
+
+  const parentEmail = normalizeValue_(values.parent_email).toLowerCase();
+  if (!parentEmail || !isValidEmail_(parentEmail)) {
+    return json_({ ok: false, error: 'Invalid parent_email' }, 400);
+  }
+
+  const sheet = getSheet_(SHEET_NAMES.PLAYERS);
+  ensureHeaders_(sheet, PLAYER_HEADERS);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return json_({ ok: false, error: 'No registrations found' }, 404);
+  }
+
+  const amount = normalizeMoneyValue_(values.payment_amount);
+  const playerCount = Number(normalizeValue_(values.player_count) || 0);
+  const paidAtMs = parseDateMs_(values.payment_paid_at);
+  const desiredName = normalizeComparisonValue_(values.parent_name);
+  const desiredTransactionId = normalizeComparisonValue_(values.payment_transaction_id);
+  const rows = sheet.getRange(2, 1, lastRow - 1, PLAYER_HEADERS.length).getValues();
+  const candidates = [];
+
+  rows.forEach(function(rowValues, index) {
+    const record = {};
+    PLAYER_HEADERS.forEach(function(header, columnIndex) {
+      record[header] = normalizeValue_(rowValues[columnIndex]);
+    });
+
+    if (normalizeComparisonValue_(record.parent_email) !== normalizeComparisonValue_(parentEmail)) {
+      return;
+    }
+
+    const score = scorePaymentReceiptCandidate_(record, {
+      parentName: desiredName,
+      paymentAmount: amount,
+      playerCount: playerCount,
+      paidAtMs: paidAtMs,
+      paymentTransactionId: desiredTransactionId,
+    });
+    if (score < 0) return;
+
+    candidates.push({
+      row: index + 2,
+      score: score,
+      submittedAtMs: parseDateMs_(record.submitted_at),
+      record: record,
+    });
+  });
+
+  candidates.sort(function(a, b) {
+    if (b.score !== a.score) return b.score - a.score;
+    if (b.submittedAtMs !== a.submittedAtMs) return b.submittedAtMs - a.submittedAtMs;
+    return a.row - b.row;
+  });
+
+  if (!candidates.length) {
+    return json_({ ok: false, error: 'No matching registration row found for receipt email' }, 404);
+  }
+
+  if (candidates.length > 1 && candidates[0].score === candidates[1].score) {
+    return json_({ ok: false, error: 'Multiple matching registration rows found for receipt email' }, 409);
+  }
+
+  const winner = candidates[0].record;
+  const participantNames = [];
+  for (var i = 1; i <= 4; i += 1) {
+    const first = normalizeValue_(winner['player_' + i + '_first_name']);
+    const last = normalizeValue_(winner['player_' + i + '_last_name']);
+    const full = (first + ' ' + last).trim();
+    if (full) participantNames.push(full);
+  }
+
+  return json_({
+    ok: true,
+    submissionId: normalizeValue_(winner.registration_submission_id),
+    parentEmail: normalizeValue_(winner.parent_email),
+    parentName: `${normalizeValue_(winner.parent_first_name)} ${normalizeValue_(winner.parent_last_name)}`.trim(),
+    participantNames: participantNames.join(', '),
+    transactionId: normalizeValue_(winner['Player Agreement Transaction ID']),
+    signedAt: normalizeValue_(winner['Player Agreement Signed At']),
+    paymentStatus: normalizeValue_(winner['Player Payment Status']),
+    paymentTransactionId: normalizeValue_(winner['Player Payment Transaction ID']),
+    row: candidates[0].row,
   });
 }
 
@@ -1040,6 +1136,87 @@ function normalizeValue_(value) {
   if (value === undefined || value === null) return '';
   if (Array.isArray(value)) return value.join(', ');
   return String(value).trim();
+}
+
+function normalizeComparisonValue_(value) {
+  return normalizeValue_(value).toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function normalizeMoneyValue_(value) {
+  const normalized = normalizeValue_(value).replace(/[^0-9.]/g, '');
+  if (!normalized) return '';
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed.toFixed(2) : '';
+}
+
+function parseDateMs_(value) {
+  const normalized = normalizeValue_(value);
+  if (!normalized) return 0;
+  const parsed = new Date(normalized);
+  return isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+}
+
+function scorePaymentReceiptCandidate_(record, criteria) {
+  const status = normalizeComparisonValue_(record['Player Payment Status']);
+  const existingTransactionId = normalizeComparisonValue_(record['Player Payment Transaction ID']);
+  const existingAmount = normalizeMoneyValue_(record['Player Payment Amount']);
+  const recordPlayerCount = Number(normalizeValue_(record.player_count) || 0);
+  const expectedAmount = recordPlayerCount > 0 ? (recordPlayerCount * 75).toFixed(2) : '';
+  const recordName = normalizeComparisonValue_(`${record.parent_first_name} ${record.parent_last_name}`);
+
+  if (!normalizeValue_(record.registration_submission_id)) {
+    return -1;
+  }
+
+  if (criteria.paymentTransactionId && existingTransactionId && criteria.paymentTransactionId !== existingTransactionId) {
+    return -1;
+  }
+
+  let score = status === 'paid' ? 10 : 50;
+
+  if (criteria.paymentTransactionId && existingTransactionId && criteria.paymentTransactionId === existingTransactionId) {
+    score += 100;
+  }
+
+  if (criteria.parentName) {
+    if (recordName === criteria.parentName) {
+      score += 20;
+    } else if (recordName) {
+      score -= 10;
+    }
+  }
+
+  if (criteria.playerCount > 0 && recordPlayerCount > 0) {
+    if (criteria.playerCount === recordPlayerCount) {
+      score += 20;
+    } else {
+      score -= 25;
+    }
+  }
+
+  if (criteria.paymentAmount) {
+    if (existingAmount && existingAmount === criteria.paymentAmount) {
+      score += 15;
+    } else if (expectedAmount && expectedAmount === criteria.paymentAmount) {
+      score += 15;
+    } else if (expectedAmount) {
+      score -= 10;
+    }
+  }
+
+  if (criteria.paidAtMs > 0) {
+    const submittedAtMs = parseDateMs_(record.submitted_at);
+    if (submittedAtMs > 0) {
+      const deltaHours = Math.abs(criteria.paidAtMs - submittedAtMs) / (1000 * 60 * 60);
+      if (deltaHours <= 72) {
+        score += 10;
+      } else if (deltaHours > 24 * 30) {
+        score -= 15;
+      }
+    }
+  }
+
+  return score;
 }
 
 function handleEmailTrackingRequest_(e) {
