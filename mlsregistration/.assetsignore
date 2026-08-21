@@ -1,0 +1,7 @@
+google-apps-script/
+worker/
+preview/
+README.md
+email-preview.html
+internal-email-preview.html
+*.test.js
