@@ -4,10 +4,8 @@
   const FBZX = "-3891024944817654155";
   const GOOGLE_MAPS_API_KEY_META =
     document.querySelector('meta[name="google-maps-api-key"]')?.content.trim() || "";
-  const REGISTRATION_API_ORIGIN = "https://mlsregistration.lifeprepacademyfoundation.com";
-  const API_ORIGIN = window.location.origin === REGISTRATION_API_ORIGIN
-    ? ""
-    : REGISTRATION_API_ORIGIN;
+  const APP_ORIGIN = window.location.origin;
+  const API_ORIGIN = "";
   const PUBLIC_CONFIG_ENDPOINT = `${API_ORIGIN}/api/public-config`;
   const FORM_UPSERT_ENDPOINT = `${API_ORIGIN}/api/forms/upsert`;
   const GOOGLE_APPS_SCRIPT_URL =
@@ -18,9 +16,9 @@
     "https://www.mlssoccer.com/legal/privacy-policy";
   const MLS_TERMS_OF_SERVICE_URL =
     "https://www.mlssoccer.com/legal/terms-of-service";
-  const PPF_LIABILITY_FORM_URL = `${REGISTRATION_API_ORIGIN}/documents/PPF%20Liability%20Form.pdf`;
-  const PLAYER_AGREEMENT_TEMPLATE_URL = `${REGISTRATION_API_ORIGIN}/documents/MLS GO Player Registration Agreement.pdf`;
-  const VOLUNTEER_AGREEMENT_TEMPLATE_URL = `${REGISTRATION_API_ORIGIN}/documents/MLS GO Volunteer Agreement.pdf`;
+  const PPF_LIABILITY_FORM_URL = `${APP_ORIGIN}/documents/PPF%20Liability%20Form.pdf`;
+  const PLAYER_AGREEMENT_TEMPLATE_URL = `${APP_ORIGIN}/documents/MLS GO Player Registration Agreement.pdf`;
+  const VOLUNTEER_AGREEMENT_TEMPLATE_URL = `${APP_ORIGIN}/documents/MLS GO Volunteer Agreement.pdf`;
   const SIGNING_ENDPOINT = `${API_ORIGIN}/api/sign-agreement`;
   const E_CONSENT_TEXT_VERSION = "v1-2026-08-06";
   const ELECTRONIC_CONSENT_TEXT =
@@ -33,7 +31,11 @@
   const PAYMENT_PAUSED_MESSAGE = "Payment is temporarily paused while we transition to a new payment provider. Your registration is saved, and we will email a secure payment link when the service is available.";
   const PAYMENT_REDIRECT_URL = "https://quest.build/get-tickets/1598/71794/info?teamId=686";
   const PAYMENT_REDIRECT_DELAY_MS = 1200;
+  let pendingPaymentRedirectTimeoutId = null;
+  let lastPaymentRedirectUrl = "";
   const ENABLE_GOOGLE_FORM_MIRROR = false;
+  const FORM_UPSERT_TIMEOUT_MS = 30000;
+  const FINAL_CONFIRMATION_TIMEOUT_MS = 30000;
 
   const FLOW = {
     PLAYER: "player",
@@ -49,6 +51,90 @@
     COACH: "coach",
     BOTH: "both",
   };
+
+  const FlowLogic = window.MlsRegistrationFlowLogic;
+  if (!FlowLogic) {
+    throw new Error("MLS registration flow logic failed to load.");
+  }
+
+  const {
+    STAGES,
+    buildRequiredStages,
+    buildThankYouContent,
+    getFlowDescriptor,
+    isScholarshipRequested,
+    normalizeHelpChoice,
+    normalizeStandaloneFlow,
+  } = FlowLogic;
+
+  const FINAL_CONFIRMATION_ENDPOINT = `${API_ORIGIN}/api/forms/final-confirmation`;
+  const STAGE_SECTION_IDS = Object.freeze({
+    [STAGES.PLAYER_REGISTRATION]: [
+      "parent-section",
+      "emergency-section",
+      "player-section-1",
+      "player-section-2",
+      "player-section-3",
+      "player-section-4",
+      "scholarship-section",
+      "help-section",
+    ],
+    [STAGES.PLAYER_AGREEMENT]: ["agreements-section"],
+    [STAGES.SCHOLARSHIP_APPLICATION]: ["scholarship-application-section"],
+    [STAGES.VOLUNTEER_APPLICATION]: [
+      "volunteer-contact-section",
+      "volunteer-role-section",
+      "volunteer-experience-section",
+    ],
+    [STAGES.COACHING_APPLICATION]: [
+      "volunteer-contact-section",
+      "coaching-experience-section",
+      "coaching-availability-section",
+      "coaching-references-section",
+      "coaching-certification-section",
+    ],
+    [STAGES.VOLUNTEER_AGREEMENT]: ["volunteer-agreement-section"],
+  });
+
+  const STAGE_META = Object.freeze({
+    [STAGES.PLAYER_REGISTRATION]: {
+      title: "MLS GO Registration",
+      subtitle:
+        "Registration fee is <strong>$75 per player</strong>. You can register up to four players in a single submission.",
+      progressLabel: "Player registration",
+      submitLabel: "Save Registration",
+    },
+    [STAGES.PLAYER_AGREEMENT]: {
+      title: "Player Agreement",
+      subtitle: "Review the required documents. We will generate and record the Player Agreement after you confirm this stage.",
+      progressLabel: "Player agreement",
+      submitLabel: "Record Player Agreement",
+    },
+    [STAGES.SCHOLARSHIP_APPLICATION]: {
+      title: "Scholarship Application",
+      subtitle: "Complete the Financial Hardship Scholarship application for this family. No payment will be shown for scholarship requests.",
+      progressLabel: "Scholarship application",
+      submitLabel: "Submit Scholarship Application",
+    },
+    [STAGES.VOLUNTEER_APPLICATION]: {
+      title: "Volunteer Application",
+      subtitle: "Complete the volunteer application. The Volunteer Agreement will be recorded in the next stage.",
+      progressLabel: "Volunteer application",
+      submitLabel: "Submit Volunteer Application",
+    },
+    [STAGES.COACHING_APPLICATION]: {
+      title: "Coaching Application",
+      subtitle: "Complete the coaching application. The Volunteer Agreement will be recorded after the coaching application is complete.",
+      progressLabel: "Coaching application",
+      submitLabel: "Submit Coaching Application",
+    },
+    [STAGES.VOLUNTEER_AGREEMENT]: {
+      title: "Volunteer Agreement",
+      subtitle: "Review the Volunteer Agreement before we generate and record it for your application.",
+      progressLabel: "Volunteer agreement",
+      submitLabel: "Record Volunteer Agreement",
+    },
+  });
 
   const CLUB_OPTIONS = [
     "Atlanta United",
@@ -240,25 +326,29 @@
   const standaloneFlow = parseStandaloneFlow();
   const initialSectionId = parseInitialSectionId();
 
-  let activeFlow = standaloneFlow || FLOW.PLAYER;
-  let followUpPlan = "none";
+  let activeStageIndex = 0;
   let activeSectionIndex = 0;
-  let playerSubmitted = Boolean(standaloneFlow);
+  let lockedFlowOptions = standaloneFlow ? { standaloneFlow } : null;
+  let playerSubmitted = false;
+  let scholarshipSubmitted = false;
   let volunteerSubmitted = false;
   let coachingSubmitted = false;
   let completedRegistrationData = null;
+  let completedVolunteerData = null;
+  let completedCoachingData = null;
   let playerAgreementSigned = false;
   let volunteerAgreementSigned = false;
+  let finalConfirmationEmailFailed = false;
   let registrationSubmissionId = "";
   let volunteerSubmissionId = "";
   let coachingSubmissionId = "";
   let playerAgreementTransactionId = "";
-  let signerDownloadUrl = "";
-  let registrationEmailWarning = "";
+  let volunteerAgreementTransactionId = "";
+  let playerAgreementDownloadUrl = "";
+  let volunteerAgreementDownloadUrl = "";
   let registrationSyncWarning = "";
-  let scholarshipFollowUpMessage = "";
   let googleMapsApiKeyPromise;
-  let donationRedirectTimer = 0;
+  let isSubmittingStage = false;
 
   buildPage();
   applyPaymentModePageNote();
@@ -316,6 +406,7 @@
       buildScholarshipSection(),
       buildHelpSection(),
       buildAgreementsSection(),
+      buildScholarshipApplicationSection(),
       buildVolunteerAgreementSection(),
       buildVolunteerContactSection(),
       buildVolunteerRoleSection(),
@@ -455,7 +546,7 @@
   function buildScholarshipSection() {
     const section = createSection(
       "Financial Hardship Scholarship",
-      "If you need assistance with registration fees, we will email you information on how to apply after your registration is complete.",
+      "Tell us whether your family needs scholarship assistance. If you select Yes, the full scholarship application will appear after the Player Agreement stage.",
       false,
       "scholarship-section",
       FLOW.PLAYER,
@@ -471,6 +562,86 @@
     ]);
 
     section.append(scholarshipFields);
+    return section;
+  }
+
+  function buildScholarshipApplicationSection() {
+    const section = createSection(
+      "Financial Hardship Scholarship Application",
+      "Complete this family scholarship application once for the registered participants in this submission.",
+      false,
+      "scholarship-application-section",
+      FLOW.PLAYER,
+    );
+
+    const templateNotice = document.createElement("p");
+    templateNotice.className = "section-helper";
+    templateNotice.textContent = "Participant-specific scholarship PDF confirmation is not available yet because a dedicated scholarship template has not been added to this project. Your scholarship responses will still be recorded for staff review.";
+
+    const grid = createGrid([
+      createSelectField({
+        label: "Scholarship Request Level",
+        name: "scholarshipLevel",
+        required: true,
+        options: ["Full scholarship assistance", "Partial scholarship assistance"],
+      }),
+      createTextField({
+        label: "Household Size",
+        name: "scholarshipHouseholdSize",
+        required: true,
+        inputMode: "numeric",
+      }),
+      createTextField({
+        label: "Household Income",
+        name: "scholarshipHouseholdIncome",
+        required: true,
+      }),
+      createTextField({
+        label: "Amount Your Family Can Contribute",
+        name: "scholarshipContributionAmount",
+        required: true,
+      }),
+    ]);
+
+    const eligibility = createCheckboxGroupField({
+      label: "Which circumstances apply to your scholarship request?",
+      name: "scholarshipEligibility",
+      required: true,
+      options: [
+        "Reduced or fixed household income",
+        "Temporary employment hardship",
+        "Unexpected medical or family expenses",
+        "Multiple children registering",
+        "Other financial hardship",
+      ],
+    });
+
+    const circumstancesWrap = createFieldWrap("Tell us more about your family’s current circumstances", "scholarshipCircumstances", true);
+    const circumstances = document.createElement("textarea");
+    circumstances.id = "scholarshipCircumstances";
+    circumstances.name = "scholarshipCircumstances";
+    circumstances.required = true;
+    circumstances.rows = 5;
+    circumstancesWrap.appendChild(circumstances);
+
+    section.append(
+      templateNotice,
+      grid,
+      eligibility,
+      circumstancesWrap,
+      createCheckboxField({
+        label: "Participation Commitment",
+        name: "scholarshipParticipationCommitment",
+        required: true,
+        description: "I understand that scholarship consideration depends on completing the registration and participating in program communication with the LifePrep Academy Foundation team.",
+      }),
+      createCheckboxField({
+        label: "Parent or Guardian Acknowledgement",
+        name: "scholarshipParentAcknowledgement",
+        required: true,
+        description: "I certify that the scholarship information provided for this family is complete and accurate to the best of my knowledge.",
+      }),
+    );
     return section;
   }
 
@@ -1400,7 +1571,6 @@
     form.addEventListener("submit", handleFlowSubmit);
     backBtn?.addEventListener("click", goBack);
     nextBtn?.addEventListener("click", goNext);
-    skipBtn?.addEventListener("click", skipAndFinish);
 
     form.addEventListener("input", (event) => {
       const target = event.target;
@@ -1419,8 +1589,13 @@
       }
 
       if (target.name === "scholarshipRequested") {
-        syncConditionalFields(target.name, target.value);
         applyVisibility();
+        updateFlowMeta();
+        renderWizard();
+      }
+
+      if (target.name === "helpChoice") {
+        updateFlowMeta();
         renderWizard();
       }
 
@@ -1471,20 +1646,34 @@
     }
   }
 
-  function flowIncludes(sectionFlow) {
-    const currentStage = getCurrentStageFlow();
-    if (currentStage === FLOW.PLAYER) return sectionFlow === FLOW.PLAYER;
-    if (currentStage === FLOW.VOLUNTEER) return sectionFlow === FLOW.VOLUNTEER;
-    if (currentStage === FLOW.COACH) return sectionFlow === FLOW.VOLUNTEER || sectionFlow === FLOW.COACH;
-    if (currentStage === "coachSupplement") return sectionFlow === FLOW.COACH;
-    return false;
+  function getFlowOptions() {
+    if (lockedFlowOptions) return lockedFlowOptions;
+    return {
+      standaloneFlow,
+      scholarshipRequested: getTextValue("scholarshipRequested"),
+      helpChoice: normalizeHelpChoice(getTextValue("helpChoice")),
+    };
   }
 
-  function getCurrentStageFlow() {
-    if (activeFlow === FLOW.VOLUNTEER_AND_COACH) {
-      return volunteerSubmitted ? "coachSupplement" : FLOW.VOLUNTEER;
-    }
-    return activeFlow;
+  function lockFlowOptionsFromRegistration(registrationData) {
+    lockedFlowOptions = {
+      standaloneFlow,
+      scholarshipRequested: registrationData?.scholarship?.requested || "No",
+      helpChoice: normalizeHelpChoice(registrationData?.helpChoice || HELP_OPTION.NO),
+    };
+  }
+
+  function getRequiredStagesForCurrentFlow() {
+    return buildRequiredStages(getFlowOptions());
+  }
+
+  function getCurrentStage() {
+    const stages = getRequiredStagesForCurrentFlow();
+    return stages[activeStageIndex] || STAGES.THANK_YOU;
+  }
+
+  function getStageMeta(stage) {
+    return STAGE_META[stage] || STAGE_META[STAGES.PLAYER_REGISTRATION];
   }
 
   function includePlayerSectionByCondition(sectionId) {
@@ -1500,21 +1689,21 @@
     return true;
   }
 
+  function getSectionsForStage(stage) {
+    const ids = STAGE_SECTION_IDS[stage] || [];
+    return ids
+      .map((sectionId) => document.getElementById(sectionId))
+      .filter(Boolean)
+      .filter((section) => {
+        if (stage === STAGES.PLAYER_REGISTRATION && !includePlayerSectionByCondition(section.id)) {
+          return false;
+        }
+        return !section.classList.contains("hidden");
+      });
+  }
+
   function getVisibleSections() {
-    const currentStage = getCurrentStageFlow();
-    return Array.from(sectionsRoot.querySelectorAll(".form-section")).filter((section) => {
-      const sectionFlow = section.dataset.flow;
-      if (standaloneFlow === FLOW.COACH && currentStage === FLOW.COACH) {
-        const includeInStandaloneCoach =
-          section.id === "volunteer-contact-section" ||
-          sectionFlow === FLOW.COACH;
-        if (!includeInStandaloneCoach) return false;
-      }
-      if (!flowIncludes(sectionFlow)) return false;
-      if (sectionFlow === FLOW.PLAYER && !includePlayerSectionByCondition(section.id)) return false;
-      if (section.classList.contains("hidden")) return false;
-      return true;
-    });
+    return getSectionsForStage(getCurrentStage());
   }
 
   function getActiveSectionId() {
@@ -1560,12 +1749,20 @@
     syncConditionalFields("p2Race", getTextValue("p2Race"));
     syncConditionalFields("p3Race", getTextValue("p3Race"));
     syncConditionalFields("p4Race", getTextValue("p4Race"));
-    syncConditionalFields("scholarshipRequested", getTextValue("scholarshipRequested"));
 
     alignActiveSection(previousId);
   }
 
   function renderWizard() {
+    const stage = getCurrentStage();
+    if (stage === STAGES.THANK_YOU || (stage === STAGES.PAYMENT && !form.hidden)) {
+      renderSuccessStage();
+      return;
+    }
+
+    form.hidden = false;
+    successPanel.hidden = true;
+
     const previousId = getActiveSectionId();
     const visible = getVisibleSections();
     Array.from(sectionsRoot.querySelectorAll(".form-section")).forEach((section) => {
@@ -1580,65 +1777,35 @@
 
     const current = activeSectionIndex + 1;
     const total = visible.length;
-    const pct = Math.max(1, Math.round((current / total) * 100));
+    const stages = getRequiredStagesForCurrentFlow();
+    const pct = Math.max(1, Math.round(((activeStageIndex + 1) / stages.length) * 100));
     if (progressFill) progressFill.style.width = `${pct}%`;
 
-    const stageFlow = getCurrentStageFlow();
-    const meta = FLOW_META[stageFlow] || FLOW_META[FLOW.PLAYER];
+    const meta = getStageMeta(stage);
     if (progressText) {
-      progressText.textContent = `${meta.progressLabel} — Section ${current} of ${total}`;
+      progressText.textContent = `${meta.progressLabel} — Step ${activeStageIndex + 1} of ${stages.length} · Section ${current} of ${total}`;
     }
 
-    if (backBtn) backBtn.disabled = activeSectionIndex === 0;
+    if (backBtn) backBtn.disabled = isSubmittingStage || activeSectionIndex === 0;
     if (nextBtn) {
       const isLast = activeSectionIndex === total - 1;
       nextBtn.textContent = isLast ? meta.submitLabel : "Next Section";
-      nextBtn.disabled = false;
+      nextBtn.disabled = isSubmittingStage;
     }
-
-    const allowSkip =
-      !standaloneFlow &&
-      (stageFlow === FLOW.VOLUNTEER || stageFlow === FLOW.COACH || stageFlow === "coachSupplement") &&
-      !allSelectedFlowsCompleted();
-    if (skipBtn) skipBtn.hidden = !allowSkip;
+    if (skipBtn) {
+      skipBtn.hidden = true;
+      skipBtn.disabled = true;
+    }
   }
 
   function updateFlowMeta() {
-    const stageFlow = getCurrentStageFlow();
-    const meta = FLOW_META[stageFlow] || FLOW_META[FLOW.PLAYER];
+    const meta = getStageMeta(getCurrentStage());
     if (formTitle) formTitle.textContent = meta.title;
     if (formSubtitle) formSubtitle.innerHTML = meta.subtitle;
-
-    if (flowStatus) {
-      const message = getFlowStatusMessage();
-      flowStatus.hidden = !message;
-      flowStatus.textContent = message;
-    }
-  }
-
-  function getFlowStatusMessage() {
-    const stageFlow = getCurrentStageFlow();
-    if (stageFlow === FLOW.PLAYER) return "";
-    if (standaloneFlow === FLOW.VOLUNTEER || standaloneFlow === FLOW.COACH) return "";
-    if (activeFlow === FLOW.VOLUNTEER_AND_COACH) {
-      return volunteerSubmitted
-        ? "Volunteer application submitted. Continue with the coaching supplement."
-        : "Player registration is complete. Continue with optional volunteer intake first.";
-    }
-    if (stageFlow === FLOW.VOLUNTEER) {
-      return playerSubmitted
-        ? "Player registration is complete. You are now in optional volunteer follow-up."
-        : "";
-    }
-    if (stageFlow === FLOW.COACH || stageFlow === "coachSupplement") {
-      return playerSubmitted
-        ? "Player registration is complete. You are now in optional coaching follow-up."
-        : "";
-    }
-    return "";
   }
 
   function goBack() {
+    if (isSubmittingStage) return;
     if (activeSectionIndex > 0) {
       activeSectionIndex -= 1;
       formMessage.textContent = "";
@@ -1647,6 +1814,7 @@
   }
 
   function goNext() {
+    if (isSubmittingStage) return;
     formMessage.textContent = "";
     const visible = getVisibleSections();
     if (!visible.length) return;
@@ -1708,42 +1876,122 @@
     formMessage.textContent = "";
 
     try {
-      if (backBtn) backBtn.disabled = true;
-      if (nextBtn) nextBtn.disabled = true;
-      if (skipBtn) skipBtn.disabled = true;
+      isSubmittingStage = true;
+      renderWizard();
 
-      const stageFlow = getCurrentStageFlow();
-      if (stageFlow === FLOW.PLAYER) {
-        await submitPlayerRegistration();
-      } else if (stageFlow === FLOW.VOLUNTEER) {
-        await submitVolunteerApplication();
-      } else if (stageFlow === FLOW.COACH || stageFlow === "coachSupplement") {
-        await submitCoachingApplication();
+      const stage = getCurrentStage();
+      if (stage === STAGES.PLAYER_REGISTRATION) {
+        await submitPlayerRegistrationStage();
+      } else if (stage === STAGES.PLAYER_AGREEMENT) {
+        await submitPlayerAgreementStage();
+      } else if (stage === STAGES.SCHOLARSHIP_APPLICATION) {
+        await submitScholarshipApplicationStage();
+      } else if (stage === STAGES.VOLUNTEER_APPLICATION) {
+        await submitVolunteerApplicationStage();
+      } else if (stage === STAGES.COACHING_APPLICATION) {
+        await submitCoachingApplicationStage();
+      } else if (stage === STAGES.VOLUNTEER_AGREEMENT) {
+        await submitVolunteerAgreementStage();
       }
     } catch (error) {
       const message = String(error?.message || "").trim();
-      formMessage.textContent = message || "Submission failed. Please retry in a moment.";
+      setSubmissionStatus(getCurrentStage(), "error", message || "Submission failed. Please retry in a moment.");
     } finally {
-      if (backBtn) backBtn.disabled = false;
-      if (nextBtn) nextBtn.disabled = false;
-      if (skipBtn) skipBtn.disabled = false;
+      isSubmittingStage = false;
       renderWizard();
     }
   }
 
-  async function submitPlayerRegistration() {
+  function setSubmissionStatus(stage, state, optionalError, details) {
+    if (!flowStatus) return;
+
+    if (state === "idle") {
+      flowStatus.hidden = true;
+      flowStatus.textContent = "";
+      if (optionalError !== false) {
+        formMessage.textContent = "";
+      }
+      return;
+    }
+
+    const playerNames = Array.isArray(details?.playerNames) ? details.playerNames : [];
+    const currentIndex = Number(details?.currentIndex || 0);
+    const totalCount = Number(details?.totalCount || 0);
+
+    const runningMessages = {
+      [STAGES.PLAYER_REGISTRATION]: "Submitting your player registration. Please don’t close this window.",
+      [STAGES.PLAYER_AGREEMENT]: "Generating and recording your Player Agreement. Please don’t close this window.",
+      [STAGES.SCHOLARSHIP_APPLICATION]: playerNames.length && currentIndex > 0 && totalCount > 0
+        ? `Recording the scholarship application for ${playerNames[currentIndex - 1]} (${currentIndex} of ${totalCount}). Please don’t close this window.`
+        : "Submitting your scholarship application. Please don’t close this window.",
+      [STAGES.VOLUNTEER_APPLICATION]: "Submitting your volunteer application. Please don’t close this window.",
+      [STAGES.COACHING_APPLICATION]: "Submitting your coaching application. Please don’t close this window.",
+      [STAGES.VOLUNTEER_AGREEMENT]: "Generating and recording your Volunteer Agreement. Please don’t close this window.",
+      [STAGES.FINAL_CONFIRMATION_EMAIL]: "Finalizing your submission and preparing your confirmation email. Please don’t close this window.",
+      [STAGES.PAYMENT]: "Your forms have been submitted successfully. Continue to secure payment to finish the player registration.",
+    };
+
+    const stageLabels = {
+      [STAGES.PLAYER_REGISTRATION]: "player registration",
+      [STAGES.PLAYER_AGREEMENT]: "Player Agreement",
+      [STAGES.SCHOLARSHIP_APPLICATION]: "scholarship application",
+      [STAGES.VOLUNTEER_APPLICATION]: "volunteer application",
+      [STAGES.COACHING_APPLICATION]: "coaching application",
+      [STAGES.VOLUNTEER_AGREEMENT]: "Volunteer Agreement",
+      [STAGES.FINAL_CONFIRMATION_EMAIL]: "confirmation email",
+    };
+
+    flowStatus.hidden = false;
+    if (state === "submitting") {
+      flowStatus.textContent = runningMessages[stage] || "Submitting your form. Please don’t close this window.";
+      formMessage.textContent = "";
+      return;
+    }
+
+    const stageLabel = stageLabels[stage] || "submission";
+    const friendlyError = optionalError || `We couldn’t record your ${stageLabel}. Your previous information is saved. Please select Retry to continue.`;
+    flowStatus.textContent = friendlyError;
+    formMessage.textContent = friendlyError;
+  }
+
+  function advanceToStage(stage) {
+    const stages = getRequiredStagesForCurrentFlow();
+    const index = stages.indexOf(stage);
+    if (index >= 0) {
+      activeStageIndex = index;
+      activeSectionIndex = 0;
+      updateFlowMeta();
+      applyVisibility();
+    }
+  }
+
+  async function advanceAfterStageSuccess(stage) {
+    if (stage === STAGES.PLAYER_REGISTRATION) {
+      lockFlowOptionsFromRegistration(completedRegistrationData);
+    }
+
+    const stages = getRequiredStagesForCurrentFlow();
+    const currentIndex = stages.indexOf(stage);
+    const nextStage = stages[currentIndex + 1];
+
+    if (!nextStage) {
+      advanceToStage(STAGES.THANK_YOU);
+      return;
+    }
+
+    if (nextStage === STAGES.FINAL_CONFIRMATION_EMAIL) {
+      await finalizeFlowConfirmationStage();
+      return;
+    }
+
+    advanceToStage(nextStage);
+  }
+
+  async function submitPlayerRegistrationStage() {
     if (playerSubmitted) return;
 
-    const scholarshipRequested = getTextValue("scholarshipRequested");
-    const isScholarshipRequest = String(scholarshipRequested || "").trim() === "Yes";
-    formMessage.textContent = isScholarshipRequest
-      ? "Submitting registration..."
-      : "Submitting registration... Do not close the window. You are being redirected to a secure payment process.";
-    registrationEmailWarning = "";
+    setSubmissionStatus(STAGES.PLAYER_REGISTRATION, "submitting");
     registrationSyncWarning = "";
-    scholarshipFollowUpMessage = isScholarshipRequest
-      ? "More information will be emailed on how to apply for the scholarship."
-      : "";
 
     const registrationData = collectRegistrationData();
     registrationSubmissionId = registrationSubmissionId || generateSubmissionId("reg");
@@ -1806,15 +2054,8 @@
     params.append("partialResponse", `[null,null,"${FBZX}"]`);
     params.append("fbzx", FBZX);
 
-    try {
-      await postRegistrationCopy(registrationData);
-      await postScholarshipCopy(registrationData);
-      registrationSyncWarning = "";
-    } catch (error) {
-      console.warn("registration-upsert-failed", error);
-      registrationSyncWarning =
-        "Your registration completed, but we could not sync all form details to our records right now. Please contact info@lifeprepacademyfoundation.com so we can verify your entry.";
-    }
+    await postRegistrationCopy(registrationData);
+    registrationSyncWarning = "";
 
     if (ENABLE_GOOGLE_FORM_MIRROR) {
       // Mirror to Google Form as best-effort telemetry only.
@@ -1825,145 +2066,104 @@
 
     completedRegistrationData = registrationData;
     playerSubmitted = true;
-
-    const helpChoice = mapHelpChoice(getTextValue("helpChoice"));
-    followUpPlan = helpChoice;
-
-    void generatePlayerAgreementDocument(registrationData);
-
-    if (helpChoice === HELP_OPTION.VOLUNTEER) {
-      switchFlow(FLOW.VOLUNTEER, true);
-      return;
-    }
-
-    if (helpChoice === HELP_OPTION.COACH) {
-      switchFlow(FLOW.COACH, true);
-      return;
-    }
-
-    if (helpChoice === HELP_OPTION.BOTH) {
-      switchFlow(FLOW.VOLUNTEER_AND_COACH, true);
-      return;
-    }
-
-    if (helpChoice === HELP_OPTION.NO || standaloneFlow) {
-      completeFlow("MLS GO youth program registration received.", { redirectToDonation: true });
-      return;
-    }
-
-    completeFlow("MLS GO youth program registration received.", { redirectToDonation: true });
+    prefillVolunteerContact();
+    setSubmissionStatus(STAGES.PLAYER_REGISTRATION, "idle");
+    await advanceAfterStageSuccess(STAGES.PLAYER_REGISTRATION);
   }
 
-  async function generatePlayerAgreementDocument(registrationData) {
-    try {
-      await generatePlayerAgreement(registrationData);
-    } catch (error) {
-      console.warn("player-agreement-generation-failed", error);
-      registrationSyncWarning =
-        "Your registration was received, but we could not add the completed document to our records right now. Please contact info@lifeprepacademyfoundation.com so we can verify your entry.";
+  async function submitPlayerAgreementStage() {
+    if (playerAgreementSigned) {
+      await advanceAfterStageSuccess(STAGES.PLAYER_AGREEMENT);
+      return;
     }
-    renderCompletionMessages();
+
+    setSubmissionStatus(STAGES.PLAYER_AGREEMENT, "submitting");
+    await generatePlayerAgreement(completedRegistrationData);
+    playerAgreementSigned = true;
+    setSubmissionStatus(STAGES.PLAYER_AGREEMENT, "idle");
+    await advanceAfterStageSuccess(STAGES.PLAYER_AGREEMENT);
   }
 
-  async function submitVolunteerApplication() {
+  async function submitScholarshipApplicationStage() {
+    if (scholarshipSubmitted) {
+      await advanceAfterStageSuccess(STAGES.SCHOLARSHIP_APPLICATION);
+      return;
+    }
+
+    setSubmissionStatus(STAGES.SCHOLARSHIP_APPLICATION, "submitting");
+
+    completedRegistrationData.scholarship = collectScholarshipApplicationData();
+    await postScholarshipCopy(completedRegistrationData);
+    scholarshipSubmitted = true;
+    setSubmissionStatus(STAGES.SCHOLARSHIP_APPLICATION, "idle");
+    await advanceAfterStageSuccess(STAGES.SCHOLARSHIP_APPLICATION);
+  }
+
+  async function submitVolunteerApplicationStage() {
     if (volunteerSubmitted) {
-      afterVolunteerSubmission();
+      await advanceAfterStageSuccess(STAGES.VOLUNTEER_APPLICATION);
       return;
     }
 
-    formMessage.textContent = "Submitting volunteer application...";
+    setSubmissionStatus(STAGES.VOLUNTEER_APPLICATION, "submitting");
     const data = collectVolunteerData();
-    data.agreement = true;
     volunteerSubmissionId = volunteerSubmissionId || generateSubmissionId("vol");
     data.submission_id = volunteerSubmissionId;
     await postAuxFlow("volunteer_application", data);
-    await generateVolunteerAgreement(data, "volunteer_application", volunteerSubmissionId);
+    completedVolunteerData = data;
     volunteerSubmitted = true;
-    afterVolunteerSubmission();
+    setSubmissionStatus(STAGES.VOLUNTEER_APPLICATION, "idle");
+    await advanceAfterStageSuccess(STAGES.VOLUNTEER_APPLICATION);
   }
 
-  function afterVolunteerSubmission() {
-    if (activeFlow === FLOW.VOLUNTEER_AND_COACH && !coachingSubmitted) {
-      activeSectionIndex = 0;
-      updateFlowMeta();
-      applyVisibility();
-      renderWizard();
-      formMessage.textContent = "";
-      return;
-    }
-    completeFlow("MLS GO youth program volunteer application received.", {
-      redirectToDonation: shouldRedirectToDonation(),
-    });
-  }
-
-  async function submitCoachingApplication() {
+  async function submitCoachingApplicationStage() {
     if (coachingSubmitted) {
-      completeFlow("MLS GO youth program coaching application received.", {
-        redirectToDonation: shouldRedirectToDonation(),
-      });
+      await advanceAfterStageSuccess(STAGES.COACHING_APPLICATION);
       return;
     }
 
-    formMessage.textContent = "Submitting coaching application...";
+    setSubmissionStatus(STAGES.COACHING_APPLICATION, "submitting");
     const data = collectCoachingData();
-    data.agreement = true;
     coachingSubmissionId = coachingSubmissionId || generateSubmissionId("coach");
     data.submission_id = coachingSubmissionId;
     await postAuxFlow("coaching_application", data);
-    await generateVolunteerAgreement(data, "coaching_application", coachingSubmissionId);
+    completedCoachingData = data;
     coachingSubmitted = true;
-    volunteerSubmitted = true;
-    completeFlow("MLS GO youth program coaching application received.", {
-      redirectToDonation: shouldRedirectToDonation(),
-    });
+    setSubmissionStatus(STAGES.COACHING_APPLICATION, "idle");
+    await advanceAfterStageSuccess(STAGES.COACHING_APPLICATION);
   }
 
-  function switchFlow(nextFlow, prefillVolunteer) {
-    activeFlow = nextFlow;
-    activeSectionIndex = 0;
-    if (prefillVolunteer) prefillVolunteerContact();
-    updateFlowMeta();
-    applyVisibility();
-    renderWizard();
-    formMessage.textContent = "";
-  }
-
-  function skipAndFinish() {
-    const stageFlow = getCurrentStageFlow();
-
-    if (stageFlow === FLOW.VOLUNTEER) {
-      completeFlow("MLS GO youth program registration received. The volunteer step was skipped.", {
-        redirectToDonation: shouldRedirectToDonation(),
-      });
+  async function submitVolunteerAgreementStage() {
+    if (volunteerAgreementSigned) {
+      await advanceAfterStageSuccess(STAGES.VOLUNTEER_AGREEMENT);
       return;
     }
 
-    if (stageFlow === FLOW.COACH || stageFlow === "coachSupplement") {
-      completeFlow("MLS GO youth program registration received. The coaching step was skipped.", {
-        redirectToDonation: shouldRedirectToDonation(),
-      });
+    setSubmissionStatus(STAGES.VOLUNTEER_AGREEMENT, "submitting");
+    const agreementSource = completedVolunteerData || completedCoachingData || collectVolunteerData();
+    const agreementFormType = completedVolunteerData ? "volunteer_application" : "coaching_application";
+    const agreementSubmissionId = completedVolunteerData ? volunteerSubmissionId : coachingSubmissionId;
+    await generateVolunteerAgreement(agreementSource, agreementFormType, agreementSubmissionId);
+    volunteerAgreementSigned = true;
+    setSubmissionStatus(STAGES.VOLUNTEER_AGREEMENT, "idle");
+    await advanceAfterStageSuccess(STAGES.VOLUNTEER_AGREEMENT);
+  }
+
+  async function finalizeFlowConfirmationStage() {
+    setSubmissionStatus(STAGES.FINAL_CONFIRMATION_EMAIL, "submitting");
+    try {
+      const emailResult = await sendFinalConfirmationEmail();
+      finalConfirmationEmailFailed = !Boolean(emailResult?.sent || emailResult?.duplicate);
+    } catch (error) {
+      finalConfirmationEmailFailed = true;
+      console.warn("final-confirmation-email-failed", error);
     }
+
+    setSubmissionStatus(STAGES.FINAL_CONFIRMATION_EMAIL, "idle", false);
+    advanceToStage(STAGES.THANK_YOU);
   }
 
-  function shouldRedirectToDonation() {
-    if (standaloneFlow === FLOW.VOLUNTEER || standaloneFlow === FLOW.COACH) return false;
-    return playerSubmitted;
-  }
-
-  function allSelectedFlowsCompleted() {
-    if (activeFlow === FLOW.VOLUNTEER_AND_COACH) {
-      return volunteerSubmitted && coachingSubmitted;
-    }
-    if (standaloneFlow === FLOW.VOLUNTEER) return volunteerSubmitted;
-    if (standaloneFlow === FLOW.COACH) return coachingSubmitted;
-    if (followUpPlan === HELP_OPTION.VOLUNTEER) return volunteerSubmitted;
-    if (followUpPlan === HELP_OPTION.COACH) return coachingSubmitted;
-    if (followUpPlan === HELP_OPTION.BOTH) return volunteerSubmitted && coachingSubmitted;
-    return playerSubmitted;
-  }
-
-  function completeFlow(message, options = {}) {
-    activeFlow = FLOW.COMPLETE;
+  function renderSuccessStage() {
     Array.from(sectionsRoot.querySelectorAll(".form-section")).forEach((section) => {
       section.classList.remove("is-current");
     });
@@ -1973,107 +2173,86 @@
 
     form.hidden = true;
     successPanel.hidden = false;
+    flowStatus.hidden = true;
     formMessage.textContent = "";
-
-    if (donationRedirectTimer) {
-      clearTimeout(donationRedirectTimer);
-      donationRedirectTimer = 0;
-    }
 
     const heading = successPanel.querySelector("h2");
     const copy = successPanel.querySelector("p");
-    if (heading) heading.textContent = "We’ve got your submission";
-    if (copy) copy.textContent = "Thank you. Your submission has been received successfully. Please monitor your inbox for important information and next steps from our team.";
+    const thankYouContent = buildThankYouContent({
+      ...getFlowOptions(),
+      emailSent: !finalConfirmationEmailFailed,
+    });
 
-    const existingPaymentCta = successPanel.querySelector('[data-payment-cta="true"]');
-    if (existingPaymentCta) existingPaymentCta.remove();
+    if (heading) heading.textContent = thankYouContent.heading;
+    if (copy) copy.textContent = thankYouContent.message;
 
-    const existingPaymentNote = successPanel.querySelector('[data-payment-note="true"]');
-    if (existingPaymentNote) existingPaymentNote.remove();
-
-    const existingPaymentHint = successPanel.querySelector('[data-payment-hint="true"]');
-    if (existingPaymentHint) existingPaymentHint.remove();
-
-    const existingPaymentTaxSubtitle = successPanel.querySelector('[data-payment-tax-subtitle="true"]');
-    if (existingPaymentTaxSubtitle) existingPaymentTaxSubtitle.remove();
-
-    renderCompletionMessages();
-
-    if (options.redirectToDonation) {
-      const paymentAmount = calculateRegistrationFeeAmount();
-      const paymentRedirectUrl = buildPaymentRedirectUrl(completedRegistrationData);
-      const paymentNote = document.createElement("p");
-      paymentNote.dataset.paymentNote = "true";
-      paymentNote.textContent = PAYMENT_MODE === "redirect"
-        ? "Your registration has been submitted. Redirecting you to secure payment now."
-        : "Your registration has been submitted. We will email you a secure payment link as soon as payments resume.";
-      successPanel.appendChild(paymentNote);
-
-      const paymentHint = document.createElement("p");
-      paymentHint.dataset.paymentHint = "true";
-      paymentHint.textContent = PAYMENT_MODE === "redirect"
-        ? `If redirect does not start automatically, use the button below to continue to secure payment. Registration total: $${paymentAmount}.`
-        : `${PAYMENT_PAUSED_MESSAGE} Your registration fee amount is currently $${paymentAmount} for the selected player count.`;
-      successPanel.appendChild(paymentHint);
-
-      const paymentCta = PAYMENT_MODE === "redirect"
-        ? document.createElement("a")
-        : document.createElement("p");
-      paymentCta.className = "btn btn-primary";
-      paymentCta.dataset.paymentCta = "true";
-
-      if (paymentCta instanceof HTMLAnchorElement) {
-        paymentCta.href = paymentRedirectUrl || PAYMENT_REDIRECT_URL;
-        paymentCta.target = "_blank";
-        paymentCta.rel = "noopener noreferrer";
-        paymentCta.setAttribute("role", "button");
-        paymentCta.style.display = "inline-block";
-        paymentCta.style.textDecoration = "none";
-        paymentCta.style.textAlign = "center";
-        paymentCta.style.width = "100%";
-        paymentCta.textContent = `Continue to Payment — registration total $${paymentAmount}`;
-      } else {
-        paymentCta.textContent = `Payment temporarily paused — registration total $${paymentAmount}`;
-      }
-
-      successPanel.appendChild(paymentCta);
-
-      if (PAYMENT_MODE === "redirect" && PAYMENT_PROVIDER === "quest" && paymentRedirectUrl) {
-        donationRedirectTimer = window.setTimeout(() => {
-          window.location.assign(paymentRedirectUrl);
-        }, PAYMENT_REDIRECT_DELAY_MS);
-      }
-    }
-  }
-
-  function renderCompletionMessages() {
-    if (!successPanel) return;
-
-    const existingEmailWarning = successPanel.querySelector('[data-email-warning="true"]');
-    if (existingEmailWarning) existingEmailWarning.remove();
-
-    const existingSyncWarning = successPanel.querySelector('[data-sync-warning="true"]');
-    if (existingSyncWarning) existingSyncWarning.remove();
-
-    if (registrationEmailWarning) {
-      const emailWarning = document.createElement("p");
-      emailWarning.dataset.emailWarning = "true";
-      emailWarning.textContent = registrationEmailWarning;
-      successPanel.appendChild(emailWarning);
-    }
+    Array.from(successPanel.querySelectorAll("[data-dynamic-success='true']")).forEach((node) => node.remove());
 
     if (registrationSyncWarning) {
       const syncWarning = document.createElement("p");
-      syncWarning.dataset.syncWarning = "true";
+      syncWarning.dataset.dynamicSuccess = "true";
       syncWarning.textContent = registrationSyncWarning;
       successPanel.appendChild(syncWarning);
     }
 
-    if (scholarshipFollowUpMessage) {
-      const scholarshipMessage = document.createElement("p");
-      scholarshipMessage.dataset.scholarshipFollowUp = "true";
-      scholarshipMessage.textContent = scholarshipFollowUpMessage;
-      successPanel.appendChild(scholarshipMessage);
+    const descriptor = getFlowDescriptor(getFlowOptions());
+    const paymentAllowed = descriptor.paymentRequired && getRequiredStagesForCurrentFlow().includes(STAGES.PAYMENT);
+    if (!paymentAllowed) return;
+
+    if (pendingPaymentRedirectTimeoutId) {
+      window.clearTimeout(pendingPaymentRedirectTimeoutId);
+      pendingPaymentRedirectTimeoutId = null;
+    }
+
+    const playerCount = selectedPlayerCount();
+    const paymentAmount = calculateRegistrationFeeAmount();
+    const registrationTotalMessage = formatRegistrationTotalMessage(playerCount, paymentAmount);
+    const paymentMessage = document.createElement("p");
+    paymentMessage.dataset.dynamicSuccess = "true";
+    paymentMessage.textContent = PAYMENT_MODE === "redirect"
+      ? `Your forms have been submitted successfully. Redirecting you to secure payment in a moment. Registration total: ${registrationTotalMessage}.`
+      : `Your forms have been submitted successfully. Registration total: ${registrationTotalMessage}.`;
+    successPanel.appendChild(paymentMessage);
+
+    const paymentRedirectUrl = buildPaymentRedirectUrl(completedRegistrationData);
+    const paymentButton = PAYMENT_MODE === "redirect"
+      ? document.createElement("a")
+      : document.createElement("p");
+    paymentButton.dataset.dynamicSuccess = "true";
+    paymentButton.className = "btn btn-primary";
+
+    if (paymentButton instanceof HTMLAnchorElement) {
+      paymentButton.href = paymentRedirectUrl || PAYMENT_REDIRECT_URL;
+      paymentButton.rel = "noopener noreferrer";
+      paymentButton.setAttribute("role", "button");
+      paymentButton.style.display = "inline-block";
+      paymentButton.style.textDecoration = "none";
+      paymentButton.style.textAlign = "center";
+      paymentButton.style.width = "100%";
+      paymentButton.textContent = `Continue to Secure Payment - ${registrationTotalMessage}`;
+    } else {
+      paymentButton.textContent = `Payment temporarily paused - ${registrationTotalMessage}`;
+    }
+
+    successPanel.appendChild(paymentButton);
+
+    const paymentHint = document.createElement("p");
+    paymentHint.dataset.dynamicSuccess = "true";
+    paymentHint.textContent = PAYMENT_MODE === "redirect"
+      ? `If the payment page does not prefill the registration fee, select Other and enter ${registrationTotalMessage}. If you are not redirected automatically, use the button above.`
+      : `${PAYMENT_PAUSED_MESSAGE} Your registration fee amount is ${registrationTotalMessage}.`;
+    successPanel.appendChild(paymentHint);
+
+    if (PAYMENT_MODE === "redirect" && paymentRedirectUrl) {
+      const shouldRedirect = paymentRedirectUrl !== lastPaymentRedirectUrl;
+      lastPaymentRedirectUrl = paymentRedirectUrl;
+
+      if (shouldRedirect) {
+        pendingPaymentRedirectTimeoutId = window.setTimeout(() => {
+          pendingPaymentRedirectTimeoutId = null;
+          window.location.assign(paymentRedirectUrl);
+        }, PAYMENT_REDIRECT_DELAY_MS);
+      }
     }
   }
 
@@ -2106,15 +2285,17 @@
   }
 
   function mapHelpChoice(value) {
-    if (value === "Volunteer") return HELP_OPTION.VOLUNTEER;
-    if (value === "Apply to coach") return HELP_OPTION.COACH;
-    if (value === "Volunteer and apply to coach") return HELP_OPTION.BOTH;
-    return HELP_OPTION.NO;
+    return normalizeHelpChoice(value);
   }
 
   function calculateRegistrationFeeAmount() {
     const playerCount = selectedPlayerCount();
     return Math.max(0, playerCount * REGISTRATION_FEE_AMOUNT_PER_PLAYER);
+  }
+
+  function formatRegistrationTotalMessage(playerCount, paymentAmount) {
+    const playerLabel = playerCount === 1 ? "1 player" : `${playerCount} players`;
+    return `$${REGISTRATION_FEE_AMOUNT_PER_PLAYER} x ${playerLabel} = $${paymentAmount}`;
   }
 
   function buildDonateUrl() {
@@ -2361,6 +2542,28 @@
     };
   }
 
+  function collectScholarshipApplicationData() {
+    return {
+      requested: completedRegistrationData?.scholarship?.requested || getTextValue("scholarshipRequested") || "Yes",
+      level: getTextValue("scholarshipLevel"),
+      householdSize: getTextValue("scholarshipHouseholdSize"),
+      householdIncome: getTextValue("scholarshipHouseholdIncome"),
+      eligibility: getCheckedValues("scholarshipEligibility"),
+      circumstances: getTextValue("scholarshipCircumstances"),
+      contributionAmount: getTextValue("scholarshipContributionAmount"),
+      participationCommitment: getCheckboxValue("scholarshipParticipationCommitment"),
+      parentAcknowledgement: getCheckboxValue("scholarshipParentAcknowledgement"),
+    };
+  }
+
+  function getParticipantNames(registrationData) {
+    return Array.isArray(registrationData?.players)
+      ? registrationData.players
+        .map((player) => `${player?.firstName || ""} ${player?.lastName || ""}`.trim())
+        .filter(Boolean)
+      : [];
+  }
+
   function requestAgreementSignature(options) {
     const {
       prefix,
@@ -2501,6 +2704,7 @@
       agreementType: "player",
       formType: "mls_registration",
       submissionId: registrationData.registrationSubmissionId,
+      transactionId: playerAgreementTransactionId || undefined,
       signer: {
         printedName,
       },
@@ -2569,16 +2773,16 @@
       body: JSON.stringify(payload),
     });
 
-    if (!res.ok) {
-      throw new Error("Player agreement document generation failed.");
-    }
     const result = await res.json().catch(() => ({}));
-    playerAgreementTransactionId = result.transactionId || playerAgreementTransactionId;
-    signerDownloadUrl = result.signerDownloadUrl || signerDownloadUrl;
-    if (result?.sheetUpdate && result.sheetUpdate.ok === false) {
-      registrationSyncWarning =
-        "Your registration was received, but we could not add the completed document to our records right now. Please contact info@lifeprepacademyfoundation.com so we can verify your entry.";
+    if (!res.ok) {
+      throw new Error(resolveAgreementRequestError(result, "Player agreement document generation failed."));
     }
+    playerAgreementTransactionId = result.transactionId || playerAgreementTransactionId;
+    playerAgreementDownloadUrl = result.emailDownloadUrl || result.signerDownloadUrl || playerAgreementDownloadUrl;
+    if (result?.sheetUpdate && result.sheetUpdate.ok === false) {
+      throw new Error("We couldn’t record your Player Agreement. Your previous information is saved. Please select Retry to continue.");
+    }
+    playerAgreementSigned = true;
   }
 
   async function generateVolunteerAgreement(data, formType, submissionId) {
@@ -2590,8 +2794,10 @@
       agreementType: "volunteer",
       formType,
       submissionId,
+      transactionId: volunteerAgreementTransactionId || undefined,
       signer: {
         printedName,
+        ageYears: calculateAgeYears(data.dob),
       },
       audit: {
         viewedAtUtc,
@@ -2611,11 +2817,16 @@
       body: JSON.stringify(payload),
     });
 
-    if (!res.ok) {
-      throw new Error("Volunteer agreement document generation failed.");
-    }
     const result = await res.json().catch(() => ({}));
-    signerDownloadUrl = result.signerDownloadUrl || signerDownloadUrl;
+    if (!res.ok) {
+      throw new Error(resolveAgreementRequestError(result, "Volunteer agreement document generation failed."));
+    }
+    volunteerAgreementTransactionId = result.transactionId || volunteerAgreementTransactionId;
+    volunteerAgreementDownloadUrl = result.emailDownloadUrl || result.signerDownloadUrl || volunteerAgreementDownloadUrl;
+    if (result?.sheetUpdate && result.sheetUpdate.ok === false) {
+      throw new Error("We couldn’t record your Volunteer Agreement. Your previous information is saved. Please select Retry to continue.");
+    }
+    volunteerAgreementSigned = true;
   }
 
   function calculateAgeYears(isoDate) {
@@ -2627,6 +2838,12 @@
     const m = now.getMonth() - dob.getMonth();
     if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age -= 1;
     return age;
+  }
+
+  function resolveAgreementRequestError(payload, fallbackMessage) {
+    const sheetUpdateError = String(payload?.sheetUpdate?.error || "").trim();
+    const primaryError = String(payload?.error || "").trim();
+    return sheetUpdateError || primaryError || fallbackMessage;
   }
 
   function generateSubmissionId(prefix) {
@@ -2683,36 +2900,61 @@
     }, 6000);
   }
 
-  async function sendScholarshipApplicationEmail(registrationData) {
-    const requested = String(registrationData?.scholarship?.requested || "").trim();
-    if (requested !== "Yes") return;
-    const parentEmail = String(registrationData?.parent?.email || "").trim();
-    if (!parentEmail || !GOOGLE_APPS_SCRIPT_URL) return;
+  async function sendFinalConfirmationEmail() {
+    const descriptor = getFlowDescriptor(getFlowOptions());
+    const participantNames = getParticipantNames(completedRegistrationData);
+    const applicantFirstName = completedRegistrationData?.parent?.firstName || completedVolunteerData?.firstName || completedCoachingData?.firstName || "";
+    const applicantLastName = completedRegistrationData?.parent?.lastName || completedVolunteerData?.lastName || completedCoachingData?.lastName || "";
+    const recipientEmail = completedRegistrationData?.parent?.email || completedVolunteerData?.email || completedCoachingData?.email || "";
+    const submissionId = registrationSubmissionId || volunteerSubmissionId || coachingSubmissionId;
+    const paymentUrl = descriptor.paymentRequired ? buildPaymentRedirectUrl(completedRegistrationData) : "";
+    const signedDocumentUrls = [];
 
-    const params = new URLSearchParams();
-    params.append("action", "send_scholarship_application_email");
-    params.append("form_type", "scholarship_application");
-    params.append("registration_submission_id", registrationData.registrationSubmissionId || "");
-    params.append("parent_email", parentEmail);
-    params.append("parent_name", `${registrationData.parent?.firstName || ""} ${registrationData.parent?.lastName || ""}`.trim());
-    params.append("participant_names", Array.isArray(registrationData.players)
-      ? registrationData.players.map((player) => `${player.firstName || ""} ${player.lastName || ""}`.trim()).filter(Boolean).join(", ")
-      : "");
-    params.append("scholarship_requested", requested);
-    params.append("submitted_at", registrationData.submittedAt || new Date().toISOString());
+    if (playerAgreementDownloadUrl) {
+      signedDocumentUrls.push({ label: "Player Agreement", url: playerAgreementDownloadUrl });
+    }
+    if (volunteerAgreementDownloadUrl) {
+      signedDocumentUrls.push({ label: "Volunteer Agreement", url: volunteerAgreementDownloadUrl });
+    }
 
-    await fetchWithTimeout(GOOGLE_APPS_SCRIPT_URL, {
+    const res = await fetchWithTimeout(FINAL_CONFIRMATION_ENDPOINT, {
       method: "POST",
-      mode: "no-cors",
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        "Content-Type": "application/json",
+        Accept: "application/json",
       },
-      body: params.toString(),
-    }, 7000);
+      body: JSON.stringify({
+        submissionId,
+        registrationSubmissionId,
+        volunteerSubmissionId,
+        coachingSubmissionId,
+        emailType: descriptor.emailType,
+        applicantFirstName,
+        applicantLastName,
+        recipientEmail,
+        participantNames,
+        formsRecorded: descriptor.formsRecorded,
+        agreementsRecorded: descriptor.agreementsRecorded,
+        scholarshipRequested: completedRegistrationData?.scholarship?.requested || "No",
+        paymentRequired: descriptor.paymentRequired,
+        paymentUrl,
+        paymentAmount: descriptor.paymentRequired ? String(calculateRegistrationFeeAmount()) : "",
+        signedDocumentUrls,
+        sourceUrl: window.location.href,
+      }),
+    }, FINAL_CONFIRMATION_TIMEOUT_MS);
+
+    const payload = await res.json().catch(() => null);
+    if (!res.ok || !payload?.ok) {
+      throw new Error(String(payload?.error || `Final confirmation email failed (${res.status})`).trim());
+    }
+
+    return payload.result || { sent: true };
   }
 
   async function postRegistrationCopy(data) {
     const values = {
+      defer_confirmation_email: "yes",
       registration_submission_id: data.registrationSubmissionId || "",
       submitted_at: data.submittedAt,
       page_url: data.pageUrl,
@@ -2769,11 +3011,14 @@
   async function postScholarshipCopy(registrationData) {
     const scholarship = registrationData?.scholarship || {};
     const requested = String(scholarship.requested || "No").trim();
-    if (requested !== "Yes") {
+    if (!isScholarshipRequested(requested)) {
       return;
     }
 
+    const participantNames = getParticipantNames(registrationData);
+
     const values = {
+      defer_confirmation_email: "yes",
       submitted_at: registrationData.submittedAt,
       registration_submission_id: registrationData.registrationSubmissionId || "",
       page_url: registrationData.pageUrl,
@@ -2790,6 +3035,7 @@
       scholarship_contribution_amount: scholarship.contributionAmount || "",
       scholarship_participation_commitment: scholarship.participationCommitment ? "yes" : "no",
       scholarship_parent_acknowledgement: scholarship.parentAcknowledgement ? "yes" : "no",
+      participant_names: participantNames.join(", "),
     };
 
     await postAuxFlow("scholarship_application", values);
@@ -2811,8 +3057,14 @@
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ formType, values }),
-      }, 7000);
+        body: JSON.stringify({
+          formType,
+          values: {
+            ...values,
+            defer_confirmation_email: values?.defer_confirmation_email || "yes",
+          },
+        }),
+      }, FORM_UPSERT_TIMEOUT_MS);
       payload = await res.json().catch(() => null);
       if (!res.ok || !payload?.ok) {
         error = String(payload?.error || `Form upsert failed (${res.status})`).trim();
@@ -2823,19 +3075,12 @@
 
     if (!error) return;
 
-    if (GOOGLE_APPS_SCRIPT_URL) {
-      // Non-blocking fallback keeps submit flow fast while still attempting direct sync.
-      postUpsertDirect(formType, values).catch((fallbackErr) => {
-        console.warn("Direct Apps Script fallback failed", {
-          formType,
-          error: String(fallbackErr?.message || fallbackErr),
-        });
-      });
-      console.warn("Worker upsert failed; direct Apps Script fallback started", {
+    if (payload?.details) {
+      console.warn("worker-upsert-failed", {
         formType,
         error,
+        details: payload.details,
       });
-      return;
     }
 
     throw new Error(error || "Form upsert failed");
@@ -2850,8 +3095,8 @@
       if (value === undefined || value === null) return;
       if (Array.isArray(value)) {
         if (value.length) params.append(key, value.join(", "));
-        return;
-      }
+      return;
+    }
       if (typeof value === "object") return;
       const text = String(value).trim();
       if (text) params.append(key, text);

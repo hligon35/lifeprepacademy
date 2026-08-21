@@ -96,6 +96,13 @@ export default {
       return json({ ok: false, error: "Method not allowed" }, 405, request, env);
     }
 
+    if (url.pathname === "/api/forms/final-confirmation" && request.method === "POST") {
+      return handleFinalConfirmationEmail(request, env);
+    }
+    if (url.pathname === "/api/forms/final-confirmation") {
+      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+    }
+
     if (url.pathname === "/api/payment-webhook/cornerstone" && (request.method === "POST" || request.method === "GET")) {
       return handlePaymentWebhook(request, env);
     }
@@ -213,7 +220,7 @@ export class SigningTransactionsDO {
 
 async function handleSignAgreement(request, env, ctx) {
   const origin = request.headers.get("Origin") || "";
-  if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "")) {
+  if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "", request.url)) {
     return json({ ok: false, error: "Origin not allowed" }, 403, request, env);
   }
 
@@ -326,7 +333,7 @@ async function handleSignAgreement(request, env, ctx) {
     const signerUrl = await buildSignerUrl(request.url, txId, env);
     const emailDownloadUrl = await buildSignerUrl(request.url, txId, env, EMAIL_SIGNER_LINK_TTL_MS);
 
-    const sheetUpdatePromise = updateAgreementInSheets(env, {
+    const sheetUpdate = await updateAgreementInSheets(env, {
       formType,
       submissionId,
       agreementType,
@@ -339,42 +346,19 @@ async function handleSignAgreement(request, env, ctx) {
       status: "Viewed",
       agreementVersion: template.version,
     });
-    let sheetUpdate = { ok: true, pending: Boolean(ctx && typeof ctx.waitUntil === "function"), error: "" };
-
-    if (ctx && typeof ctx.waitUntil === "function") {
-      ctx.waitUntil(
-        sheetUpdatePromise.then((result) => {
-          if (!result.ok) {
-            console.warn("agreement-sheet-update-failed", {
-              txId,
-              submissionId,
-              formType,
-              error: result.error,
-            });
-            return result;
-          }
-
-          return result;
-        }).catch((error) => {
-          console.warn("agreement-sheet-update-failed", {
-            txId,
-            submissionId,
-            formType,
-            error: String(error?.message || error),
-          });
-        }),
-      );
-    } else {
-      sheetUpdate = await sheetUpdatePromise;
-      if (!sheetUpdate.ok) {
-        console.warn("agreement-sheet-update-failed", {
-          txId,
-          submissionId,
-          formType,
-          error: sheetUpdate.error,
-        });
-      }
-
+    if (!sheetUpdate.ok) {
+      console.warn("agreement-sheet-update-failed", {
+        txId,
+        submissionId,
+        formType,
+        error: sheetUpdate.error,
+      });
+      await markTransactionFailed(env, txId, String(sheetUpdate.error || "Sheet update failed"));
+      return json({
+        ok: false,
+        error: `Agreement sheet update failed: ${String(sheetUpdate.error || "Sheet update failed")}`,
+        sheetUpdate,
+      }, 502, request, env);
     }
 
     await doFetch(env, "/transaction", {
@@ -437,7 +421,7 @@ async function handleSignAgreement(request, env, ctx) {
 
 async function handleFormUpsert(request, env) {
   const origin = request.headers.get("Origin") || "";
-  if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "")) {
+  if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "", request.url)) {
     return json({ ok: false, error: "Origin not allowed" }, 403, request, env);
   }
 
@@ -452,13 +436,16 @@ async function handleFormUpsert(request, env) {
 
   const formType = String(payload.formType || "").trim();
   const values = payload.values && typeof payload.values === "object" ? payload.values : null;
+  const deferConfirmationEmail = String(values?.defer_confirmation_email || "").trim().toLowerCase() === "yes";
   if (!formType || !values) {
     return json({ ok: false, error: "Missing formType or values" }, 400, request, env);
   }
 
   const params = new URLSearchParams();
   params.append("form_type", formType);
-  appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
+  if (env.APPS_SCRIPT_UPDATE_TOKEN) {
+    appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
+  }
   Object.entries(values).forEach(([key, value]) => {
     if (!key) return;
     if (value === undefined || value === null) return;
@@ -482,15 +469,15 @@ async function handleFormUpsert(request, env) {
       }, 502, request, env);
     }
 
-    let email = { ok: true, skipped: true };
-    if (formType === "mls_registration") {
+    let email = { ok: true, skipped: true, deferred: deferConfirmationEmail };
+    if (!deferConfirmationEmail && formType === "mls_registration") {
       email = await postRegistrationEmailAction(env, "send_registration_receipt_email", {
         registration_submission_id: values.registration_submission_id || "",
         parent_email: values.parent_email || "",
         parent_name: `${values.parent_first_name || ""} ${values.parent_last_name || ""}`.trim(),
         participant_names: buildParticipantNames(values),
       });
-    } else if (formType === "volunteer_application" || formType === "coaching_application") {
+    } else if (!deferConfirmationEmail && (formType === "volunteer_application" || formType === "coaching_application")) {
       email = await sendVolunteerCoachConfirmationEmail(env, {
         formType,
         submissionId: values.submission_id || "",
@@ -498,6 +485,60 @@ async function handleFormUpsert(request, env) {
     }
 
     return json({ ok: true, result: parsed, email }, 200, request, env);
+  } catch (error) {
+    return json({ ok: false, error: String(error?.message || error) }, 502, request, env);
+  }
+}
+
+async function handleFinalConfirmationEmail(request, env) {
+  const origin = request.headers.get("Origin") || "";
+  if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "", request.url)) {
+    return json({ ok: false, error: "Origin not allowed" }, 403, request, env);
+  }
+
+  if (!env.APPS_SCRIPT_URL || !hasAppsScriptUpdateToken(env)) {
+    return json({ ok: false, error: "Apps Script email configuration is missing" }, 500, request, env);
+  }
+
+  const payload = await request.json().catch(() => null);
+  if (!payload || typeof payload !== "object") {
+    return json({ ok: false, error: "Invalid JSON" }, 400, request, env);
+  }
+
+  const recipientEmail = String(payload.recipientEmail || "").trim();
+  const submissionId = String(payload.submissionId || payload.registrationSubmissionId || payload.volunteerSubmissionId || payload.coachingSubmissionId || "").trim();
+  const emailType = String(payload.emailType || "").trim();
+  if (!recipientEmail || !submissionId || !emailType) {
+    return json({ ok: false, error: "Missing recipientEmail, submissionId, or emailType" }, 400, request, env);
+  }
+
+  const params = new URLSearchParams();
+  params.append("action", "send_flow_confirmation_email");
+  params.append("submission_id", submissionId);
+  params.append("registration_submission_id", String(payload.registrationSubmissionId || "").trim());
+  params.append("volunteer_submission_id", String(payload.volunteerSubmissionId || "").trim());
+  params.append("coaching_submission_id", String(payload.coachingSubmissionId || "").trim());
+  params.append("email_type", emailType);
+  params.append("recipient_email", recipientEmail);
+  params.append("applicant_first_name", String(payload.applicantFirstName || "").trim());
+  params.append("applicant_last_name", String(payload.applicantLastName || "").trim());
+  params.append("participant_names", Array.isArray(payload.participantNames) ? payload.participantNames.join(", ") : String(payload.participantNames || "").trim());
+  params.append("forms_recorded_json", JSON.stringify(Array.isArray(payload.formsRecorded) ? payload.formsRecorded : []));
+  params.append("agreements_recorded_json", JSON.stringify(Array.isArray(payload.agreementsRecorded) ? payload.agreementsRecorded : []));
+  params.append("scholarship_requested", String(payload.scholarshipRequested || "No").trim());
+  params.append("payment_required", payload.paymentRequired ? "yes" : "no");
+  params.append("payment_url", String(payload.paymentUrl || "").trim());
+  params.append("payment_amount", String(payload.paymentAmount || "").trim());
+  params.append("signed_document_urls_json", JSON.stringify(Array.isArray(payload.signedDocumentUrls) ? payload.signedDocumentUrls : []));
+  params.append("source_url", String(payload.sourceUrl || "").trim());
+
+  try {
+    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const parsed = response.parsed;
+    if (!parsed?.ok) {
+      return json({ ok: false, error: parsed?.error || "Apps Script final confirmation email failed" }, 502, request, env);
+    }
+    return json({ ok: true, result: parsed }, 200, request, env);
   } catch (error) {
     return json({ ok: false, error: String(error?.message || error) }, 502, request, env);
   }
@@ -902,13 +943,12 @@ function decodeDataUrl(dataUrl) {
 }
 
 async function updateAgreementInSheets(env, input) {
-  if (!env.APPS_SCRIPT_URL || !env.APPS_SCRIPT_UPDATE_TOKEN) {
+  if (!env.APPS_SCRIPT_URL || !hasAppsScriptUpdateToken(env)) {
     return { ok: false, error: "Missing Apps Script update configuration" };
   }
 
   const params = new URLSearchParams();
   params.append("action", "update_agreement_metadata");
-  appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
   params.append("form_type", input.formType);
   params.append("submission_id", input.submissionId);
   params.append("agreement_type", input.agreementType);
@@ -922,8 +962,8 @@ async function updateAgreementInSheets(env, input) {
   params.append("agreement_transaction_id", input.transactionId);
 
   try {
-    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
-    const parsed = safeJsonParse(text);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const parsed = response.parsed;
     if (!parsed?.ok) {
       return { ok: false, error: parsed?.error || "Apps Script update failed" };
     }
@@ -934,13 +974,12 @@ async function updateAgreementInSheets(env, input) {
 }
 
 async function updatePaymentInSheets(env, input) {
-  if (!env.APPS_SCRIPT_URL || !env.APPS_SCRIPT_UPDATE_TOKEN) {
+  if (!env.APPS_SCRIPT_URL || !hasAppsScriptUpdateToken(env)) {
     return { ok: false, error: "Missing Apps Script update configuration" };
   }
 
   const params = new URLSearchParams();
   params.append("action", "update_payment_metadata");
-  appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
   params.append("form_type", "mls_registration");
   params.append("submission_id", input.submissionId);
   params.append("payment_status", input.paymentStatus || "Paid");
@@ -951,8 +990,8 @@ async function updatePaymentInSheets(env, input) {
   params.append("payment_receipt_url", String(input.paymentReceiptUrl || ""));
 
   try {
-    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
-    const parsed = safeJsonParse(text);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const parsed = response.parsed;
     if (!parsed?.ok) {
       return { ok: false, error: parsed?.error || "Apps Script payment update failed" };
     }
@@ -963,19 +1002,18 @@ async function updatePaymentInSheets(env, input) {
 }
 
 async function getRegistrationContext(env, submissionId) {
-  if (!env.APPS_SCRIPT_URL || !env.APPS_SCRIPT_UPDATE_TOKEN) {
+  if (!env.APPS_SCRIPT_URL || !hasAppsScriptUpdateToken(env)) {
     return { ok: false, error: "Missing Apps Script lookup configuration" };
   }
 
   const params = new URLSearchParams();
   params.append("action", "get_registration_context");
-  appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
   params.append("form_type", "mls_registration");
   params.append("submission_id", submissionId);
 
   try {
-    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
-    const parsed = safeJsonParse(text);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const parsed = response.parsed;
     if (!parsed?.ok) {
       return { ok: false, error: parsed?.error || "Apps Script context lookup failed" };
     }
@@ -995,13 +1033,12 @@ async function getRegistrationContext(env, submissionId) {
 }
 
 async function lookupRegistrationForPaymentReceipt(env, input) {
-  if (!env.APPS_SCRIPT_URL || !env.APPS_SCRIPT_UPDATE_TOKEN) {
+  if (!env.APPS_SCRIPT_URL || !hasAppsScriptUpdateToken(env)) {
     return { ok: false, error: "Missing Apps Script lookup configuration" };
   }
 
   const params = new URLSearchParams();
   params.append("action", "lookup_registration_for_payment_receipt");
-  appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
   params.append("form_type", "mls_registration");
   params.append("parent_email", String(input.parentEmail || "").trim().toLowerCase());
   params.append("parent_name", String(input.parentName || "").trim());
@@ -1013,8 +1050,8 @@ async function lookupRegistrationForPaymentReceipt(env, input) {
   params.append("player_count", String(input.playerCount || "").trim());
 
   try {
-    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
-    const parsed = safeJsonParse(text);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const parsed = response.parsed;
     if (!parsed?.ok) {
       return { ok: false, error: parsed?.error || "Apps Script payment receipt lookup failed" };
     }
@@ -1093,7 +1130,7 @@ function buildSignerUrl(baseUrl, txId, env, ttlMs = DEFAULT_SIGNER_LINK_TTL_MS) 
 }
 
 async function sendRegistrationPaidEmail(env, input) {
-  if (!env.APPS_SCRIPT_URL || !env.APPS_SCRIPT_UPDATE_TOKEN) {
+  if (!env.APPS_SCRIPT_URL || !hasAppsScriptUpdateToken(env)) {
     return { ok: false, error: "Missing Apps Script email configuration" };
   }
 
@@ -1104,7 +1141,6 @@ async function sendRegistrationPaidEmail(env, input) {
 
   const params = new URLSearchParams();
   params.append("action", "send_registration_paid_email");
-  appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
   params.append("form_type", "mls_registration");
   params.append("registration_submission_id", String(input.submissionId || "").trim());
   params.append("parent_email", parentEmail);
@@ -1118,8 +1154,8 @@ async function sendRegistrationPaidEmail(env, input) {
   params.append("registration_fee_amount", String(input.registrationFeeAmount || "75").trim());
 
   try {
-    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
-    const parsed = safeJsonParse(text);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const parsed = response.parsed;
     if (!parsed?.ok) {
       return { ok: false, error: parsed?.error || "Apps Script email send failed" };
     }
@@ -1130,7 +1166,7 @@ async function sendRegistrationPaidEmail(env, input) {
 }
 
 async function sendRegistrationSubmissionEmail(env, input) {
-  if (!env.APPS_SCRIPT_URL || !env.APPS_SCRIPT_UPDATE_TOKEN) {
+  if (!env.APPS_SCRIPT_URL || !hasAppsScriptUpdateToken(env)) {
     return { ok: false, error: "Missing Apps Script email configuration" };
   }
 
@@ -1207,7 +1243,7 @@ async function sendRegistrationSubmissionEmail(env, input) {
 }
 
 async function sendVolunteerCoachConfirmationEmail(env, input) {
-  if (!env.APPS_SCRIPT_URL || !env.APPS_SCRIPT_UPDATE_TOKEN) {
+  if (!env.APPS_SCRIPT_URL || !hasAppsScriptUpdateToken(env)) {
     return { ok: false, error: "Missing Apps Script email configuration" };
   }
 
@@ -1219,13 +1255,12 @@ async function sendVolunteerCoachConfirmationEmail(env, input) {
 
   const params = new URLSearchParams();
   params.append("action", "send_volunteer_coach_confirmation_email");
-  appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
   params.append("form_type", formType);
   params.append("submission_id", submissionId);
 
   try {
-    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
-    const parsed = safeJsonParse(text);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const parsed = response.parsed;
     if (!parsed?.ok) {
       return { ok: false, error: parsed?.error || "Apps Script volunteer/coach email send failed" };
     }
@@ -1236,9 +1271,12 @@ async function sendVolunteerCoachConfirmationEmail(env, input) {
 }
 
 async function postRegistrationEmailAction(env, action, payload) {
+  if (!env.APPS_SCRIPT_URL || !hasAppsScriptUpdateToken(env)) {
+    return { ok: false, error: "Missing Apps Script email configuration" };
+  }
+
   const params = new URLSearchParams();
   params.append("action", action);
-  appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
   params.append("form_type", "mls_registration");
 
   Object.entries(payload).forEach(([key, value]) => {
@@ -1246,8 +1284,8 @@ async function postRegistrationEmailAction(env, action, payload) {
   });
 
   try {
-    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
-    const parsed = safeJsonParse(text);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const parsed = response.parsed;
     if (!parsed?.ok) {
       return { ok: false, error: parsed?.error || `Apps Script ${action} failed` };
     }
@@ -1431,18 +1469,59 @@ function normalizePaymentWebhookPayload(payload) {
   };
 }
 
-function isAllowedOrigin(origin, csv) {
+function isLocalDevUrl(urlValue) {
+  try {
+    const parsed = new URL(urlValue || "");
+    if (
+      parsed.protocol === "http:" &&
+      (parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost")
+    ) {
+      return true;
+    }
+  } catch (_error) {
+    return false;
+  }
+  return false;
+}
+function isLocalHttpVariantOfAllowedOrigin(origin, allowedOrigins, requestUrl) {
+  try {
+    const parsedOrigin = new URL(origin || "");
+    const parsedRequestUrl = new URL(requestUrl || "");
+    if (parsedOrigin.protocol !== "http:" || parsedRequestUrl.protocol !== "http:") {
+      return false;
+    }
+    return allowedOrigins.some((allowedOrigin) => {
+      try {
+        const parsedAllowedOrigin = new URL(allowedOrigin);
+        return (
+          parsedAllowedOrigin.protocol === "https:" &&
+          parsedAllowedOrigin.hostname === parsedOrigin.hostname &&
+          (parsedAllowedOrigin.port || "") === (parsedOrigin.port || "")
+        );
+      } catch (_error) {
+        return false;
+      }
+    });
+  } catch (_error) {
+    return false;
+  }
+}
+
+function isAllowedOrigin(origin, csv, requestUrl) {
+  if (isLocalDevUrl(requestUrl)) return true;
   if (!origin) return false;
+  if (isLocalDevUrl(origin)) return true;
   const allowed = [
     ...DEFAULT_ALLOWED_ORIGINS,
     ...csv.split(",").map((v) => v.trim()).filter(Boolean),
   ];
-  return allowed.includes(origin);
+  return allowed.includes(origin) || isLocalHttpVariantOfAllowedOrigin(origin, allowed, requestUrl);
 }
 
 function buildCorsHeaders(request, env) {
   const origin = request?.headers?.get("Origin") || "";
-  const allowOrigin = isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "")
+  const requestUrl = request?.url || "";
+  const allowOrigin = isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "", requestUrl)
     ? origin
     : PRIMARY_APP_ORIGIN;
   return {
@@ -1456,7 +1535,7 @@ function buildCorsHeaders(request, env) {
 
 function handleApiOptions(request, env) {
   const origin = request.headers.get("Origin") || "";
-  if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "")) {
+  if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "", request.url)) {
     return new Response(null, { status: 403 });
   }
   return new Response(null, {
@@ -1537,6 +1616,58 @@ async function postAppsScriptForm(url, params) {
   });
 
   return res.text();
+}
+
+function hasAppsScriptUpdateToken(env) {
+  return getAppsScriptUpdateTokenCandidates(env).length > 0;
+}
+
+function getAppsScriptUpdateTokenCandidates(env) {
+  return [...new Set([
+    String(env?.APPS_SCRIPT_UPDATE_TOKEN || "").trim(),
+    String(env?.AGREEMENT_UPDATE_TOKEN || "").trim(),
+  ].filter(Boolean))];
+}
+
+function cloneParamsWithoutUpdateTokens(params) {
+  const clone = new URLSearchParams();
+  params.forEach((value, key) => {
+    if (key === "update_token" || key === "token" || key === "agreement_update_token") return;
+    clone.append(key, value);
+  });
+  return clone;
+}
+
+async function postAppsScriptFormWithUpdateTokenFallback(env, params) {
+  const baseParams = cloneParamsWithoutUpdateTokens(params);
+  const tokens = getAppsScriptUpdateTokenCandidates(env);
+
+  if (!env.APPS_SCRIPT_URL || !tokens.length) {
+    return {
+      parsed: { ok: false, error: "Missing Apps Script update configuration" },
+      text: "",
+    };
+  }
+
+  let lastParsed = null;
+  let lastText = "";
+
+  for (const token of tokens) {
+    const attemptParams = new URLSearchParams(baseParams);
+    appendUpdateTokenParams(attemptParams, token);
+    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, attemptParams);
+    const parsed = safeJsonParse(text);
+    if (parsed?.ok) {
+      return { parsed, text };
+    }
+    lastParsed = parsed;
+    lastText = text;
+    if (parsed?.error !== "Unauthorized update token") {
+      break;
+    }
+  }
+
+  return { parsed: lastParsed, text: lastText };
 }
 
 function appendUpdateTokenParams(params, token) {

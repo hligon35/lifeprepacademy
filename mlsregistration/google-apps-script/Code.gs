@@ -47,6 +47,10 @@ const EMAIL_HEADER_LINK_URL = 'https://lifeprepacademyfoundation.com';
 const EMAIL_FOOTER_LINK_URL = 'https://lifeprepacademyfoundation.com/mls-go.html';
 const INTERNAL_SUBMISSION_RECIPIENTS = 'hligon@getsparqd.com,bhall@lifeprepacademyfoundation.com';
 const REGISTRATION_PAYMENT_FALLBACK = 'If the registration fee is not prefilled on the payment page, select Other and enter $75.';
+const EMAIL_SENDER_ALIAS = 'youthprograms@lifeprepacademyfoundation.com';
+const EMAIL_REPLY_TO = 'info@lifeprepacademyfoundation.com';
+const DEFAULT_EMAIL_SENDER_NAME = 'LifePrep Academy Foundation';
+const TEST_SEND_RECIPIENT = 'hligon@getsparqd.com';
 
 const SCHOLARSHIP_HEADERS = [
   'submitted_at',
@@ -65,6 +69,7 @@ const SCHOLARSHIP_HEADERS = [
   'scholarship_contribution_amount',
   'scholarship_participation_commitment',
   'scholarship_parent_acknowledgement',
+  'participant_names',
 ];
 
 const PLAYER_HEADERS = [
@@ -250,6 +255,65 @@ const FORM_CONFIG = {
   },
 };
 
+function sendBrandedEmail_(message) {
+  const to = normalizeValue_(message && message.to);
+  const subject = normalizeValue_(message && message.subject);
+  const body = normalizeValue_((message && message.body) || '');
+  const from = normalizeValue_((message && message.from) || EMAIL_SENDER_ALIAS).toLowerCase();
+  const aliases = GmailApp.getAliases().map(function(alias) {
+    return normalizeValue_(alias).toLowerCase();
+  });
+
+  if (!to) throw new Error('Email recipient is required.');
+  if (!subject) throw new Error('Email subject is required.');
+  if (!from) throw new Error('Email sender alias is required.');
+  if (aliases.indexOf(from) === -1) {
+    throw new Error('Configured sender alias is not available for this mailbox: ' + from);
+  }
+
+  GmailApp.sendEmail(to, subject, body, {
+    htmlBody: message && message.htmlBody ? message.htmlBody : undefined,
+    name: normalizeValue_((message && message.name) || DEFAULT_EMAIL_SENDER_NAME),
+    replyTo: normalizeValue_((message && message.replyTo) || EMAIL_REPLY_TO),
+    from: from,
+  });
+}
+
+function testSendAliasEmail() {
+  sendBrandedEmail_({
+    to: TEST_SEND_RECIPIENT,
+    subject: 'MLS GO Apps Script Alias Test',
+    body: 'This is a direct alias-sender test from the MLS GO Apps Script project.',
+    htmlBody: buildBrandedSubmissionEmailHtml_({
+      title: 'MLS GO Apps Script Alias Test',
+      greeting: 'This is a direct alias-sender test from the MLS GO Apps Script project.',
+      message: 'If you received this, the script executed under bhall@lifeprepacademyfoundation.com and sent through youthprograms@lifeprepacademyfoundation.com.',
+    }),
+    name: DEFAULT_EMAIL_SENDER_NAME,
+    replyTo: EMAIL_REPLY_TO,
+  });
+}
+
+function testSendFlowConfirmationEmail() {
+  return sendFlowConfirmationEmail_({
+    emailType: 'registration_player',
+    submissionId: 'TEST-' + new Date().getTime(),
+    recipientEmail: TEST_SEND_RECIPIENT,
+    applicantFirstName: 'Harold',
+    applicantLastName: 'Ligon',
+    participantNames: 'Test Player One',
+    formsRecorded: ['MLS GO Registration'],
+    agreementsRecorded: ['Player Agreement'],
+    scholarshipRequested: 'No',
+    paymentRequired: true,
+    paymentAmount: '75',
+    paymentUrl: 'https://example.com/payment-test',
+    signedDocumentUrls: [],
+    sourceUrl: BRAND_URL,
+    trackingBaseUrl: ScriptApp.getService().getUrl(),
+  });
+}
+
 function doGet(e) {
   if (!e || !e.parameter) {
     return HtmlService.createHtmlOutput('<p>Email tracking endpoint is active.</p>');
@@ -293,6 +357,9 @@ function doPost(e) {
   }
   if (action === 'send_scholarship_application_email') {
     return handleScholarshipApplicationEmail_(e.parameter);
+  }
+  if (action === 'send_flow_confirmation_email') {
+    return handleFlowConfirmationEmail_(e.parameter);
   }
   if (action === 'send_volunteer_coach_confirmation_email') {
     return handleVolunteerCoachConfirmationEmail_(e.parameter);
@@ -382,7 +449,7 @@ function sendInternalSubmissionNotification_(formType, config, values, rowValues
   ].join('\n');
 
   try {
-    MailApp.sendEmail({
+    sendBrandedEmail_({
       to: INTERNAL_SUBMISSION_RECIPIENTS,
       subject,
       body,
@@ -399,7 +466,7 @@ function sendInternalSubmissionNotification_(formType, config, values, rowValues
         paymentPaidAt,
       }),
       name: 'LifePrep Academy Foundation MLS GO',
-      replyTo: 'info@lifeprepacademyfoundation.com',
+      replyTo: EMAIL_REPLY_TO,
     });
   } catch (error) {
     writeError_(formType, 'Internal submission notification email failed', {
@@ -588,12 +655,60 @@ function handleScholarshipApplicationEmail_(values) {
   }
 }
 
+function handleFlowConfirmationEmail_(values) {
+  const expected = PropertiesService.getScriptProperties().getProperty('AGREEMENT_UPDATE_TOKEN') || '';
+  const provided = normalizeValue_(values.update_token || values.token || values.agreement_update_token);
+  if (!expected || provided !== expected) {
+    return json_({ ok: false, error: 'Unauthorized update token' }, 403);
+  }
+
+  const submissionId = normalizeValue_(values.submission_id || values.registration_submission_id || values.volunteer_submission_id || values.coaching_submission_id);
+  const recipientEmail = normalizeValue_(values.recipient_email || values.parent_email || values.email).toLowerCase();
+  const emailType = normalizeValue_(values.email_type);
+  if (!submissionId || !recipientEmail || !emailType || !isValidEmail_(recipientEmail)) {
+    return json_({ ok: false, error: 'Missing submission_id, recipient_email, or email_type' }, 400);
+  }
+
+  try {
+    const payload = {
+      submissionId: submissionId,
+      registrationSubmissionId: normalizeValue_(values.registration_submission_id),
+      volunteerSubmissionId: normalizeValue_(values.volunteer_submission_id),
+      coachingSubmissionId: normalizeValue_(values.coaching_submission_id),
+      emailType: emailType,
+      recipientEmail: recipientEmail,
+      applicantFirstName: normalizeValue_(values.applicant_first_name),
+      applicantLastName: normalizeValue_(values.applicant_last_name),
+      participantNames: normalizeValue_(values.participant_names),
+      scholarshipRequested: normalizeValue_(values.scholarship_requested),
+      paymentRequired: normalizeValue_(values.payment_required).toLowerCase() === 'yes',
+      paymentUrl: normalizeValue_(values.payment_url),
+      paymentAmount: normalizeValue_(values.payment_amount) || '75',
+      sourceUrl: normalizeValue_(values.source_url),
+      formsRecorded: parseJsonArrayOfStrings_(values.forms_recorded_json),
+      agreementsRecorded: parseJsonArrayOfStrings_(values.agreements_recorded_json),
+      signedDocumentUrls: parseJsonLinkArray_(values.signed_document_urls_json),
+    };
+
+    const result = sendFlowConfirmationEmail_(payload);
+    return json_({ ok: true, sent: result.sent, duplicate: result.duplicate, tracking_id: result.trackingId || '' });
+  } catch (error) {
+    writeError_('flow_confirmation_email', 'Final flow confirmation email failed', {
+      submission_id: submissionId,
+      recipient_email: recipientEmail,
+      email_type: emailType,
+      error: String(error && error.message ? error.message : error),
+    });
+    return json_({ ok: false, error: String(error && error.message ? error.message : error) }, 500);
+  }
+}
+
 function sendScholarshipApplicationEmailByTemplate_(payload) {
   const email = normalizeValue_(payload.parentEmail).toLowerCase();
   const subject = 'Financial Hardship Scholarship Application Received';
   const body = 'Thank you for submitting a Financial Hardship Scholarship application for LifePrep Academy Foundation\'s MLS GO youth program. We have successfully received your application. Please monitor your inbox for important information and next steps from our team.';
 
-  MailApp.sendEmail({
+  sendBrandedEmail_({
     to: email,
     subject,
     body,
@@ -602,8 +717,8 @@ function sendScholarshipApplicationEmailByTemplate_(payload) {
       greeting: 'Thank you for submitting a Financial Hardship Scholarship application for LifePrep Academy Foundation\'s MLS GO youth program.',
       message: 'We have successfully received your application. Please monitor your inbox for important information and next steps from our team.',
     }),
-    name: 'LifePrep Academy Foundation',
-    replyTo: 'info@lifeprepacademyfoundation.com',
+    name: DEFAULT_EMAIL_SENDER_NAME,
+    replyTo: EMAIL_REPLY_TO,
   });
 }
 
@@ -1305,13 +1420,229 @@ function createEmailTrackingContext_(payload, emailType) {
     return buildEmailTrackingUrl_(trackingBaseUrl, trackingToken, 'clicked', emailType, submissionId, recipientEmail, targetUrl, linkLabel);
   };
 
-  recordEmailTrackingEvent_(trackingToken, 'sent', emailType, submissionId, recipientEmail, '', '', null, null);
-
   return {
     trackingToken: trackingToken,
+    emailType: emailType,
+    submissionId: submissionId,
+    recipientEmail: recipientEmail,
+    sourceUrl: normalizeValue_(payload.sourceUrl || ''),
     openUrl: openUrl,
     makeTrackedUrl: makeTrackedUrl,
   };
+}
+
+function hasSuccessfulSentTrackingEvent_(emailType, submissionId, recipientEmail) {
+  const sheet = getSheet_(EMAIL_TRACKING_SHEET_NAME);
+  ensureHeaders_(sheet, EMAIL_TRACKING_HEADERS);
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return false;
+
+  const values = sheet.getRange(2, 1, lastRow - 1, EMAIL_TRACKING_HEADERS.length).getValues();
+  const normalizedType = normalizeComparisonValue_(emailType);
+  const normalizedSubmissionId = normalizeComparisonValue_(submissionId);
+  const normalizedRecipient = normalizeComparisonValue_(recipientEmail);
+
+  for (var i = 0; i < values.length; i += 1) {
+    const row = values[i];
+    if (
+      normalizeComparisonValue_(row[1]) === 'sent' &&
+      normalizeComparisonValue_(row[2]) === normalizedType &&
+      normalizeComparisonValue_(row[3]) === normalizedSubmissionId &&
+      normalizeComparisonValue_(row[4]) === normalizedRecipient
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function recordEmailSentEvent_(trackingContext) {
+  recordEmailTrackingEvent_(
+    trackingContext.trackingToken,
+    'sent',
+    trackingContext.emailType,
+    trackingContext.submissionId,
+    trackingContext.recipientEmail,
+    '',
+    '',
+    null,
+    { source_url: trackingContext.sourceUrl || '' }
+  );
+}
+
+function sendFlowConfirmationEmail_(payload) {
+  if (hasSuccessfulSentTrackingEvent_(payload.emailType, payload.submissionId, payload.recipientEmail)) {
+    return { sent: false, duplicate: true, trackingId: '' };
+  }
+
+  const applicantName = `${payload.applicantFirstName || ''} ${payload.applicantLastName || ''}`.trim() || 'Applicant';
+  const trackingContext = createEmailTrackingContext_({
+    submissionId: payload.submissionId,
+    parentEmail: payload.recipientEmail,
+    sourceUrl: payload.sourceUrl,
+  }, payload.emailType);
+  const signedLinks = Array.isArray(payload.signedDocumentUrls) ? payload.signedDocumentUrls : [];
+  const paymentUrl = payload.paymentRequired && payload.paymentUrl
+    ? trackingContext.makeTrackedUrl(payload.paymentUrl, 'Continue to Secure Payment')
+    : '';
+  const trackedSignedLinks = signedLinks.map(function(link) {
+    return {
+      label: link.label,
+      url: trackingContext.makeTrackedUrl(link.url, link.label || 'Signed Document'),
+    };
+  });
+
+  const copy = buildFlowConfirmationEmailCopy_({
+    emailType: payload.emailType,
+    applicantName: applicantName,
+    participantNames: payload.participantNames,
+    submissionId: payload.submissionId,
+    formsRecorded: payload.formsRecorded,
+    agreementsRecorded: payload.agreementsRecorded,
+    scholarshipRequested: payload.scholarshipRequested,
+    paymentRequired: payload.paymentRequired,
+    paymentAmount: payload.paymentAmount,
+    paymentUrl: paymentUrl,
+    signedDocumentUrls: trackedSignedLinks,
+    openTrackingUrl: trackingContext.openUrl,
+  });
+
+  sendBrandedEmail_({
+    to: payload.recipientEmail,
+    subject: copy.subject,
+    body: copy.text,
+    htmlBody: copy.html,
+    name: DEFAULT_EMAIL_SENDER_NAME,
+    replyTo: EMAIL_REPLY_TO,
+  });
+
+  recordEmailSentEvent_(trackingContext);
+  return { sent: true, duplicate: false, trackingId: trackingContext.trackingToken };
+}
+
+function buildFlowConfirmationEmailCopy_(payload) {
+  const subjectMap = {
+    registration_player: 'MLS GO Registration Received',
+    registration_player_volunteer: 'MLS GO Registration and Volunteer Forms Received',
+    registration_player_coach: 'MLS GO Registration and Coaching Forms Received',
+    registration_player_volunteer_coach: 'MLS GO Registration, Volunteer, and Coaching Forms Received',
+    scholarship_player: 'MLS GO Registration and Scholarship Application Received',
+    scholarship_player_volunteer: 'MLS GO Registration, Scholarship, and Volunteer Forms Received',
+    scholarship_player_coach: 'MLS GO Registration, Scholarship, and Coaching Forms Received',
+    scholarship_player_volunteer_coach: 'MLS GO Registration, Scholarship, Volunteer, and Coaching Forms Received',
+    standalone_volunteer: 'MLS GO Volunteer Application Received',
+    standalone_coach: 'MLS GO Coaching Application Received',
+  };
+
+  const formsLine = payload.formsRecorded.length ? payload.formsRecorded.join(', ') : 'Your submitted forms';
+  const agreementsLine = payload.agreementsRecorded.length ? payload.agreementsRecorded.join(', ') : 'No agreement links are available yet';
+  const participantLine = payload.participantNames || 'Not applicable';
+  const signedLinksHtml = payload.signedDocumentUrls.map(function(link) {
+    return '<li style="margin:0 0 8px"><a href="' + escapeHtml_(link.url) + '" style="color:#1d2f40;font-weight:700;text-decoration:none">' + escapeHtml_(link.label) + '</a></li>';
+  }).join('');
+  const signedLinksText = payload.signedDocumentUrls.map(function(link) {
+    return '- ' + link.label + ': ' + link.url;
+  }).join('\n');
+
+  const intro = getFlowConfirmationIntro_(payload.emailType);
+  const paymentParagraph = payload.paymentRequired
+    ? 'Payment is still required to finish the player registration. Use the secure payment link below.'
+    : 'No payment is required at this time.';
+  const scholarshipParagraph = String(payload.scholarshipRequested || '').trim().toLowerCase() === 'yes'
+    ? 'Scholarship status: Financial Hardship Scholarship requested. Our team will review the application and contact you with the next steps.'
+    : '';
+
+  const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+    + '<body style="margin:0;padding:0;background:#f4f0e8;font-family:Arial,sans-serif;color:#1d2f40">'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#f4f0e8"><tr><td style="padding:24px 12px">'
+    + '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;max-width:680px;margin:0 auto;border-collapse:collapse;background:#ffffff;border:1px solid #d9d2c7">'
+    + '<tr><td><a href="' + escapeHtml_(EMAIL_HEADER_LINK_URL) + '" style="display:block"><img src="' + escapeHtml_(REGISTRATION_BANNER_URL) + '" alt="LifePrep Academy Foundation MLS GO youth program" style="display:block;width:100%;height:auto;border:0"></a></td></tr>'
+    + '<tr><td style="padding:34px 30px 30px">'
+    + '<p style="margin:0 0 10px;color:#c16a2b;font-size:12px;line-height:1.3;font-weight:700;letter-spacing:.12em;text-transform:uppercase">LifePrep Academy Foundation</p>'
+    + '<h1 style="margin:0 0 18px;color:#1d2f40;font-size:28px;line-height:1.2">' + escapeHtml_(subjectMap[payload.emailType] || 'Submission Received') + '</h1>'
+    + '<p style="margin:0 0 16px;color:#22313f;font-size:16px;line-height:1.7">Hello ' + escapeHtml_(payload.applicantName || 'Applicant') + ',</p>'
+    + '<p style="margin:0 0 16px;color:#22313f;font-size:16px;line-height:1.7">' + escapeHtml_(intro) + '</p>'
+    + '<p style="margin:0 0 12px;color:#22313f;font-size:15px;line-height:1.7"><strong>Submission ID:</strong> ' + escapeHtml_(payload.submissionId) + '</p>'
+    + '<p style="margin:0 0 12px;color:#22313f;font-size:15px;line-height:1.7"><strong>Participant(s):</strong> ' + escapeHtml_(participantLine) + '</p>'
+    + '<p style="margin:0 0 12px;color:#22313f;font-size:15px;line-height:1.7"><strong>Forms received:</strong> ' + escapeHtml_(formsLine) + '</p>'
+    + '<p style="margin:0 0 16px;color:#22313f;font-size:15px;line-height:1.7"><strong>Agreements recorded:</strong> ' + escapeHtml_(agreementsLine) + '</p>'
+    + (scholarshipParagraph ? '<p style="margin:0 0 16px;color:#22313f;font-size:15px;line-height:1.7">' + escapeHtml_(scholarshipParagraph) + '</p>' : '')
+    + '<p style="margin:0 0 18px;color:#22313f;font-size:15px;line-height:1.7">' + escapeHtml_(paymentParagraph) + '</p>'
+    + (payload.paymentRequired && payload.paymentUrl
+      ? '<p style="margin:0 0 18px"><a href="' + escapeHtml_(payload.paymentUrl) + '" style="display:inline-block;padding:14px 24px;background:#1d2f40;border-radius:999px;color:#ffffff;font-size:15px;font-weight:700;line-height:1.2;text-decoration:none">Continue to Secure Payment</a></p>'
+      : '')
+    + (signedLinksHtml ? '<h2 style="margin:0 0 10px;color:#1d2f40;font-size:18px;line-height:1.3">Signed documents</h2><ul style="margin:0 0 18px 18px;padding:0;color:#22313f;font-size:15px;line-height:1.7">' + signedLinksHtml + '</ul>' : '')
+    + '<p style="margin:0;color:#22313f;font-size:15px;line-height:1.7">If you have questions, contact <a href="mailto:info@lifeprepacademyfoundation.com" style="color:#1d2f40;font-weight:700;text-decoration:none">info@lifeprepacademyfoundation.com</a>.</p>'
+    + (payload.openTrackingUrl ? '<img src="' + escapeHtml_(payload.openTrackingUrl) + '" alt="" width="1" height="1" style="display:block;border:0;width:1px;height:1px">' : '')
+    + '</td></tr>'
+    + '<tr><td><a href="' + escapeHtml_(EMAIL_FOOTER_LINK_URL) + '" style="display:block"><img src="' + escapeHtml_(REGISTRATION_FOOTER_URL) + '" alt="LifePrep Academy Foundation MLS GO youth program" style="display:block;width:100%;height:auto;border:0"></a></td></tr>'
+    + '</table></td></tr></table></body></html>';
+
+  const text = [
+    intro,
+    '',
+    'Submission ID: ' + payload.submissionId,
+    'Participant(s): ' + participantLine,
+    'Forms received: ' + formsLine,
+    'Agreements recorded: ' + agreementsLine,
+    scholarshipParagraph,
+    paymentParagraph,
+    payload.paymentRequired && payload.paymentUrl ? 'Continue to Secure Payment: ' + payload.paymentUrl : '',
+    signedLinksText ? 'Signed documents:\n' + signedLinksText : '',
+    'Questions: info@lifeprepacademyfoundation.com',
+  ].filter(Boolean).join('\n');
+
+  return {
+    subject: subjectMap[payload.emailType] || 'Submission Received',
+    html: html,
+    text: text,
+  };
+}
+
+function getFlowConfirmationIntro_(emailType) {
+  const introMap = {
+    registration_player: 'Thank you for registering for the LifePrep Academy Foundation MLS GO youth program. We recorded your player registration and Player Agreement.',
+    registration_player_volunteer: 'Thank you. We recorded your player registration, volunteer application, Player Agreement, and Volunteer Agreement.',
+    registration_player_coach: 'Thank you. We recorded your player registration, coaching application, Player Agreement, and Volunteer Agreement.',
+    registration_player_volunteer_coach: 'Thank you. We recorded your player registration, volunteer application, coaching application, Player Agreement, and Volunteer Agreement.',
+    scholarship_player: 'Thank you. We received your player registration, Player Agreement, and Financial Hardship Scholarship application.',
+    scholarship_player_volunteer: 'Thank you. We received your player registration, Player Agreement, Financial Hardship Scholarship application, volunteer application, and Volunteer Agreement.',
+    scholarship_player_coach: 'Thank you. We received your player registration, Player Agreement, Financial Hardship Scholarship application, coaching application, and Volunteer Agreement.',
+    scholarship_player_volunteer_coach: 'Thank you. We received your player registration, Player Agreement, Financial Hardship Scholarship application, volunteer application, coaching application, and Volunteer Agreement.',
+    standalone_volunteer: 'Thank you for applying to volunteer with the LifePrep Academy Foundation MLS GO youth program. We recorded your Volunteer Application and Volunteer Agreement.',
+    standalone_coach: 'Thank you for applying to coach with the LifePrep Academy Foundation MLS GO youth program. We recorded your Coaching Application and Volunteer Agreement.',
+  };
+  return introMap[emailType] || 'Thank you. We recorded your submission.';
+}
+
+function parseJsonArrayOfStrings_(value) {
+  try {
+    var parsed = JSON.parse(value || '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map(function(entry) {
+      return normalizeValue_(entry);
+    }).filter(Boolean);
+  } catch (_error) {
+    return [];
+  }
+}
+
+function parseJsonLinkArray_(value) {
+  try {
+    var parsed = JSON.parse(value || '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map(function(entry) {
+      return {
+        label: normalizeValue_(entry && entry.label),
+        url: normalizeValue_(entry && entry.url),
+      };
+    }).filter(function(entry) {
+      return entry.label && entry.url;
+    });
+  } catch (_error) {
+    return [];
+  }
 }
 
 function getEmailTrackingBaseUrl_(payload) {
@@ -1322,10 +1653,22 @@ function getEmailTrackingBaseUrl_(payload) {
   if (scriptProperty) return normalizeValue_(scriptProperty);
 
   const serviceUrl = normalizeValue_(ScriptApp.getService().getUrl());
-  return serviceUrl || 'https://script.google.com/macros/s/unknown/exec';
+  return serviceUrl;
+}
+
+function isUsableTrackingBaseUrl_(value) {
+  const normalized = normalizeValue_(value);
+  if (!normalized) return false;
+  if (!/^https?:\/\//i.test(normalized)) return false;
+  if (/\/unknown\/exec(?:\?|$)/i.test(normalized)) return false;
+  return true;
 }
 
 function buildEmailTrackingUrl_(trackingBaseUrl, trackingToken, eventType, emailType, submissionId, recipientEmail, targetUrl, linkLabel) {
+  if (!isUsableTrackingBaseUrl_(trackingBaseUrl)) {
+    return eventType === 'clicked' ? normalizeValue_(targetUrl) : '';
+  }
+
   const params = [
     ['action', 'track_email'],
     ['token', trackingToken],
@@ -1360,7 +1703,7 @@ function safeStringify_(value) {
 function sendRegistrationEmailByStage_(payload, paymentConfirmed) {
   const subject = 'MLS GO Youth Program Registration Received';
   const body = 'Thank you for registering for LifePrep Academy Foundation\'s MLS GO youth program. We have successfully received your registration. Please monitor your inbox for important information and next steps from our team.';
-  MailApp.sendEmail({
+  sendBrandedEmail_({
     to: payload.parentEmail,
     subject,
     body,
@@ -1369,8 +1712,8 @@ function sendRegistrationEmailByStage_(payload, paymentConfirmed) {
       greeting: 'Thank you for registering for LifePrep Academy Foundation\'s MLS GO youth program.',
       message: 'We have successfully received your registration. Please monitor your inbox for important information and next steps from our team.',
     }),
-    name: 'LifePrep Academy Foundation',
-    replyTo: 'info@lifeprepacademyfoundation.com',
+    name: DEFAULT_EMAIL_SENDER_NAME,
+    replyTo: EMAIL_REPLY_TO,
   });
 }
 
@@ -1384,7 +1727,7 @@ function sendVolunteerCoachConfirmationEmail_(formType, values) {
   const action = isCoach ? 'applying to coach with' : 'applying to volunteer with';
   const subject = `MLS GO Youth Program ${submissionType} Received`;
   const body = `Thank you for ${action} LifePrep Academy Foundation's MLS GO youth program. We have successfully received your application. Please monitor your inbox for important information and next steps from our team.`;
-  MailApp.sendEmail({
+  sendBrandedEmail_({
     to: email,
     subject,
     body,
@@ -1393,8 +1736,8 @@ function sendVolunteerCoachConfirmationEmail_(formType, values) {
       greeting: `Thank you for ${action} LifePrep Academy Foundation's MLS GO youth program.`,
       message: 'We have successfully received your application. Please monitor your inbox for important information and next steps from our team.',
     }),
-    name: 'LifePrep Academy Foundation',
-    replyTo: 'info@lifeprepacademyfoundation.com',
+    name: DEFAULT_EMAIL_SENDER_NAME,
+    replyTo: EMAIL_REPLY_TO,
   });
 }
 
