@@ -1,0 +1,11 @@
+{
+  "agreementType": "scholarship",
+  "generatedAt": "2026-08-22T00:58:41.119Z",
+  "participantCount": 2,
+  "pageCount": 4,
+  "source": {
+    "mapPath": "mlsregistration/worker/pdf-field-maps.js",
+    "samplePath": "mlsregistration/preview/scholarship-preview-sample.json"
+  },
+  "outputPdf": "mlsregistration/preview/live/scholarship-agreement-preview.pdf"
+}
