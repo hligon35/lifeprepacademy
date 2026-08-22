@@ -387,6 +387,112 @@ body {
   color: #5a4c7e;
 }
 
+.scholarship-agreement-doc {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid rgba(29, 47, 64, 0.12);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fffdf8, #f8f6ef);
+}
+
+.scholarship-agreement-doc__header {
+  display: grid;
+  gap: 8px;
+}
+
+.scholarship-agreement-doc__kicker {
+  margin: 0;
+  color: var(--brand-2);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.scholarship-agreement-doc__title {
+  margin: 0;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  font-size: 1.3rem;
+  color: var(--ink);
+}
+
+.scholarship-agreement-doc__intro {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.scholarship-agreement-doc__body {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(29, 47, 64, 0.1);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.scholarship-agreement-doc__body p,
+.scholarship-agreement-doc__body h4,
+.scholarship-agreement-doc__body ul {
+  margin: 0;
+}
+
+.scholarship-agreement-doc__body ul {
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+
+.scholarship-agreement-doc__body h4 {
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  color: var(--brand);
+}
+
+.scholarship-agreement-pages {
+  display: grid;
+  gap: 14px;
+}
+
+.scholarship-agreement-page {
+  padding: 18px;
+  border: 1px dashed rgba(29, 47, 64, 0.28);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.scholarship-agreement-page__label {
+  margin-bottom: 14px;
+  color: var(--brand);
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.scholarship-agreement-page__ack {
+  display: grid;
+  gap: 14px;
+}
+
+.scholarship-agreement-page__line {
+  margin: 0;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.scholarship-agreement-page__line span {
+  display: inline-block;
+  min-width: 160px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(29, 47, 64, 0.72);
+}
+
+.scholarship-agreement-empty {
+  margin: 0;
+  color: var(--muted);
+}
+
 .agreement-signing-block {
   border: 1px solid var(--line);
   border-radius: 14px;

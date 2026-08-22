@@ -15,6 +15,8 @@ const agreementType = process.argv.includes("--volunteer")
   ? "volunteer"
   : process.argv.includes("--ppf")
     ? "ppf"
+    : process.argv.includes("--scholarship")
+      ? "scholarship"
     : "player";
 const watchMode = process.argv.includes("--watch");
 
@@ -39,6 +41,13 @@ const PREVIEW_CONFIG = {
     outputPdfPath: path.resolve(outputDir, "ppf-liability-preview.pdf"),
     outputMetaPath: path.resolve(outputDir, "ppf-liability-preview-meta.json"),
     mapExport: "PPF_LIABILITY_FIELD_MAP",
+  },
+  scholarship: {
+    templatePath: path.resolve(__dirname, "..", "documents", "Paducah GO Scholarship.pdf"),
+    samplePath: path.resolve(__dirname, "scholarship-preview-sample.json"),
+    outputPdfPath: path.resolve(outputDir, "scholarship-agreement-preview.pdf"),
+    outputMetaPath: path.resolve(outputDir, "scholarship-preview-meta.json"),
+    mapExport: "SCHOLARSHIP_AGREEMENT_FIELD_MAP",
   },
 };
 
@@ -107,14 +116,76 @@ function drawTypedSignature(page, typed, bounds, font) {
   });
 }
 
+function formatScholarshipDivisionLabel(grade, gender) {
+  const normalizedGrade = String(grade || "").trim();
+  const normalizedGender = String(gender || "").trim();
+  if (!normalizedGrade) return normalizedGender;
+  if (/\b(Boys|Girls)\b/i.test(normalizedGrade)) return normalizedGrade;
+  if (/^(Male|Boy|Boys)$/i.test(normalizedGender)) return `${normalizedGrade} Boys`;
+  if (/^(Female|Girl|Girls)$/i.test(normalizedGender)) return `${normalizedGrade} Girls`;
+  return normalizedGrade;
+}
+
 async function generatePreview() {
   const [fieldMap, sample] = await Promise.all([loadFieldMap(), Promise.resolve(readSampleData())]);
 
   const templateBytes = fs.readFileSync(previewConfig.templatePath);
   const pdfDoc = await PDFDocument.load(templateBytes);
+
+  const signature = sample.signature || { method: "typed", typed: sample.signer?.printedName || "" };
+  if (agreementType === "scholarship") {
+    const combinedPdf = await PDFDocument.create();
+    const helvetica = await combinedPdf.embedFont(StandardFonts.Helvetica);
+    const participants = Array.isArray(sample.participants) ? sample.participants : [];
+    const parentName = String(sample.parentName || sample.fields?.parentName || "Parent Preview").trim();
+    const signingDate = String(sample.signingDate || sample.fields?.signingDate || "").trim();
+    const copies = participants.length ? participants : [{
+      participantName: String(sample.fields?.participantName || "Kid One Preview").trim(),
+      participantGrade: String(sample.fields?.participantGrade || "2nd/3rd Grade").trim(),
+      participantGender: String(sample.fields?.participantGender || "Boys").trim(),
+    }];
+
+    for (const participant of copies) {
+      const copiedPages = await combinedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
+      copiedPages.forEach((page) => combinedPdf.addPage(page));
+      const targetPage = copiedPages[Math.max(0, copiedPages.length - fieldMap.pageFromEnd)];
+      const fields = {
+        participantName: String(participant.participantName || participant.name || sample.fields?.participantName || "").trim(),
+        participantGrade: formatScholarshipDivisionLabel(
+          participant.participantGrade || participant.grade || sample.fields?.participantGrade || "",
+          participant.participantGender || participant.gender || sample.fields?.participantGender || ""
+        ),
+        parentName,
+        signingDate,
+      };
+
+      for (const [fieldName, cfg] of Object.entries(fieldMap.fields)) {
+        const value = String(fields[fieldName] || "").trim();
+        if (!value) continue;
+        drawWrappedText(targetPage, value, cfg, helvetica);
+      }
+    }
+
+    fs.mkdirSync(outputDir, { recursive: true });
+    fs.writeFileSync(previewConfig.outputPdfPath, await combinedPdf.save());
+
+    const meta = {
+      agreementType,
+      generatedAt: new Date().toISOString(),
+      participantCount: copies.length,
+      pageCount: copies.length * pdfDoc.getPageCount(),
+      source: {
+        mapPath: path.relative(workspaceRoot, mapPath).replace(/\\/g, "/"),
+        samplePath: path.relative(workspaceRoot, previewConfig.samplePath).replace(/\\/g, "/"),
+      },
+      outputPdf: path.relative(workspaceRoot, previewConfig.outputPdfPath).replace(/\\/g, "/"),
+    };
+    fs.writeFileSync(previewConfig.outputMetaPath, JSON.stringify(meta, null, 2));
+    return meta;
+  }
+
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
   const pages = pdfDoc.getPages();
   const targetPage = pages[Math.max(0, pages.length - fieldMap.pageFromEnd)];
   const fields = sample.fields || {};
@@ -125,7 +196,6 @@ async function generatePreview() {
     drawWrappedText(targetPage, value, cfg, helvetica);
   }
 
-  const signature = sample.signature || { method: "typed", typed: sample.signer?.printedName || "" };
   if (signature.method !== "typed") {
     throw new Error("Preview currently supports typed signatures only.");
   }

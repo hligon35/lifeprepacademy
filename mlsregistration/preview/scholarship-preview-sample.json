@@ -1,0 +1,20 @@
+{
+  "parentName": "Parent Preview",
+  "signingDate": "08/20/2026",
+  "participants": [
+    {
+      "participantName": "Kid One Preview",
+      "participantGrade": "2nd/3rd Grade",
+      "participantGender": "Boys"
+    },
+    {
+      "participantName": "Kid Two Preview",
+      "participantGrade": "4th/5th Grade",
+      "participantGender": "Girls"
+    }
+  ],
+  "signature": {
+    "method": "none",
+    "typed": ""
+  }
+}

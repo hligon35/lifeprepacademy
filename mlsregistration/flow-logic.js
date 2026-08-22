@@ -88,10 +88,6 @@
 
     stages.push(STAGES.PLAYER_REGISTRATION, STAGES.PLAYER_AGREEMENT);
 
-    if (scholarshipRequested) {
-      stages.push(STAGES.SCHOLARSHIP_APPLICATION);
-    }
-
     if (helpChoice === HELP_OPTION.VOLUNTEER || helpChoice === HELP_OPTION.BOTH) {
       stages.push(STAGES.VOLUNTEER_APPLICATION);
     }
@@ -102,6 +98,10 @@
 
     if (helpChoice === HELP_OPTION.VOLUNTEER || helpChoice === HELP_OPTION.COACH || helpChoice === HELP_OPTION.BOTH) {
       stages.push(STAGES.VOLUNTEER_AGREEMENT);
+    }
+
+    if (scholarshipRequested) {
+      stages.push(STAGES.SCHOLARSHIP_APPLICATION);
     }
 
     stages.push(STAGES.FINAL_CONFIRMATION_EMAIL, STAGES.THANK_YOU);

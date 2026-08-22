@@ -45,3 +45,17 @@ export const PPF_LIABILITY_FIELD_MAP = {
     primary: { x: 50, y: 445, width: 400, height: 32 },
   },
 };
+
+export const SCHOLARSHIP_AGREEMENT_FIELD_MAP = {
+  pageFromEnd: 1,
+  defaultFontSize: 10,
+  fields: {
+    participantName: { x: 118, y: 603.2, maxWidth: 172, fontSize: 10.5 },
+    participantGrade: { x: 349, y: 603.2, maxWidth: 120, fontSize: 9 },
+    parentName: { x: 190, y: 553.7, maxWidth: 102, fontSize: 10.5 },
+    signingDate: { x: 343, y: 553.7, maxWidth: 110, fontSize: 9.5 },
+  },
+  signatureBounds: {
+    primary: { x: 190, y: 553.7, width: 102, height: 14 },
+  },
+};

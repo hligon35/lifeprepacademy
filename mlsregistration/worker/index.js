@@ -512,35 +512,83 @@ async function handleFinalConfirmationEmail(request, env) {
     return json({ ok: false, error: "Missing recipientEmail, submissionId, or emailType" }, 400, request, env);
   }
 
-  const params = new URLSearchParams();
-  params.append("action", "send_flow_confirmation_email");
-  params.append("submission_id", submissionId);
-  params.append("registration_submission_id", String(payload.registrationSubmissionId || "").trim());
-  params.append("volunteer_submission_id", String(payload.volunteerSubmissionId || "").trim());
-  params.append("coaching_submission_id", String(payload.coachingSubmissionId || "").trim());
-  params.append("email_type", emailType);
-  params.append("recipient_email", recipientEmail);
-  params.append("applicant_first_name", String(payload.applicantFirstName || "").trim());
-  params.append("applicant_last_name", String(payload.applicantLastName || "").trim());
-  params.append("participant_names", Array.isArray(payload.participantNames) ? payload.participantNames.join(", ") : String(payload.participantNames || "").trim());
-  params.append("forms_recorded_json", JSON.stringify(Array.isArray(payload.formsRecorded) ? payload.formsRecorded : []));
-  params.append("agreements_recorded_json", JSON.stringify(Array.isArray(payload.agreementsRecorded) ? payload.agreementsRecorded : []));
-  params.append("scholarship_requested", String(payload.scholarshipRequested || "No").trim());
-  params.append("payment_required", payload.paymentRequired ? "yes" : "no");
-  params.append("payment_url", String(payload.paymentUrl || "").trim());
-  params.append("payment_amount", String(payload.paymentAmount || "").trim());
-  params.append("signed_document_urls_json", JSON.stringify(Array.isArray(payload.signedDocumentUrls) ? payload.signedDocumentUrls : []));
-  params.append("source_url", String(payload.sourceUrl || "").trim());
-
   try {
+    const scholarshipRequested = String(payload.scholarshipRequested || "No").trim().toLowerCase() === "yes";
+    const signedDocumentUrls = Array.isArray(payload.signedDocumentUrls) ? [...payload.signedDocumentUrls] : [];
+    let scholarshipDocumentUrl = "";
+
+    if (scholarshipRequested) {
+      const scholarshipResult = await acceptScholarshipApplication(env, {
+        registrationSubmissionId: String(payload.registrationSubmissionId || submissionId || "").trim(),
+        parentEmail: recipientEmail,
+        parentName: `${String(payload.applicantFirstName || "").trim()} ${String(payload.applicantLastName || "").trim()}`.trim(),
+        participantNames: Array.isArray(payload.participantNames) ? payload.participantNames.join(", ") : String(payload.participantNames || "").trim(),
+      });
+      if (!scholarshipResult.ok) {
+        return json({ ok: false, error: scholarshipResult.error || "Apps Script scholarship acceptance failed" }, 502, request, env);
+      }
+      scholarshipDocumentUrl = String(scholarshipResult.documentUrl || "").trim();
+      if (scholarshipDocumentUrl) {
+        signedDocumentUrls.push({ label: "Scholarship Guidelines", url: scholarshipDocumentUrl });
+      }
+    }
+
+    const params = new URLSearchParams();
+    params.append("action", "send_flow_confirmation_email");
+    params.append("submission_id", submissionId);
+    params.append("registration_submission_id", String(payload.registrationSubmissionId || "").trim());
+    params.append("volunteer_submission_id", String(payload.volunteerSubmissionId || "").trim());
+    params.append("coaching_submission_id", String(payload.coachingSubmissionId || "").trim());
+    params.append("email_type", emailType);
+    params.append("recipient_email", recipientEmail);
+    params.append("applicant_first_name", String(payload.applicantFirstName || "").trim());
+    params.append("applicant_last_name", String(payload.applicantLastName || "").trim());
+    params.append("participant_names", Array.isArray(payload.participantNames) ? payload.participantNames.join(", ") : String(payload.participantNames || "").trim());
+    params.append("forms_recorded_json", JSON.stringify(Array.isArray(payload.formsRecorded) ? payload.formsRecorded : []));
+    params.append("agreements_recorded_json", JSON.stringify(Array.isArray(payload.agreementsRecorded) ? payload.agreementsRecorded : []));
+    params.append("scholarship_requested", String(payload.scholarshipRequested || "No").trim());
+    params.append("payment_required", payload.paymentRequired ? "yes" : "no");
+    params.append("payment_url", String(payload.paymentUrl || "").trim());
+    params.append("payment_amount", String(payload.paymentAmount || "").trim());
+    params.append("signed_document_urls_json", JSON.stringify(signedDocumentUrls));
+    params.append("source_url", String(payload.sourceUrl || "").trim());
+
     const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
     const parsed = response.parsed;
     if (!parsed?.ok) {
       return json({ ok: false, error: parsed?.error || "Apps Script final confirmation email failed" }, 502, request, env);
     }
-    return json({ ok: true, result: parsed }, 200, request, env);
+    return json({ ok: true, result: { ...parsed, scholarshipDocumentUrl } }, 200, request, env);
   } catch (error) {
     return json({ ok: false, error: String(error?.message || error) }, 502, request, env);
+  }
+}
+
+async function acceptScholarshipApplication(env, input) {
+  if (!env.APPS_SCRIPT_URL || !hasAppsScriptUpdateToken(env)) {
+    return { ok: false, error: "Missing Apps Script scholarship configuration" };
+  }
+
+  const params = new URLSearchParams();
+  params.append("action", "accept_scholarship_application");
+  params.append("registration_submission_id", String(input.registrationSubmissionId || "").trim());
+  params.append("parent_email", String(input.parentEmail || "").trim().toLowerCase());
+  params.append("parent_name", String(input.parentName || "").trim());
+  params.append("participant_names", String(input.participantNames || "").trim());
+
+  try {
+    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const parsed = response.parsed;
+    if (!parsed?.ok) {
+      return { ok: false, error: parsed?.error || "Apps Script scholarship acceptance failed" };
+    }
+    return {
+      ok: true,
+      documentUrl: String(parsed.documentUrl || "").trim(),
+      participantDocumentCount: Number(parsed.participantDocumentCount || 0),
+    };
+  } catch (error) {
+    return { ok: false, error: String(error?.message || error) };
   }
 }
 

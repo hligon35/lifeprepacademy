@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Scholarship Document Live Preview</title>
+    <style>
+      :root {
+        --bg: #f4f1ea;
+        --ink: #1f2e25;
+        --muted: #66736d;
+        --accent: #173f7a;
+        --panel: #fffdf8;
+        --line: rgba(31, 46, 37, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Georgia, "Times New Roman", serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(23, 63, 122, 0.08), transparent 34%),
+          radial-gradient(circle at top right, rgba(11, 93, 59, 0.1), transparent 28%),
+          var(--bg);
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 20px;
+        border-bottom: 1px solid rgba(31, 46, 37, 0.12);
+        background: rgba(255, 253, 248, 0.92);
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        position: sticky;
+        top: 0;
+      }
+
+      .title {
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .meta {
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+        font-size: 0.92rem;
+        color: var(--muted);
+      }
+
+      .frame-wrap {
+        padding: 14px;
+      }
+
+      .preview-shell {
+        display: grid;
+        gap: 14px;
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+
+      .preview-summary {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 14px 16px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(255, 253, 248, 0.9);
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      }
+
+      .preview-link {
+        color: var(--accent);
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .preview-link:hover {
+        text-decoration: underline;
+      }
+
+      .pdf-pages {
+        display: grid;
+        gap: 18px;
+      }
+
+      .pdf-page {
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: 0 12px 30px rgba(22, 39, 33, 0.08);
+      }
+
+      .pdf-page__label {
+        margin: 0 0 10px;
+        font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+        font-size: 0.88rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      .pdf-page canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 10px;
+        background: white;
+      }
+
+      .empty {
+        padding: 20px;
+        border: 1px dashed var(--line);
+        border-radius: 14px;
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.7);
+      }
+
+      .pulse {
+        color: var(--accent-2);
+        animation: pulse 0.9s ease;
+      }
+
+      @keyframes pulse {
+        0% { opacity: 0.35; }
+        100% { opacity: 1; }
+      }
+
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="title">Scholarship Document Live Preview</div>
+      <div class="meta" id="meta">Waiting for preview data...</div>
+    </header>
+
+    <main class="frame-wrap">
+      <div class="preview-shell">
+        <div class="preview-summary">
+          <div id="summary">Preparing the live combined document preview...</div>
+          <a class="preview-link" id="download-link" href="./live/scholarship-agreement-preview.pdf" target="_blank" rel="noopener noreferrer">Open PDF directly</a>
+        </div>
+        <div class="pdf-pages" id="pages">
+          <div class="empty">Waiting for generated scholarship preview pages...</div>
+        </div>
+      </div>
+    </main>
+
+    <script type="module">
+      import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs";
+
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs";
+
+      const metaEl = document.getElementById("meta");
+      const pagesEl = document.getElementById("pages");
+      const summaryEl = document.getElementById("summary");
+      const downloadLink = document.getElementById("download-link");
+      let lastGeneratedAt = "";
+      let renderToken = 0;
+
+      async function renderPreview(ts, meta) {
+        const token = ++renderToken;
+        const url = `./live/scholarship-agreement-preview.pdf?t=${encodeURIComponent(ts)}`;
+        downloadLink.href = url;
+
+        const loadingTask = pdfjsLib.getDocument(url);
+        const pdf = await loadingTask.promise;
+        if (token !== renderToken) return;
+
+        pagesEl.innerHTML = "";
+
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+          const page = await pdf.getPage(pageNumber);
+          if (token !== renderToken) return;
+
+          const viewport = page.getViewport({ scale: 1.45 });
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+
+          const card = document.createElement("article");
+          card.className = "pdf-page";
+
+          const label = document.createElement("p");
+          label.className = "pdf-page__label";
+          label.textContent = `Page ${pageNumber} of ${pdf.numPages}`;
+
+          card.append(label, canvas);
+          pagesEl.appendChild(card);
+
+          await page.render({ canvasContext: context, viewport }).promise;
+        }
+
+        summaryEl.textContent = `Showing ${meta.pageCount || pdf.numPages} pages across ${meta.participantCount || "?"} participant copies from the real scholarship template.`;
+      }
+
+      async function poll() {
+        try {
+          const res = await fetch(`./live/scholarship-preview-meta.json?t=${Date.now()}`, { cache: "no-store" });
+          if (!res.ok) throw new Error(`Meta request failed (${res.status})`);
+          const meta = await res.json();
+
+          if (!meta.generatedAt) return;
+
+          if (meta.generatedAt !== lastGeneratedAt) {
+            lastGeneratedAt = meta.generatedAt;
+            await renderPreview(lastGeneratedAt, meta);
+            metaEl.classList.remove("pulse");
+            void metaEl.offsetWidth;
+            metaEl.classList.add("pulse");
+          }
+
+          metaEl.textContent = `Last generated: ${new Date(meta.generatedAt).toLocaleString()}`;
+        } catch (error) {
+          metaEl.textContent = `Preview unavailable: ${error.message}`;
+          summaryEl.textContent = "Unable to render the scholarship preview right now.";
+          pagesEl.innerHTML = `<div class="empty">${error.message}</div>`;
+        }
+      }
+
+      poll();
+      setInterval(poll, 1000);
+    </script>
+  </body>
+</html>
