@@ -113,7 +113,7 @@
     },
     [STAGES.SCHOLARSHIP_APPLICATION]: {
       title: "Scholarship Guidelines",
-      subtitle: "Review the scholarship guidelines below. Your personalized agreement is preloaded from this registration. Accepting this page records the agreement before the thank-you page.",
+      subtitle: "Review the scholarship guidelines below. Your agreement is preloaded from your registration. Accepting this page records your acceptance of the agreement.",
       progressLabel: "Scholarship guidelines",
       submitLabel: "Accept Scholarship Guidelines",
     },
