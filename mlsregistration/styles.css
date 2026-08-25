@@ -438,6 +438,17 @@ body {
   margin: 0;
 }
 
+.scholarship-agreement-doc__lead {
+  line-height: 1.62;
+}
+
+.scholarship-agreement-doc__coverage {
+  padding: 14px 16px;
+  border-left: 4px solid #0b5d3b;
+  border-radius: 8px;
+  background: #f3f8f5;
+}
+
 .scholarship-agreement-doc__body ul {
   padding-left: 20px;
   display: grid;
@@ -447,6 +458,34 @@ body {
 .scholarship-agreement-doc__body h4 {
   font-family: "Space Grotesk", "Segoe UI", sans-serif;
   color: var(--brand);
+}
+
+.scholarship-agreement-identity {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(29, 47, 64, 0.12);
+  border-radius: 16px;
+  background: #f7f8fa;
+}
+
+.scholarship-agreement-identity__field {
+  display: grid;
+  gap: 4px;
+}
+
+.scholarship-agreement-identity__field span {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.scholarship-agreement-identity__field strong {
+  font-size: 1rem;
+  color: var(--ink);
 }
 
 .scholarship-agreement-pages {
@@ -491,6 +530,12 @@ body {
 .scholarship-agreement-empty {
   margin: 0;
   color: var(--muted);
+}
+
+@media (max-width: 650px) {
+  .scholarship-agreement-identity {
+    grid-template-columns: 1fr;
+  }
 }
 
 .agreement-signing-block {

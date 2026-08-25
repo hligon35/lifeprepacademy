@@ -31,6 +31,7 @@
   const PAYMENT_PAUSED_MESSAGE = "Payment is temporarily paused while we transition to a new payment provider. Your registration is saved, and we will email a secure payment link when the service is available.";
   const PAYMENT_REDIRECT_URL = "https://quest.build/get-tickets/1598/71794/info?teamId=686";
   const PAYMENT_REDIRECT_DELAY_MS = 1200;
+  const SCHOLARSHIP_GUIDELINES_DOCUMENT_VERSION = "1.0";
   let pendingPaymentRedirectTimeoutId = null;
   let lastPaymentRedirectUrl = "";
   const ENABLE_GOOGLE_FORM_MIRROR = false;
@@ -112,7 +113,7 @@
     },
     [STAGES.SCHOLARSHIP_APPLICATION]: {
       title: "Scholarship Guidelines",
-      subtitle: "Complete the scholarship application and review the scholarship guidelines document. Accepting this page records the agreement and generates the participant copies before the thank-you page.",
+      subtitle: "Review the scholarship guidelines below. Your personalized agreement is preloaded from this registration. Accepting this page records the agreement before the thank-you page.",
       progressLabel: "Scholarship guidelines",
       submitLabel: "Accept Scholarship Guidelines",
     },
@@ -352,7 +353,7 @@
   let isSubmittingStage = false;
 
   buildPage();
-  applyPaymentModePageNote();
+  updatePaymentPageNote();
   wireEvents();
   updateFlowMeta();
   applyVisibility();
@@ -389,8 +390,16 @@
     return "paused";
   }
 
-  function applyPaymentModePageNote() {
+  function updatePaymentPageNote() {
     if (!paymentPageNote) return;
+    const descriptor = getFlowDescriptor(getFlowOptions());
+    if (!descriptor.paymentRequired) {
+      paymentPageNote.hidden = true;
+      paymentPageNote.textContent = "";
+      return;
+    }
+
+    paymentPageNote.hidden = false;
     paymentPageNote.textContent = PAYMENT_MODE === "redirect"
       ? "After submission, you will be redirected to our secure payment page to complete registration."
       : "Payments are temporarily paused while we update our payment system. Your registration is still saved, and we’ll email you a secure payment link when it’s ready.";
@@ -548,7 +557,7 @@
   function buildScholarshipSection() {
     const section = createSection(
       "Financial Hardship Scholarship",
-      "Tell us whether your family needs scholarship assistance. If you select Yes, the full scholarship application will appear near the end of the hardship route before the final confirmation step.",
+      "Tell us whether your family needs scholarship assistance. If you select Yes, you will fill out the scholarship application in the final step.",
       false,
       "scholarship-section",
       FLOW.PLAYER,
@@ -569,65 +578,12 @@
 
   function buildScholarshipApplicationSection() {
     const section = createSection(
-      "Financial Hardship Scholarship Application",
-      "Complete this family scholarship application once for the registered participants in this submission.",
+      "Review and Accept",
+      "This is the web version of the scholarship application. If you wish to receive a copy for your records, you may request it via email at youthprograms@lifeprepacademy.com.",
       false,
       "scholarship-application-section",
       FLOW.PLAYER,
     );
-
-    const grid = createGrid([
-      createSelectField({
-        label: "Scholarship Request Level",
-        name: "scholarshipLevel",
-        required: true,
-        options: ["Full scholarship assistance", "Partial scholarship assistance"],
-      }),
-      createTextField({
-        label: "Household Size",
-        name: "scholarshipHouseholdSize",
-        required: true,
-        inputMode: "numeric",
-      }),
-      createTextField({
-        label: "Household Income",
-        name: "scholarshipHouseholdIncome",
-        required: true,
-      }),
-      createTextField({
-        label: "Amount Your Family Can Contribute",
-        name: "scholarshipContributionAmount",
-        required: true,
-      }),
-    ]);
-
-    const eligibility = createCheckboxGroupField({
-      label: "Which circumstances apply to your scholarship request?",
-      name: "scholarshipEligibility",
-      required: true,
-      options: [
-        "Reduced or fixed household income",
-        "Temporary employment hardship",
-        "Unexpected medical or family expenses",
-        "Multiple children registering",
-        "Other financial hardship",
-      ],
-    });
-
-    const circumstancesWrap = createFieldWrap("Tell us more about your family’s current circumstances", "scholarshipCircumstances", true);
-    const circumstances = document.createElement("textarea");
-    circumstances.id = "scholarshipCircumstances";
-    circumstances.name = "scholarshipCircumstances";
-    circumstances.required = true;
-    circumstances.rows = 5;
-    circumstancesWrap.appendChild(circumstances);
-
-    const applicationAcknowledgement = createCheckboxField({
-      label: "Scholarship Application Accuracy",
-      name: "scholarshipParentAcknowledgement",
-      required: true,
-      description: "I certify that the scholarship information provided for this family is complete and accurate to the best of my knowledge.",
-    });
 
     const agreementPreview = buildScholarshipAgreementDocumentPreview();
 
@@ -635,20 +591,10 @@
       label: "Accept Scholarship Guidelines",
       name: "scholarshipGuidelinesAccepted",
       required: true,
-      description: "I am the parent or guardian for the participant(s) listed below, and I accept the Paducah GO Soccer Scholarship Guidelines for this registration.",
+      descriptionHtml: 'I am <strong id="scholarship-acceptance-parent">Parent/Guardian</strong>, the parent or guardian of <strong id="scholarship-acceptance-participants">the listed participant(s)</strong>. I have read, understand, and accept the Paducah GO Soccer Scholarship Guidelines.',
     });
 
     section.append(
-      grid,
-      eligibility,
-      circumstancesWrap,
-      createCheckboxField({
-        label: "Participation Commitment",
-        name: "scholarshipParticipationCommitment",
-        required: true,
-        description: "I understand that scholarship consideration depends on completing the registration and participating in program communication with the LifePrep Academy Foundation team.",
-      }),
-      applicationAcknowledgement,
       agreementPreview,
       agreementAcceptance,
     );
@@ -672,37 +618,51 @@
 
     const intro = document.createElement("p");
     intro.className = "scholarship-agreement-doc__intro";
-    intro.textContent = "This is the scholarship document that will be generated and saved to the Scholarships sheet when you accept below. One completed copy is created for each participant in this registration.";
+    intro.textContent = "Your scholarship application is ready below for your review.";
 
     header.append(kicker, title, intro);
 
     const body = document.createElement("div");
     body.className = "scholarship-agreement-doc__body";
     body.innerHTML = [
-      '<p>We understand that families may face unexpected challenges, which is why Paducah GO Soccer offers this scholarship to ensure that financial hardship does not prevent a child from participating.</p>',
-      '<p><strong>The scholarship covers the full $75 registration fee.</strong> It is intended for children who would otherwise be unable to participate because of the cost.</p>',
+      '<p class="scholarship-agreement-doc__lead">We understand that families may face unexpected challenges, which is why Paducah GO Soccer offers this scholarship to ensure that financial hardship does not prevent a child from participating. To keep the scholarship program fair and available to all children, recipients and their families are expected to follow the participation, school attendance, conduct, and communication guidelines outlined below. These expectations are intended to support each child’s success both on and off the field.</p>',
+      '<p class="scholarship-agreement-doc__coverage"><strong>The scholarship covers the full $75 registration fee.</strong> It is intended for children who would otherwise be unable to participate because of the cost.</p>',
       '<h4>Who can receive a scholarship</h4>',
       '<ul>',
-      '<li>The child is enrolled in grade K-12 at a public school in Paducah or the surrounding area.</li>',
-      '<li>A parent or guardian confirms that paying the $75 fee would be a hardship.</li>',
-      '<li>The family completes the scholarship request and all regular player registration forms.</li>',
-      '<li>Scholarships are awarded while scholarship funds and team spaces are available.</li>',
+      '<li><strong>Grade and school:</strong> The child is enrolled in grade K-12 at a public school in Paducah or the surrounding area.</li>',
+      '<li><strong>Financial need:</strong> A parent or guardian confirms that paying the $75 fee would be a hardship. No detailed financial records are required.</li>',
+      '<li><strong>Registration:</strong> The family completes the scholarship request and all regular player registration forms.</li>',
+      '<li><strong>Availability:</strong> Scholarships are awarded while scholarship funds and team spaces are available. One scholarship may be awarded per child, per season.</li>',
       '</ul>',
+      '<p>Scholarships are not based on soccer ability, school grades, or prior playing experience.</p>',
       '<h4>Guidelines for continuing through the season</h4>',
       '<ul>',
-      '<li>The child should maintain school attendance and respectful behavior.</li>',
-      '<li>The player should attend practices and games regularly.</li>',
-      '<li>A parent or guardian should notify the coach when the player will be absent.</li>',
-      '<li>The family agrees to stay in communication with the program if challenges arise.</li>',
+      '<li><strong>School attendance:</strong> The child should maintain at least 80% attendance in school. Excused absences for illness, disability, family emergencies, or other approved reasons will not count against the child.</li>',
+      '<li><strong>School conduct:</strong> The child should make a reasonable effort to learn without becoming an ongoing disruption to themselves or others. An isolated incident will not automatically affect the scholarship, but a continuing pattern identified by the school may require a family meeting and improvement plan.</li>',
+      '<li><strong>Respect:</strong> The child should behave respectfully toward parents and guardians, teachers, coaches, officials, teammates, and other families.</li>',
+      '<li><strong>Soccer participation:</strong> The player should attend practices and games regularly, with a goal of attending at least 75% of scheduled activities.</li>',
+      '<li><strong>Communication:</strong> A parent or guardian should notify the coach when the player will be absent. If the player has two consecutive unexcused absences, the program will contact the family to see whether help is needed.</li>',
+      '<li><strong>Inactive players:</strong> If the player stops attending and the family does not respond after reasonable contact attempts, the program may release the roster spot to another child.</li>',
       '</ul>',
+      '<p>A scholarship will not be taken away because of an illness, emergency, transportation problem, disability-related need, or another reasonable hardship when the family communicates with the program.</p>',
+      '<h4>Family acknowledgment</h4>',
       '<p>By accepting the scholarship, the family agrees to make a good-faith effort to help the player participate for the full season and to stay in contact with the coach.</p>',
+    ].join("");
+
+    const identity = document.createElement("div");
+    identity.className = "scholarship-agreement-identity";
+    identity.innerHTML = [
+      '<div class="scholarship-agreement-identity__field"><span>Player(s)</span><strong id="scholarship-identity-participants">Participant</strong></div>',
+      '<div class="scholarship-agreement-identity__field"><span>Grade(s)</span><strong id="scholarship-identity-grades">Not provided</strong></div>',
+      '<div class="scholarship-agreement-identity__field"><span>Parent/Guardian</span><strong id="scholarship-identity-parent">Parent/Guardian</strong></div>',
+      `<div class="scholarship-agreement-identity__field"><span>Document version</span><strong>${SCHOLARSHIP_GUIDELINES_DOCUMENT_VERSION}</strong></div>`,
     ].join("");
 
     const pages = document.createElement("div");
     pages.className = "scholarship-agreement-pages";
     pages.id = "scholarship-agreement-pages";
 
-    wrap.append(header, body, pages);
+    wrap.append(header, body, identity, pages);
     return wrap;
   }
 
@@ -1694,11 +1654,26 @@
 
   function updateScholarshipAgreementPreview() {
     const pages = document.getElementById("scholarship-agreement-pages");
+    const participantIdentity = document.getElementById("scholarship-identity-participants");
+    const gradeIdentity = document.getElementById("scholarship-identity-grades");
+    const parentIdentity = document.getElementById("scholarship-identity-parent");
+    const acceptanceParent = document.getElementById("scholarship-acceptance-parent");
+    const acceptanceParticipants = document.getElementById("scholarship-acceptance-participants");
     if (!pages) return;
 
     const parentName = [getTextValue("parentFirstName"), getTextValue("parentLastName")].filter(Boolean).join(" ").trim() || "Parent/Guardian";
     const participantCards = collectRegistrationPlayersPreview();
+    const participantNames = participantCards.map((participant) => participant.name || "Participant");
+    const participantGrades = participantCards
+      .map((participant) => formatScholarshipDivisionLabel(participant.grade, participant.gender))
+      .filter(Boolean);
     const acceptedDate = formatScholarshipAgreementPreviewDate(new Date());
+
+    if (participantIdentity) participantIdentity.textContent = participantNames.join(", ") || "Participant";
+    if (gradeIdentity) gradeIdentity.textContent = participantGrades.join(", ") || "Not provided";
+    if (parentIdentity) parentIdentity.textContent = parentName;
+    if (acceptanceParent) acceptanceParent.textContent = parentName;
+    if (acceptanceParticipants) acceptanceParticipants.textContent = participantNames.join(", ") || "the listed participant(s)";
 
     if (!participantCards.length) {
       pages.innerHTML = '<div class="scholarship-agreement-page"><p class="scholarship-agreement-empty">Add at least one participant above to preview the completed scholarship document.</p></div>';
@@ -1937,6 +1912,7 @@
     const meta = getStageMeta(getCurrentStage());
     if (formTitle) formTitle.textContent = meta.title;
     if (formSubtitle) formSubtitle.innerHTML = meta.subtitle;
+    updatePaymentPageNote();
   }
 
   function goBack() {
