@@ -1,4 +1,5 @@
 import PostalMime from "postal-mime";
+import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { AGREEMENT_TEMPLATES } from "./template-hashes.js";
 import { PLAYER_AGREEMENT_FIELD_MAP, PPF_LIABILITY_FIELD_MAP, VOLUNTEER_AGREEMENT_FIELD_MAP } from "./pdf-field-maps.js";
@@ -10,6 +11,7 @@ const MAX_TYPED_SIGNATURE_LEN = 120;
 const RATE_LIMIT_PER_MINUTE = 30;
 const DEFAULT_SIGNER_LINK_TTL_MS = 1000 * 60 * 30;
 const EMAIL_SIGNER_LINK_TTL_MS = 1000 * 60 * 60 * 24 * 30;
+const SIGNATURE_FONT_PATH = "/fonts/GreatVibes-Regular.ttf";
 const PRIMARY_APP_ORIGIN = "https://mlsregistration.lifeprepacademyfoundation.com";
 const DEFAULT_ALLOWED_ORIGINS = [
   PRIMARY_APP_ORIGIN,
@@ -892,6 +894,7 @@ async function generateSignedPdf({ payload, templateBytes, env, txId, templateHa
   const pdfDoc = await PDFDocument.load(templateBytes);
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const signatureFont = await embedSignatureFont(pdfDoc, env);
 
   const map = payload.agreementType === "player"
     ? PLAYER_AGREEMENT_FIELD_MAP
@@ -907,7 +910,21 @@ async function generateSignedPdf({ payload, templateBytes, env, txId, templateHa
     drawWrappedText(targetPage, value, cfg, helvetica);
   }
 
+  const acceptedSignerName = String(payload.signer?.printedName || "").trim();
+  if (acceptedSignerName && map.signatureBounds?.primary) {
+    drawTypedSignature(targetPage, acceptedSignerName, map.signatureBounds.primary, signatureFont);
+  }
+
   return pdfDoc.save();
+}
+
+async function embedSignatureFont(pdfDoc, env) {
+  pdfDoc.registerFontkit(fontkit);
+  const fontBytes = await readTemplateBytes(env, SIGNATURE_FONT_PATH);
+  if (!fontBytes) {
+    throw new Error(`Signature font not found: ${SIGNATURE_FONT_PATH}`);
+  }
+  return pdfDoc.embedFont(fontBytes, { subset: true });
 }
 
 function drawWrappedText(page, text, cfg, font) {
@@ -934,11 +951,29 @@ function drawImageFit(page, img, bounds) {
 }
 
 function drawTypedSignature(page, typed, bounds, font) {
-  const safe = String(typed || "").slice(0, MAX_TYPED_SIGNATURE_LEN);
+  const safe = String(typed || "").trim().slice(0, MAX_TYPED_SIGNATURE_LEN);
+  if (!safe || !bounds || !font) return;
+
+  const horizontalPadding = 4;
+  const verticalPadding = 2;
+  const maxWidth = Math.max(1, bounds.width - horizontalPadding * 2);
+  const maxHeight = Math.max(1, bounds.height - verticalPadding * 2);
+  let size = Math.min(24, Math.max(12, maxHeight * 0.95));
+  const initialWidth = font.widthOfTextAtSize(safe, size);
+  if (initialWidth > maxWidth) {
+    size *= maxWidth / initialWidth;
+  }
+  size = Math.max(9, size);
+
+  const textHeight = typeof font.heightAtSize === "function"
+    ? font.heightAtSize(size, { descender: false })
+    : size;
+  const y = bounds.y + Math.max(verticalPadding, (bounds.height - textHeight) / 2 + 1);
+
   page.drawText(safe, {
-    x: bounds.x + 4,
-    y: bounds.y + bounds.height / 2 - 6,
-    size: 14,
+    x: bounds.x + horizontalPadding,
+    y,
+    size,
     font,
     color: rgb(0.05, 0.05, 0.05),
   });
@@ -1064,6 +1099,7 @@ async function handlePpfPdfRender(request, env) {
     participants: participantRecords,
     parentName,
     signingDate,
+    env,
   });
 
   return new Response(pdfBytes, {
@@ -1104,11 +1140,11 @@ async function updatePaymentInSheets(env, input) {
   }
 }
 
-async function generatePpfLiabilityPdf({ templateBytes, participants, parentName, signingDate }) {
+async function generatePpfLiabilityPdf({ templateBytes, participants, parentName, signingDate, env }) {
   const sourcePdf = await PDFDocument.load(templateBytes);
   const combinedPdf = await PDFDocument.create();
   const helvetica = await combinedPdf.embedFont(StandardFonts.Helvetica);
-  const helveticaBold = await combinedPdf.embedFont(StandardFonts.HelveticaBold);
+  const signatureFont = await embedSignatureFont(combinedPdf, env);
 
   for (const participant of participants) {
     const copiedPages = await combinedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
@@ -1128,7 +1164,7 @@ async function generatePpfLiabilityPdf({ templateBytes, participants, parentName
       drawWrappedText(targetPage, value, cfg, helvetica);
     }
 
-    drawTypedSignature(targetPage, parentName, PPF_LIABILITY_FIELD_MAP.signatureBounds.primary, helveticaBold);
+    drawTypedSignature(targetPage, parentName, PPF_LIABILITY_FIELD_MAP.signatureBounds.primary, signatureFont);
   }
 
   return combinedPdf.save();
