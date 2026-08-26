@@ -1,7 +1,7 @@
 import PostalMime from "postal-mime";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { AGREEMENT_TEMPLATES } from "./template-hashes.js";
-import { PLAYER_AGREEMENT_FIELD_MAP, VOLUNTEER_AGREEMENT_FIELD_MAP } from "./pdf-field-maps.js";
+import { PLAYER_AGREEMENT_FIELD_MAP, PPF_LIABILITY_FIELD_MAP, VOLUNTEER_AGREEMENT_FIELD_MAP } from "./pdf-field-maps.js";
 import { buildPaymentConfig } from "./payment-config.js";
 import { parseQuestReceiptEmail } from "./receipt-parser.mjs";
 
@@ -93,6 +93,13 @@ export default {
       return handleFormUpsert(request, env);
     }
     if (url.pathname === "/api/forms/upsert") {
+      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+    }
+
+    if (url.pathname === "/api/forms/ppf-pdf" && request.method === "POST") {
+      return handlePpfPdfRender(request, env);
+    }
+    if (url.pathname === "/api/forms/ppf-pdf") {
       return json({ ok: false, error: "Method not allowed" }, 405, request, env);
     }
 
@@ -1021,6 +1028,54 @@ async function updateAgreementInSheets(env, input) {
   }
 }
 
+async function handlePpfPdfRender(request, env) {
+  if (!isAuthorizedWebhookRequest(request, env.APPS_SCRIPT_UPDATE_TOKEN || "")) {
+    return json({ ok: false, error: "Unauthorized" }, 403, request, env);
+  }
+
+  const payload = await parseWebhookPayload(request);
+  if (!payload || typeof payload !== "object") {
+    return json({ ok: false, error: "Invalid payload" }, 400, request, env);
+  }
+
+  const submissionId = String(payload.submissionId || payload.submission_id || "").trim();
+  const parentName = String(payload.parentName || payload.parent_name || "").trim();
+  const signingDate = String(payload.signingDate || payload.signing_date || "").trim();
+  const participantRecords = normalizePpfParticipantRecords(payload.participants || payload.participantRecords);
+
+  if (!submissionId) {
+    return json({ ok: false, error: "Missing submissionId" }, 400, request, env);
+  }
+  if (!parentName) {
+    return json({ ok: false, error: "Missing parentName" }, 400, request, env);
+  }
+  if (!participantRecords.length) {
+    return json({ ok: false, error: "At least one participant is required" }, 400, request, env);
+  }
+
+  const template = AGREEMENT_TEMPLATES.ppf;
+  const templateBytes = await readTemplateBytes(env, template.key);
+  if (!templateBytes) {
+    return json({ ok: false, error: "PPF template not found" }, 500, request, env);
+  }
+
+  const pdfBytes = await generatePpfLiabilityPdf({
+    templateBytes,
+    participants: participantRecords,
+    parentName,
+    signingDate,
+  });
+
+  return new Response(pdfBytes, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/pdf",
+      "Cache-Control": "no-store",
+      "Content-Disposition": `attachment; filename="ppf-liability-${submissionId}.pdf"`,
+    },
+  });
+}
+
 async function updatePaymentInSheets(env, input) {
   if (!env.APPS_SCRIPT_URL || !hasAppsScriptUpdateToken(env)) {
     return { ok: false, error: "Missing Apps Script update configuration" };
@@ -1047,6 +1102,62 @@ async function updatePaymentInSheets(env, input) {
   } catch (error) {
     return { ok: false, error: String(error?.message || error) };
   }
+}
+
+async function generatePpfLiabilityPdf({ templateBytes, participants, parentName, signingDate }) {
+  const sourcePdf = await PDFDocument.load(templateBytes);
+  const combinedPdf = await PDFDocument.create();
+  const helvetica = await combinedPdf.embedFont(StandardFonts.Helvetica);
+  const helveticaBold = await combinedPdf.embedFont(StandardFonts.HelveticaBold);
+
+  for (const participant of participants) {
+    const copiedPages = await combinedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
+    copiedPages.forEach((page) => combinedPdf.addPage(page));
+    const targetPage = copiedPages[Math.max(0, copiedPages.length - PPF_LIABILITY_FIELD_MAP.pageFromEnd)];
+    const fields = {
+      participantSignatureDate: signingDate,
+      participantName: String(participant.name || "").trim(),
+      participantGrade: String(participant.grade || "").trim(),
+      parentSignatureDate: signingDate,
+      parentName,
+    };
+
+    for (const [fieldName, cfg] of Object.entries(PPF_LIABILITY_FIELD_MAP.fields)) {
+      const value = String(fields[fieldName] || "").trim();
+      if (!value) continue;
+      drawWrappedText(targetPage, value, cfg, helvetica);
+    }
+
+    drawTypedSignature(targetPage, parentName, PPF_LIABILITY_FIELD_MAP.signatureBounds.primary, helveticaBold);
+  }
+
+  return combinedPdf.save();
+}
+
+function normalizePpfParticipantRecords(value) {
+  const records = Array.isArray(value)
+    ? value
+    : safeJsonParse(typeof value === "string" ? value : "[]");
+  if (!Array.isArray(records)) return [];
+  return records
+    .map((participant) => ({
+      name: String(participant?.name || participant?.participantName || "").trim(),
+      grade: formatPpfParticipantDivisionLabel(
+        participant?.grade || participant?.participantGrade || "",
+        participant?.gender || participant?.participantGender || ""
+      ),
+    }))
+    .filter((participant) => participant.name);
+}
+
+function formatPpfParticipantDivisionLabel(grade, gender) {
+  const normalizedGrade = String(grade || "").trim();
+  const normalizedGender = String(gender || "").trim();
+  if (!normalizedGrade) return normalizedGender;
+  if (/\b(Boys|Girls)\b/i.test(normalizedGrade)) return normalizedGrade;
+  if (/^(Male|Boy|Boys)$/i.test(normalizedGender)) return `${normalizedGrade} Boys`;
+  if (/^(Female|Girl|Girls)$/i.test(normalizedGender)) return `${normalizedGrade} Girls`;
+  return normalizedGrade;
 }
 
 async function getRegistrationContext(env, submissionId) {

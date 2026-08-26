@@ -133,12 +133,12 @@ async function generatePreview() {
   const pdfDoc = await PDFDocument.load(templateBytes);
 
   const signature = sample.signature || { method: "typed", typed: sample.signer?.printedName || "" };
-  if (agreementType === "scholarship") {
+  if (agreementType === "scholarship" || agreementType === "ppf") {
     const combinedPdf = await PDFDocument.create();
     const helvetica = await combinedPdf.embedFont(StandardFonts.Helvetica);
     const participants = Array.isArray(sample.participants) ? sample.participants : [];
     const parentName = String(sample.parentName || sample.fields?.parentName || "Parent Preview").trim();
-    const signingDate = String(sample.signingDate || sample.fields?.signingDate || "").trim();
+    const signingDate = String(sample.signingDate || sample.fields?.signingDate || sample.fields?.participantSignatureDate || "").trim();
     const copies = participants.length ? participants : [{
       participantName: String(sample.fields?.participantName || "Kid One Preview").trim(),
       participantGrade: String(sample.fields?.participantGrade || "2nd/3rd Grade").trim(),
@@ -149,20 +149,36 @@ async function generatePreview() {
       const copiedPages = await combinedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
       copiedPages.forEach((page) => combinedPdf.addPage(page));
       const targetPage = copiedPages[Math.max(0, copiedPages.length - fieldMap.pageFromEnd)];
-      const fields = {
-        participantName: String(participant.participantName || participant.name || sample.fields?.participantName || "").trim(),
-        participantGrade: formatScholarshipDivisionLabel(
-          participant.participantGrade || participant.grade || sample.fields?.participantGrade || "",
-          participant.participantGender || participant.gender || sample.fields?.participantGender || ""
-        ),
-        parentName,
-        signingDate,
-      };
+      const fields = agreementType === "scholarship"
+        ? {
+            participantName: String(participant.participantName || participant.name || sample.fields?.participantName || "").trim(),
+            participantGrade: formatScholarshipDivisionLabel(
+              participant.participantGrade || participant.grade || sample.fields?.participantGrade || "",
+              participant.participantGender || participant.gender || sample.fields?.participantGender || ""
+            ),
+            parentName,
+            signingDate,
+          }
+        : {
+            participantSignatureDate: signingDate,
+            participantName: String(participant.participantName || participant.name || sample.fields?.participantName || "").trim(),
+            participantGrade: formatScholarshipDivisionLabel(
+              participant.participantGrade || participant.grade || sample.fields?.participantGrade || "",
+              participant.participantGender || participant.gender || sample.fields?.participantGender || ""
+            ),
+            parentSignatureDate: signingDate,
+            parentName,
+          };
 
       for (const [fieldName, cfg] of Object.entries(fieldMap.fields)) {
         const value = String(fields[fieldName] || "").trim();
         if (!value) continue;
         drawWrappedText(targetPage, value, cfg, helvetica);
+      }
+
+      if (agreementType === "ppf" && signature.method === "typed") {
+        const helveticaBold = await combinedPdf.embedFont(StandardFonts.HelveticaBold);
+        drawTypedSignature(targetPage, signature.typed || parentName, fieldMap.signatureBounds.primary, helveticaBold);
       }
     }
 

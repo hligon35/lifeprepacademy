@@ -37,7 +37,7 @@ export const PPF_LIABILITY_FIELD_MAP = {
   fields: {
     participantSignatureDate: { x: 215, y: 545, maxWidth: 100, fontSize: 12 },
     participantName: { x: 350, y: 545, maxWidth: 220, fontSize: 12 },
-    participantAge: { x: 525, y: 545, maxWidth: 70, fontSize: 12 },
+    participantGrade: { x: 500, y: 545, maxWidth: 95, fontSize: 10 },
     parentSignatureDate: { x: 215, y: 455, maxWidth: 100, fontSize: 12 },
     parentName: { x: 350, y: 455, maxWidth: 230, fontSize: 12 },
   },

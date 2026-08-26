@@ -1,6 +1,8 @@
 {
   "agreementType": "ppf",
-  "generatedAt": "2026-08-12T22:32:53.428Z",
+  "generatedAt": "2026-08-26T16:55:58.523Z",
+  "participantCount": 2,
+  "pageCount": 4,
   "source": {
     "mapPath": "mlsregistration/worker/pdf-field-maps.js",
     "samplePath": "mlsregistration/preview/ppf-liability-preview-sample.json"

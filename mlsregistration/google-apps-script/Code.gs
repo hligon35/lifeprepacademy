@@ -28,6 +28,27 @@ const PLAYER_PAYMENT_COLUMNS = [
   'Player Payment Receipt URL',
 ];
 
+// These columns are appended to the far right of the Players sheet so the
+// existing positional registration columns are never shifted or overwritten.
+const PLAYER_IDENTITY_COLUMNS = [
+  'player_1_id',
+  'player_1_division_id',
+  'player_2_id',
+  'player_2_division_id',
+  'player_3_id',
+  'player_3_division_id',
+  'player_4_id',
+  'player_4_division_id',
+];
+
+// Replace only the values below if MLS GO gives you official division IDs.
+const DIVISION_IDS = Object.freeze({
+  SECOND_THIRD_BOYS: 'PGS-23B',
+  SECOND_THIRD_GIRLS: 'PGS-23G',
+  FOURTH_FIFTH_BOYS: 'PGS-45B',
+  FOURTH_FIFTH_GIRLS: 'PGS-45G',
+});
+
 const VOLUNTEER_AGREEMENT_COLUMNS = [
   'Volunteer Agreement Status',
   'Volunteer Agreement Version',
@@ -37,6 +58,11 @@ const VOLUNTEER_AGREEMENT_COLUMNS = [
   'Volunteer Agreement PDF URL',
   'Volunteer Agreement SHA-256',
   'Volunteer Agreement Transaction ID',
+];
+
+const PPF_LIABILITY_COLUMNS = [
+  'PPF Liability File ID',
+  'PPF Liability PDF URL',
 ];
 
 const BRAND_URL = 'https://www.lifeprepacademyfoundation.com/';
@@ -51,9 +77,24 @@ const EMAIL_SENDER_ALIAS = 'youthprograms@lifeprepacademyfoundation.com';
 const EMAIL_REPLY_TO = 'info@lifeprepacademyfoundation.com';
 const DEFAULT_EMAIL_SENDER_NAME = 'LifePrep Academy Foundation';
 const TEST_SEND_RECIPIENT = 'hligon@getsparqd.com';
+const PPF_LIABILITY_FORM_URL = 'https://mlsregistration.lifeprepacademyfoundation.com/documents/PPF%20Liability%20Form.pdf';
+const PPF_LIABILITY_RENDER_URL = 'https://mlsregistration.lifeprepacademyfoundation.com/api/forms/ppf-pdf';
+
+const AGREEMENT_ARCHIVE_FOLDERS = Object.freeze({
+  PLAYER: '1I5xbI9sihz7ALY78ul_SBjf-g-iJYZSA',
+  PPF: '1gSkERsjVdSPtZTHArpRcHF9ixtosnc0h',
+  VOLUNTEER: '1yV4m6ASbxAVtia7zi5A5uL1sx5N53cwC',
+});
+
+const SCHOLARSHIP_LIVE_AUTOMATION = Object.freeze({
+  WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbxe5ObXXsACvVrIw5oYEGO0kf1Nc7-8OyjnmQQd7Y3A0pkHX70c2IK90HWboJkp-2EE/exec',
+  ACTION: 'archive_live_scholarship_application',
+  TOKEN_PROPERTY: 'SCHOLARSHIP_LIVE_WEBHOOK_TOKEN',
+});
 
 const SCHOLARSHIP_HEADERS = [
   'submitted_at',
+  'form_type',
   'registration_submission_id',
   'page_url',
   'parent_first_name',
@@ -69,6 +110,7 @@ const SCHOLARSHIP_HEADERS = [
   'scholarship_contribution_amount',
   'scholarship_participation_commitment',
   'scholarship_parent_acknowledgement',
+  'scholarship_guidelines_accepted',
   'participant_names',
 ];
 
@@ -376,11 +418,18 @@ function handleSubmissionUpsert_(values) {
     return json_({ ok: false, error: 'Unknown form_type' }, 400);
   }
 
+  if (formType === 'scholarship_application') {
+    return handleScholarshipSubmissionUpsert_(values, config);
+  }
+
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
     const sheet = getSheet_(config.sheetName);
     ensureHeaders_(sheet, config.headers);
+    if (formType === 'mls_registration') {
+      ensurePlayerIdentityHeaders_(sheet);
+    }
 
     const submissionId = normalizeValue_(lookupPayloadValue_(values, config.idColumn));
     if (!submissionId) {
@@ -397,18 +446,158 @@ function handleSubmissionUpsert_(values) {
       preserveSystemManagedColumns_(rowValues, config.headers, existingRecord, formType);
       applyPendingAgreementDefaults_(rowValues, config.headers, formType);
       sheet.getRange(existingRow, 1, 1, config.headers.length).setValues([rowValues]);
-      return json_({ ok: true, upserted: true, updatedExistingRow: true, row: existingRow });
+      const players = formType === 'mls_registration'
+        ? assignPlayerIdentityForRow_(sheet, existingRow)
+        : [];
+      SpreadsheetApp.flush();
+      return json_({
+        ok: true,
+        upserted: true,
+        updatedExistingRow: true,
+        row: existingRow,
+        players: players,
+        scholarshipAutomation: null,
+      });
     }
 
     applyPendingAgreementDefaults_(rowValues, config.headers, formType);
 
     sheet.appendRow(rowValues);
     const insertedRow = sheet.getLastRow();
+    const players = formType === 'mls_registration'
+      ? assignPlayerIdentityForRow_(sheet, insertedRow)
+      : [];
     sendInternalSubmissionNotification_(formType, config, values, rowValues);
+    SpreadsheetApp.flush();
 
-    return json_({ ok: true, upserted: true, updatedExistingRow: false, row: insertedRow });
+    return json_({
+      ok: true,
+      upserted: true,
+      updatedExistingRow: false,
+      row: insertedRow,
+      players: players,
+      scholarshipAutomation: null,
+    });
   } finally {
     lock.releaseLock();
+  }
+}
+
+function handleScholarshipSubmissionUpsert_(values, config) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const sheet = getSheet_(config.sheetName);
+    const actualHeaders = ensureHeadersByName_(sheet, config.headers);
+    const submissionId = normalizeValue_(lookupPayloadValue_(values, config.idColumn));
+    if (!submissionId) {
+      writeError_('scholarship_application', `Missing ${config.idColumn}`, values);
+      return json_({ ok: false, error: `Missing ${config.idColumn}` }, 400);
+    }
+
+    const existingRow = findRowByHeaderValue_(sheet, actualHeaders, config.idColumn, submissionId);
+    const existingRecord = existingRow > 0
+      ? readSheetRowRecordByHeader_(sheet, actualHeaders, existingRow)
+      : null;
+    const rowValues = buildRowValuesByHeader_(actualHeaders, values, existingRecord, config.headers);
+
+    let rowNumber = existingRow;
+    if (existingRow > 0) {
+      sheet.getRange(existingRow, 1, 1, actualHeaders.length).setValues([rowValues]);
+    } else {
+      sheet.appendRow(rowValues);
+      rowNumber = sheet.getLastRow();
+      const submissionValues = config.headers.map(function(header) {
+        return formatSheetValue_(header, lookupPayloadValue_(values, header));
+      });
+      sendInternalSubmissionNotification_('scholarship_application', config, values, submissionValues);
+    }
+
+    SpreadsheetApp.flush();
+    const scholarshipAutomation = finalizeScholarshipLiveApplication_(values, submissionId);
+
+    return json_({
+      ok: true,
+      upserted: true,
+      updatedExistingRow: existingRow > 0,
+      row: rowNumber,
+      scholarshipAutomation: scholarshipAutomation,
+    });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Immediately asks the standalone scholarship app to generate and archive the
+ * live scholarship document for the newly recorded registration row. A failure
+ * is reported without undoing the form row.
+ */
+function finalizeScholarshipLiveApplication_(values, submissionId) {
+  const token = normalizeValue_(
+    PropertiesService.getScriptProperties().getProperty(
+      SCHOLARSHIP_LIVE_AUTOMATION.TOKEN_PROPERTY
+    )
+  );
+  if (!token) {
+    const error = 'Missing Script Property: ' + SCHOLARSHIP_LIVE_AUTOMATION.TOKEN_PROPERTY;
+    writeError_('scholarship_application', error, {
+      registration_submission_id: submissionId
+    });
+    return {ok: false, configured: false, error: error};
+  }
+
+  const parentEmail = normalizeValue_(
+    lookupPayloadValue_(values, 'parent_email') || lookupPayloadValue_(values, 'email')
+  ).toLowerCase();
+  if (!parentEmail || !isValidEmail_(parentEmail)) {
+    const error = 'A valid parent_email is required for live scholarship automation.';
+    writeError_('scholarship_application', error, {
+      registration_submission_id: submissionId,
+      parent_email: parentEmail
+    });
+    return {ok: false, error: error};
+  }
+
+  try {
+    const response = UrlFetchApp.fetch(SCHOLARSHIP_LIVE_AUTOMATION.WEB_APP_URL, {
+      method: 'post',
+      followRedirects: true,
+      muteHttpExceptions: true,
+      payload: {
+        action: SCHOLARSHIP_LIVE_AUTOMATION.ACTION,
+        webhook_token: token,
+        registration_submission_id: submissionId,
+        parent_email: parentEmail,
+        submitted_at: normalizeValue_(lookupPayloadValue_(values, 'submitted_at')),
+      },
+    });
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      throw new Error(
+        'Scholarship automation returned HTTP ' + responseCode + ' with a non-JSON response.'
+      );
+    }
+    if (responseCode < 200 || responseCode >= 300 || !result || result.ok !== true) {
+      throw new Error(
+        result && result.error
+          ? result.error
+          : 'Scholarship automation returned HTTP ' + responseCode + '.'
+      );
+    }
+    return result;
+  } catch (error) {
+    const message = String(error && error.message ? error.message : error);
+    writeError_('scholarship_application', 'Live scholarship automation failed', {
+      registration_submission_id: submissionId,
+      parent_email: parentEmail,
+      error: message
+    });
+    return {ok: false, error: message};
   }
 }
 
@@ -549,16 +738,19 @@ function handleAgreementMetadataUpdate_(values) {
   lock.waitLock(30000);
   try {
     const sheet = getSheet_(config.sheetName);
-    ensureHeaders_(sheet, config.headers);
+    const columnNames =
+      formType === 'mls_registration' ? PLAYER_AGREEMENT_COLUMNS : VOLUNTEER_AGREEMENT_COLUMNS;
+    const actualHeaders = ensureHeadersByName_(
+      sheet,
+      getAgreementArchiveRequiredHeaders_(formType, config.idColumn, columnNames)
+    );
 
-    const row = findRowBySubmissionId_(sheet, config.headers, config.idColumn, submissionId);
+    const row = findRowByHeaderValue_(sheet, actualHeaders, config.idColumn, submissionId);
     if (row <= 0) {
       return json_({ ok: false, error: 'Matching row not found' }, 404);
     }
 
-    const headerIndex = buildHeaderIndex_(config.headers);
-    const columnNames =
-      formType === 'mls_registration' ? PLAYER_AGREEMENT_COLUMNS : VOLUNTEER_AGREEMENT_COLUMNS;
+    const headerIndex = buildHeaderIndexByName_(actualHeaders);
 
     const agreementValues = {
       [columnNames[0]]: normalizeValue_(values.agreement_status),
@@ -571,13 +763,481 @@ function handleAgreementMetadataUpdate_(values) {
       [columnNames[7]]: normalizeValue_(values.agreement_transaction_id),
     };
 
+    const rowRecord = readSheetRowRecordByHeader_(sheet, actualHeaders, row);
+    let archiveResult;
+    try {
+      archiveResult = archiveAgreementPdf_(formType, submissionId, rowRecord, {
+        fileId: agreementValues[columnNames[4]],
+        pdfUrl: agreementValues[columnNames[5]],
+        signedAt: agreementValues[columnNames[2]],
+        transactionId: agreementValues[columnNames[7]],
+      });
+      if (archiveResult.ok) {
+        agreementValues[columnNames[4]] = archiveResult.fileId;
+        agreementValues[columnNames[5]] = archiveResult.url;
+      }
+    } catch (archiveError) {
+      archiveResult = {
+        ok: false,
+        error: String(archiveError && archiveError.message ? archiveError.message : archiveError),
+      };
+      console.error('Agreement PDF archive failed: ' + archiveResult.error);
+    }
+
+    let ppfArchiveResult;
+    if (formType === 'mls_registration') {
+      try {
+        const ppfHeaders = ensureHeadersByName_(sheet, PPF_LIABILITY_COLUMNS);
+        const ppfHeaderIndex = buildHeaderIndexByName_(ppfHeaders);
+        ppfArchiveResult = archivePpfLiabilityPdf_(submissionId, rowRecord, {
+          signedAt: agreementValues[columnNames[2]],
+          transactionId: agreementValues[columnNames[7]],
+        });
+
+        if (ppfArchiveResult.ok) {
+          const ppfValues = {
+            [PPF_LIABILITY_COLUMNS[0]]: ppfArchiveResult.fileId,
+            [PPF_LIABILITY_COLUMNS[1]]: ppfArchiveResult.url,
+          };
+
+          Object.keys(ppfValues).forEach((header) => {
+            const col = getHeaderColumnByName_(ppfHeaderIndex, header);
+            if (!col) return;
+            sheet.getRange(row, col).setValue(formatSheetValue_(header, ppfValues[header]));
+          });
+        }
+      } catch (ppfArchiveError) {
+        ppfArchiveResult = {
+          ok: false,
+          error: String(ppfArchiveError && ppfArchiveError.message ? ppfArchiveError.message : ppfArchiveError),
+        };
+        console.error('PPF liability PDF archive failed: ' + ppfArchiveResult.error);
+      }
+    }
+
     Object.keys(agreementValues).forEach((header) => {
-      const col = headerIndex[header];
+      const col = getHeaderColumnByName_(headerIndex, header);
       if (!col) return;
       sheet.getRange(row, col).setValue(formatSheetValue_(header, agreementValues[header]));
     });
 
-    return json_({ ok: true, updated: true, row });
+    return json_({
+      ok: true,
+      updated: true,
+      row,
+      pdfArchived: Boolean(archiveResult && archiveResult.ok),
+      archivedPdfUrl: archiveResult && archiveResult.ok ? archiveResult.url : '',
+      ppfArchived: Boolean(ppfArchiveResult && ppfArchiveResult.ok),
+      archivedPpfPdfUrl: ppfArchiveResult && ppfArchiveResult.ok ? ppfArchiveResult.url : '',
+      archiveWarning: archiveResult && !archiveResult.ok
+        ? normalizeValue_(archiveResult.error || archiveResult.reason)
+        : '',
+      ppfArchiveWarning: ppfArchiveResult && !ppfArchiveResult.ok
+        ? normalizeValue_(ppfArchiveResult.error || ppfArchiveResult.reason)
+        : '',
+    });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function archiveAgreementPdf_(formType, submissionId, rowRecord, agreement) {
+  const isPlayer = formType === 'mls_registration';
+  const isVolunteer = formType === 'volunteer_application' || formType === 'coaching_application';
+  if (!isPlayer && !isVolunteer) {
+    return { ok: false, reason: 'This form type does not use an archived agreement PDF.' };
+  }
+
+  const sourcePdfUrl = normalizeAgreementPdfUrl_(agreement.pdfUrl);
+  const sourceDriveFileId = extractDriveFileId_(sourcePdfUrl)
+    || normalizeDriveFileId_(agreement.fileId);
+  const hasSignedPdfUrl = isAllowedAgreementPdfUrl_(sourcePdfUrl);
+  if (!sourceDriveFileId && !hasSignedPdfUrl) {
+    return {
+      ok: false,
+      reason: 'No usable agreement PDF URL or Google Drive file ID was provided.',
+    };
+  }
+
+  const folderId = isPlayer
+    ? AGREEMENT_ARCHIVE_FOLDERS.PLAYER
+    : AGREEMENT_ARCHIVE_FOLDERS.VOLUNTEER;
+  const folder = DriveApp.getFolderById(folderId);
+  const fileName = buildAgreementArchiveFileName_(
+    formType,
+    submissionId,
+    rowRecord,
+    agreement.transactionId,
+    agreement.signedAt
+  );
+
+  const existingFiles = folder.getFilesByName(fileName);
+  if (existingFiles.hasNext()) {
+    const existingFile = existingFiles.next();
+    return {
+      ok: true,
+      reused: true,
+      fileId: existingFile.getId(),
+      url: existingFile.getUrl(),
+      name: existingFile.getName(),
+      folderId,
+    };
+  }
+
+  const sourceBlob = getAgreementPdfBlob_(sourcePdfUrl, sourceDriveFileId);
+  sourceBlob.setName(fileName);
+  const archivedFile = folder.createFile(sourceBlob);
+  return {
+    ok: true,
+    reused: false,
+    fileId: archivedFile.getId(),
+    url: archivedFile.getUrl(),
+    name: archivedFile.getName(),
+    folderId,
+  };
+}
+
+function archivePpfLiabilityPdf_(submissionId, rowRecord, context) {
+  const folderId = AGREEMENT_ARCHIVE_FOLDERS.PPF;
+  const folder = DriveApp.getFolderById(folderId);
+  const fileName = buildPpfLiabilityArchiveFileName_(submissionId, rowRecord, context);
+
+  const existingFiles = folder.getFilesByName(fileName);
+  if (existingFiles.hasNext()) {
+    const existingFile = existingFiles.next();
+    return {
+      ok: true,
+      reused: true,
+      fileId: existingFile.getId(),
+      url: existingFile.getUrl(),
+      name: existingFile.getName(),
+      folderId,
+    };
+  }
+
+  const sourceBlob = renderPpfLiabilityPdfBlob_(submissionId, rowRecord, context);
+  sourceBlob.setName(fileName);
+  const archivedFile = folder.createFile(sourceBlob);
+  return {
+    ok: true,
+    reused: false,
+    fileId: archivedFile.getId(),
+    url: archivedFile.getUrl(),
+    name: archivedFile.getName(),
+    folderId,
+  };
+}
+
+function renderPpfLiabilityPdfBlob_(submissionId, rowRecord, context) {
+  const updateToken = normalizeValue_(
+    PropertiesService.getScriptProperties().getProperty('AGREEMENT_UPDATE_TOKEN')
+  );
+  if (!updateToken) {
+    throw new Error('Missing Script Property: AGREEMENT_UPDATE_TOKEN');
+  }
+
+  const parentName = [
+    getRecordValueByHeader_(rowRecord, 'parent_first_name'),
+    getRecordValueByHeader_(rowRecord, 'parent_last_name'),
+  ].filter(Boolean).join(' ');
+  const participants = buildPpfParticipantRecords_(rowRecord);
+  if (!participants.length) {
+    throw new Error('No participants were found for the PPF liability PDF.');
+  }
+
+  const response = UrlFetchApp.fetch(PPF_LIABILITY_RENDER_URL, {
+    method: 'post',
+    contentType: 'application/json',
+    muteHttpExceptions: true,
+    headers: {
+      Accept: 'application/pdf',
+      Authorization: 'Bearer ' + updateToken,
+    },
+    payload: JSON.stringify({
+      submissionId: submissionId,
+      parentName: parentName || 'Parent/Guardian',
+      signingDate: formatPpfSigningDate_(context && context.signedAt),
+      participants: participants,
+    }),
+  });
+
+  const responseCode = response.getResponseCode();
+  if (responseCode < 200 || responseCode >= 300) {
+    throw new Error('PPF PDF render returned HTTP ' + responseCode + ': ' + response.getContentText());
+  }
+
+  const blob = response.getBlob();
+  const bytes = blob.getBytes();
+  const isPdf = bytes.length >= 5
+    && bytes[0] === 37
+    && bytes[1] === 80
+    && bytes[2] === 68
+    && bytes[3] === 70
+    && bytes[4] === 45;
+  if (!isPdf) {
+    throw new Error('The PPF liability renderer did not return a valid PDF file.');
+  }
+  blob.setContentType('application/pdf');
+  return blob;
+}
+
+function buildPpfParticipantRecords_(rowRecord) {
+  const participants = [];
+  for (var index = 1; index <= 4; index += 1) {
+    const firstName = getRecordValueByHeader_(rowRecord, 'player_' + index + '_first_name');
+    const lastName = getRecordValueByHeader_(rowRecord, 'player_' + index + '_last_name');
+    const fullName = [firstName, lastName].filter(Boolean).join(' ');
+    if (!fullName) continue;
+    participants.push({
+      name: fullName,
+      grade: formatPpfParticipantDivisionLabel_(
+        getRecordValueByHeader_(rowRecord, 'player_' + index + '_grade'),
+        getRecordValueByHeader_(rowRecord, 'player_' + index + '_gender')
+      ),
+    });
+  }
+  return participants;
+}
+
+function formatPpfParticipantDivisionLabel_(grade, gender) {
+  const normalizedGrade = normalizeValue_(grade);
+  const normalizedGender = normalizeValue_(gender);
+  if (!normalizedGrade) return normalizedGender;
+  if (/\b(Boys|Girls)\b/i.test(normalizedGrade)) return normalizedGrade;
+  if (/^(Male|Boy|Boys)$/i.test(normalizedGender)) return normalizedGrade + ' Boys';
+  if (/^(Female|Girl|Girls)$/i.test(normalizedGender)) return normalizedGrade + ' Girls';
+  return normalizedGrade;
+}
+
+function formatPpfSigningDate_(value) {
+  const normalized = normalizeValue_(value);
+  const date = normalized ? new Date(normalized) : new Date();
+  const safeDate = isNaN(date.getTime()) ? new Date() : date;
+  return Utilities.formatDate(safeDate, Session.getScriptTimeZone(), 'MM/dd/yyyy');
+}
+
+function getAgreementPdfBlob_(pdfUrl, driveFileId) {
+  if (isAllowedAgreementPdfUrl_(pdfUrl)) {
+    try {
+      return fetchPdfBlobFromUrl_(pdfUrl);
+    } catch (urlError) {
+      if (!driveFileId) throw urlError;
+    }
+  }
+
+  if (driveFileId) {
+    const sourceFile = DriveApp.getFileById(driveFileId);
+    return sourceFile.getMimeType() === 'application/pdf'
+      ? sourceFile.getBlob()
+      : sourceFile.getAs(MimeType.PDF);
+  }
+
+  throw new Error('No usable agreement PDF source was found.');
+}
+
+function fetchPdfBlobFromUrl_(pdfUrl) {
+  const response = UrlFetchApp.fetch(pdfUrl, {
+    method: 'get',
+    followRedirects: true,
+    muteHttpExceptions: true,
+    headers: { Accept: 'application/pdf' },
+  });
+  const responseCode = response.getResponseCode();
+  if (responseCode < 200 || responseCode >= 300) {
+    throw new Error('Agreement PDF download returned HTTP ' + responseCode + '.');
+  }
+  const blob = response.getBlob();
+  const bytes = blob.getBytes();
+  const isPdf = bytes.length >= 5
+    && bytes[0] === 37
+    && bytes[1] === 80
+    && bytes[2] === 68
+    && bytes[3] === 70
+    && bytes[4] === 45;
+  if (!isPdf) {
+    throw new Error('The agreement URL did not return a valid PDF file.');
+  }
+  blob.setContentType('application/pdf');
+  return blob;
+}
+
+function normalizeAgreementPdfUrl_(value) {
+  const normalized = normalizeValue_(value);
+  if (!normalized) return '';
+  if (/^https:\/\//i.test(normalized)) return normalized;
+
+  const relative = normalized.replace(/^\/+/, '');
+  if (/^(?:player|volunteer)-agreements\//i.test(relative)) {
+    return 'https://mlsregistration.lifeprepacademyfoundation.com/' + relative;
+  }
+  return normalized;
+}
+
+function isAllowedAgreementPdfUrl_(value) {
+  return /^https:\/\/mlsregistration\.lifeprepacademyfoundation\.com\/(?:api\/signer\/agreement\/[a-z0-9-]+|(?:player|volunteer)-agreements\/[a-z0-9_\-./]+\.pdf)(?:\?|$)/i
+    .test(normalizeAgreementPdfUrl_(value));
+}
+
+function buildAgreementArchiveFileName_(formType, submissionId, rowRecord, transactionId, signedAt) {
+  const isPlayer = formType === 'mls_registration';
+  const personName = isPlayer
+    ? [
+        getRecordValueByHeader_(rowRecord, 'parent_first_name'),
+        getRecordValueByHeader_(rowRecord, 'parent_last_name'),
+      ].filter(Boolean).join(' ')
+    : [
+        getRecordValueByHeader_(rowRecord, 'firstName'),
+        getRecordValueByHeader_(rowRecord, 'lastName'),
+      ].filter(Boolean).join(' ');
+  const agreementLabel = isPlayer ? 'Player_Agreement' : 'Volunteer_Agreement';
+  const uniquePart = normalizeValue_(transactionId)
+    || normalizeValue_(submissionId)
+    || normalizeValue_(signedAt)
+    || 'Signed';
+  return [
+    safeDriveFilePart_(personName || 'Registrant'),
+    agreementLabel,
+    safeDriveFilePart_(uniquePart),
+  ].join('_') + '.pdf';
+}
+
+function buildPpfLiabilityArchiveFileName_(submissionId, rowRecord, context) {
+  const personName = [
+    getRecordValueByHeader_(rowRecord, 'parent_first_name'),
+    getRecordValueByHeader_(rowRecord, 'parent_last_name'),
+  ].filter(Boolean).join(' ');
+  const uniquePart = normalizeValue_(context && context.transactionId)
+    || normalizeValue_(submissionId)
+    || normalizeValue_(context && context.signedAt)
+    || 'Accepted';
+  return [
+    safeDriveFilePart_(personName || 'Registrant'),
+    'PPF_Liability',
+    safeDriveFilePart_(uniquePart),
+  ].join('_') + '.pdf';
+}
+
+function extractDriveFileId_(value) {
+  const normalized = normalizeValue_(value);
+  if (!/^https:\/\/(?:drive|docs)\.google\.com\//i.test(normalized)) return '';
+  const pathMatch = normalized.match(/\/d\/([-\w]{25,})/);
+  if (pathMatch) return pathMatch[1];
+  const queryMatch = normalized.match(/[?&]id=([-\w]{25,})/);
+  return queryMatch ? queryMatch[1] : '';
+}
+
+function normalizeDriveFileId_(value) {
+  const normalized = normalizeValue_(value);
+  return /^[-\w]{25,}$/.test(normalized) ? normalized : '';
+}
+
+function safeDriveFilePart_(value) {
+  const cleaned = normalizeValue_(value)
+    .replace(/[\\/:*?"<>|#%{}~&]/g, '-')
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^[_\-.]+|[_\-.]+$/g, '');
+  return cleaned.substring(0, 80) || 'Record';
+}
+
+/**
+ * Read-only setup check. Run this after authorizing the script to confirm that
+ * the executing account can access every configured agreement archive folder.
+ */
+function ARCHIVE_verifyAgreementFolders() {
+  const result = {};
+  Object.keys(AGREEMENT_ARCHIVE_FOLDERS).forEach(function(key) {
+    const folder = DriveApp.getFolderById(AGREEMENT_ARCHIVE_FOLDERS[key]);
+    result[key.toLowerCase()] = {
+      id: folder.getId(),
+      name: folder.getName(),
+      url: folder.getUrl(),
+    };
+  });
+  console.log(JSON.stringify(result, null, 2));
+  return result;
+}
+
+/**
+ * One-time/backfill utility for agreements already recorded in the spreadsheet.
+ * Safe to rerun: an existing target filename is reused instead of duplicated.
+ */
+function ARCHIVE_existingAgreementPdfs() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const targets = [
+      { formType: 'mls_registration', config: FORM_CONFIG.mls_registration },
+      { formType: 'volunteer_application', config: FORM_CONFIG.volunteer_application },
+      { formType: 'coaching_application', config: FORM_CONFIG.coaching_application },
+    ];
+    const result = { archived: 0, reused: 0, skipped: 0, failed: [], ppfArchived: 0, ppfReused: 0 };
+
+    targets.forEach(function(target) {
+      const sheet = getSheet_(target.config.sheetName);
+      const columns = target.formType === 'mls_registration'
+        ? PLAYER_AGREEMENT_COLUMNS
+        : VOLUNTEER_AGREEMENT_COLUMNS;
+      const actualHeaders = ensureHeadersByName_(
+        sheet,
+        getAgreementArchiveRequiredHeaders_(target.formType, target.config.idColumn, columns)
+      );
+      const index = buildHeaderIndexByName_(actualHeaders);
+      const ppfHeaders = target.formType === 'mls_registration'
+        ? ensureHeadersByName_(sheet, PPF_LIABILITY_COLUMNS)
+        : null;
+      const ppfIndex = ppfHeaders ? buildHeaderIndexByName_(ppfHeaders) : null;
+
+      for (let rowNumber = 2; rowNumber <= sheet.getLastRow(); rowNumber += 1) {
+        const record = readSheetRowRecordByHeader_(sheet, actualHeaders, rowNumber);
+        const fileId = getRecordValueByHeader_(record, columns[4]);
+        const pdfUrl = getRecordValueByHeader_(record, columns[5]);
+        if (!fileId && !pdfUrl) {
+          result.skipped += 1;
+          continue;
+        }
+
+        try {
+          const submissionId = getRecordValueByHeader_(record, target.config.idColumn);
+          const archived = archiveAgreementPdf_(target.formType, submissionId, record, {
+            fileId,
+            pdfUrl,
+            signedAt: getRecordValueByHeader_(record, columns[2]),
+            transactionId: getRecordValueByHeader_(record, columns[7]),
+          });
+          if (!archived.ok) {
+            result.skipped += 1;
+            continue;
+          }
+          sheet.getRange(rowNumber, getHeaderColumnByName_(index, columns[4])).setValue(archived.fileId);
+          sheet.getRange(rowNumber, getHeaderColumnByName_(index, columns[5])).setValue(archived.url);
+          if (archived.reused) result.reused += 1;
+          else result.archived += 1;
+
+          if (target.formType === 'mls_registration' && ppfIndex) {
+            const ppfArchived = archivePpfLiabilityPdf_(submissionId, record, {
+              signedAt: getRecordValueByHeader_(record, columns[2]),
+              transactionId: getRecordValueByHeader_(record, columns[7]),
+            });
+            if (ppfArchived.ok) {
+              sheet.getRange(rowNumber, getHeaderColumnByName_(ppfIndex, PPF_LIABILITY_COLUMNS[0])).setValue(ppfArchived.fileId);
+              sheet.getRange(rowNumber, getHeaderColumnByName_(ppfIndex, PPF_LIABILITY_COLUMNS[1])).setValue(ppfArchived.url);
+              if (ppfArchived.reused) result.ppfReused += 1;
+              else result.ppfArchived += 1;
+            }
+          }
+        } catch (error) {
+          result.failed.push({
+            sheet: target.config.sheetName,
+            row: rowNumber,
+            error: String(error && error.message ? error.message : error),
+          });
+        }
+      }
+    });
+
+    console.log(JSON.stringify(result, null, 2));
+    return result;
   } finally {
     lock.releaseLock();
   }
@@ -1022,12 +1682,133 @@ function handlePaymentReceiptLookup_(values) {
 }
 
 function initializeSheets() {
-  ensureHeaders_(getSheet_(SHEET_NAMES.PLAYERS), PLAYER_HEADERS);
-  ensureHeaders_(getSheet_(SHEET_NAMES.SCHOLARSHIPS), SCHOLARSHIP_HEADERS);
+  const playersSheet = getSheet_(SHEET_NAMES.PLAYERS);
+  ensureHeaders_(playersSheet, PLAYER_HEADERS);
+  ensurePlayerIdentityHeaders_(playersSheet);
+  ensureHeadersByName_(getSheet_(SHEET_NAMES.SCHOLARSHIPS), SCHOLARSHIP_HEADERS);
   ensureHeaders_(getSheet_(SHEET_NAMES.VOLUNTEERS), VOLUNTEER_HEADERS);
   ensureHeaders_(getSheet_(SHEET_NAMES.COACHES), COACH_HEADERS);
   ensureHeaders_(getSheet_(SHEET_NAMES.ERRORS), ERROR_HEADERS);
   ensureHeaders_(getSheet_(EMAIL_TRACKING_SHEET_NAME), EMAIL_TRACKING_HEADERS);
+}
+
+/**
+ * Run once after installing this version to assign IDs to registrations that
+ * were already in the Players sheet. It is safe to run again: existing player
+ * IDs are preserved and division IDs are refreshed from grade and gender.
+ */
+function MLS_GO_assignPlayerAndDivisionIds() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const sheet = getSheet_(SHEET_NAMES.PLAYERS);
+    ensureHeaders_(sheet, PLAYER_HEADERS);
+    ensurePlayerIdentityHeaders_(sheet);
+
+    const result = { rowsChecked: 0, playersAssigned: 0, rows: [] };
+    for (let rowNumber = 2; rowNumber <= sheet.getLastRow(); rowNumber += 1) {
+      const players = assignPlayerIdentityForRow_(sheet, rowNumber);
+      result.rowsChecked += 1;
+      result.playersAssigned += players.length;
+      if (players.length) result.rows.push({ row: rowNumber, players: players });
+    }
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function ensurePlayerIdentityHeaders_(sheet) {
+  const width = Math.max(sheet.getLastColumn(), 1);
+  const headers = sheet.getRange(1, 1, 1, width).getValues()[0].map(String);
+  const existing = buildHeaderIndex_(headers);
+  const missing = PLAYER_IDENTITY_COLUMNS.filter(function(header) {
+    return !existing[header];
+  });
+  if (!missing.length) return;
+
+  const startColumn = sheet.getLastColumn() + 1;
+  sheet.getRange(1, startColumn, 1, missing.length)
+    .setValues([missing])
+    .setFontWeight('bold')
+    .setBackground('#d9eaf7');
+}
+
+function assignPlayerIdentityForRow_(sheet, rowNumber) {
+  const lastColumn = sheet.getLastColumn();
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0].map(String);
+  const index = buildHeaderIndex_(headers);
+  const row = sheet.getRange(rowNumber, 1, 1, lastColumn).getValues()[0];
+  const assigned = [];
+
+  for (let playerNumber = 1; playerNumber <= 4; playerNumber += 1) {
+    const prefix = 'player_' + playerNumber + '_';
+    const firstName = valueAtHeader_(row, index, prefix + 'first_name');
+    const lastName = valueAtHeader_(row, index, prefix + 'last_name');
+    const dob = valueAtHeader_(row, index, prefix + 'dob');
+    const gender = valueAtHeader_(row, index, prefix + 'gender');
+    const grade = valueAtHeader_(row, index, prefix + 'grade');
+    const playerIdColumn = index[prefix + 'id'];
+    const divisionIdColumn = index[prefix + 'division_id'];
+    const hasPlayer = Boolean(firstName || lastName || dob);
+
+    if (!playerIdColumn || !divisionIdColumn) continue;
+    if (!hasPlayer) {
+      sheet.getRange(rowNumber, playerIdColumn).clearContent();
+      sheet.getRange(rowNumber, divisionIdColumn).clearContent();
+      continue;
+    }
+
+    let playerId = normalizeValue_(row[playerIdColumn - 1]);
+    if (!playerId) {
+      playerId = createPlayerId_();
+      sheet.getRange(rowNumber, playerIdColumn).setValue(playerId);
+    }
+
+    const divisionId = getDivisionId_(grade, gender);
+    if (divisionId !== normalizeValue_(row[divisionIdColumn - 1])) {
+      sheet.getRange(rowNumber, divisionIdColumn).setValue(divisionId);
+    }
+
+    assigned.push({
+      playerNumber: playerNumber,
+      playerId: playerId,
+      divisionId: divisionId,
+      name: (firstName + ' ' + lastName).trim(),
+      grade: grade,
+      gender: gender,
+    });
+  }
+
+  return assigned;
+}
+
+function valueAtHeader_(row, index, header) {
+  const column = index[header];
+  return column ? normalizeValue_(row[column - 1]) : '';
+}
+
+function createPlayerId_() {
+  return 'PGS-' + Utilities.getUuid().replace(/-/g, '').toUpperCase();
+}
+
+function getDivisionId_(grade, gender) {
+  const normalizedGrade = normalizeComparisonValue_(grade);
+  const normalizedGender = normalizeComparisonValue_(gender);
+  const isSecondThird = /(^|\D)(2|3)(\D|$)|2nd|3rd/.test(normalizedGrade);
+  const isFourthFifth = /(^|\D)(4|5)(\D|$)|4th|5th/.test(normalizedGrade);
+
+  // Check girls/female first because the word "female" contains "male".
+  let genderGroup = '';
+  if (/female|girl/.test(normalizedGender)) genderGroup = 'GIRLS';
+  else if (/male|boy/.test(normalizedGender)) genderGroup = 'BOYS';
+
+  if (isSecondThird && genderGroup === 'BOYS') return DIVISION_IDS.SECOND_THIRD_BOYS;
+  if (isSecondThird && genderGroup === 'GIRLS') return DIVISION_IDS.SECOND_THIRD_GIRLS;
+  if (isFourthFifth && genderGroup === 'BOYS') return DIVISION_IDS.FOURTH_FIFTH_BOYS;
+  if (isFourthFifth && genderGroup === 'GIRLS') return DIVISION_IDS.FOURTH_FIFTH_GIRLS;
+  return '';
 }
 
 function getFormConfig_(formType, strict) {
@@ -1057,6 +1838,115 @@ function ensureHeaders_(sheet, headers) {
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   }
   sheet.setFrozenRows(1);
+}
+
+/**
+ * Returns a stable, case-insensitive key for a sheet header.
+ * Spaces are normalized so moving a column never changes how it is found.
+ */
+function normalizeHeaderKey_(value) {
+  return normalizeValue_(value).toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function readActualSheetHeaders_(sheet) {
+  const width = Math.max(sheet.getLastColumn(), 1);
+  return sheet.getRange(1, 1, 1, width).getValues()[0].map(normalizeValue_);
+}
+
+function buildHeaderIndexByName_(headers) {
+  return headers.reduce(function(index, header, offset) {
+    const key = normalizeHeaderKey_(header);
+    if (key && !index[key]) index[key] = offset + 1;
+    return index;
+  }, {});
+}
+
+function getHeaderColumnByName_(headerIndex, header) {
+  return headerIndex[normalizeHeaderKey_(header)] || 0;
+}
+
+/**
+ * Preserves every existing column. Any genuinely missing required header is
+ * appended at the right edge instead of overwriting or repositioning columns.
+ */
+function ensureHeadersByName_(sheet, requiredHeaders) {
+  let headers = readActualSheetHeaders_(sheet);
+  let index = buildHeaderIndexByName_(headers);
+  const missing = requiredHeaders.filter(function(header) {
+    return !getHeaderColumnByName_(index, header);
+  });
+
+  if (missing.length) {
+    const startColumn = Math.max(sheet.getLastColumn(), 0) + 1;
+    sheet.getRange(1, startColumn, 1, missing.length).setValues([missing]);
+    headers = readActualSheetHeaders_(sheet);
+    index = buildHeaderIndexByName_(headers);
+  }
+
+  sheet.setFrozenRows(1);
+  return headers;
+}
+
+function findRowByHeaderValue_(sheet, headers, idHeader, idValue) {
+  const index = buildHeaderIndexByName_(headers);
+  const column = getHeaderColumnByName_(index, idHeader);
+  if (!column) return -1;
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return -1;
+
+  const expected = normalizeValue_(idValue);
+  const values = sheet.getRange(2, column, lastRow - 1, 1).getValues();
+  for (let offset = 0; offset < values.length; offset += 1) {
+    if (normalizeValue_(values[offset][0]) === expected) return offset + 2;
+  }
+  return -1;
+}
+
+function readSheetRowRecordByHeader_(sheet, headers, rowNumber) {
+  const values = sheet.getRange(rowNumber, 1, 1, headers.length).getValues()[0];
+  return headers.reduce(function(record, header, offset) {
+    if (normalizeValue_(header)) record[header] = normalizeValue_(values[offset]);
+    return record;
+  }, {});
+}
+
+function buildRowValuesByHeader_(actualHeaders, payload, existingRecord, writableHeaders) {
+  const writable = (writableHeaders || []).reduce(function(map, header) {
+    map[normalizeHeaderKey_(header)] = true;
+    return map;
+  }, {});
+
+  return actualHeaders.map(function(header) {
+    const key = normalizeHeaderKey_(header);
+    const existingValue = existingRecord ? getRecordValueByHeader_(existingRecord, header) : '';
+    if (!writable[key]) return formatSheetValue_(header, existingValue);
+
+    const incoming = lookupPayloadValue_(payload, header);
+    if (incoming !== undefined && incoming !== null && normalizeValue_(incoming) !== '') {
+      return formatSheetValue_(header, incoming);
+    }
+
+    return formatSheetValue_(header, existingValue);
+  });
+}
+
+function getRecordValueByHeader_(record, header) {
+  const expected = normalizeHeaderKey_(header);
+  const keys = Object.keys(record || {});
+  for (let i = 0; i < keys.length; i += 1) {
+    if (normalizeHeaderKey_(keys[i]) === expected) {
+      return normalizeValue_(record[keys[i]]);
+    }
+  }
+  return '';
+}
+
+function getAgreementArchiveRequiredHeaders_(formType, idHeader, agreementColumns) {
+  const nameHeaders = formType === 'mls_registration'
+    ? ['parent_first_name', 'parent_last_name']
+    : ['firstName', 'lastName'];
+  return [idHeader].concat(nameHeaders, agreementColumns);
 }
 
 function findRowBySubmissionId_(sheet, headers, idHeader, submissionId) {
@@ -1360,7 +2250,7 @@ function handleEmailTrackingRequest_(e) {
   }
 
   if (eventType === 'clicked' && targetUrl) {
-    return HtmlService.createHtmlOutput('<html><head><meta http-equiv="refresh" content="0;url=' + escapeHtml_(targetUrl) + '"></head><body>Redirecting…</body></html>');
+    return HtmlService.createHtmlOutput('<html><head><meta http-equiv="refresh" content="0;url=' + escapeHtml_(targetUrl) + '"></head><body>Redirectingâ€¦</body></html>');
   }
 
   const pixel = Utilities.base64Decode('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==');
@@ -1653,10 +2543,22 @@ function getEmailTrackingBaseUrl_(payload) {
   if (scriptProperty) return normalizeValue_(scriptProperty);
 
   const serviceUrl = normalizeValue_(ScriptApp.getService().getUrl());
-  return serviceUrl || 'https://script.google.com/macros/s/unknown/exec';
+  return serviceUrl;
+}
+
+function isUsableTrackingBaseUrl_(value) {
+  const normalized = normalizeValue_(value);
+  if (!normalized) return false;
+  if (!/^https?:\/\//i.test(normalized)) return false;
+  if (/\/unknown\/exec(?:\?|$)/i.test(normalized)) return false;
+  return true;
 }
 
 function buildEmailTrackingUrl_(trackingBaseUrl, trackingToken, eventType, emailType, submissionId, recipientEmail, targetUrl, linkLabel) {
+  if (!isUsableTrackingBaseUrl_(trackingBaseUrl)) {
+    return eventType === 'clicked' ? normalizeValue_(targetUrl) : '';
+  }
+
   const params = [
     ['action', 'track_email'],
     ['token', trackingToken],
@@ -1973,7 +2875,7 @@ function buildRegistrationResponseAttachment_(payload) {
   const exportedAt = formatEmailTimestamp_(new Date());
   const responseTableHtml = responseRows.map(function(row) {
     const label = escapeHtml_(normalizeValue_(row.label) || 'Question');
-    const value = escapeHtml_(normalizeValue_(row.value) || '—');
+    const value = escapeHtml_(normalizeValue_(row.value) || 'â€”');
     return '<tr>'
       + '<td style="padding:10px 12px;border-bottom:1px solid #e7e1d6;font-size:12px;font-weight:700;color:#1d2f40;vertical-align:top;">' + label + '</td>'
       + '<td style="padding:10px 12px;border-bottom:1px solid #e7e1d6;font-size:12px;color:#22313f;vertical-align:top;">' + value + '</td>'

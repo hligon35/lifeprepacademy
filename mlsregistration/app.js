@@ -2543,6 +2543,7 @@
         contributionAmount: getTextValue("scholarshipContributionAmount"),
         participationCommitment: getCheckboxValue("scholarshipParticipationCommitment"),
         parentAcknowledgement: getCheckboxValue("scholarshipParentAcknowledgement"),
+        guidelinesAccepted: getCheckboxValue("scholarshipGuidelinesAccepted"),
       },
       helpChoice: getTextValue("helpChoice"),
       agreements: {
@@ -2677,6 +2678,7 @@
       contributionAmount: getTextValue("scholarshipContributionAmount"),
       participationCommitment: getCheckboxValue("scholarshipParticipationCommitment"),
       parentAcknowledgement: getCheckboxValue("scholarshipParentAcknowledgement"),
+      guidelinesAccepted: getCheckboxValue("scholarshipGuidelinesAccepted"),
     };
   }
 
@@ -3159,6 +3161,7 @@
       scholarship_contribution_amount: scholarship.contributionAmount || "",
       scholarship_participation_commitment: scholarship.participationCommitment ? "yes" : "no",
       scholarship_parent_acknowledgement: scholarship.parentAcknowledgement ? "yes" : "no",
+      scholarship_guidelines_accepted: scholarship.guidelinesAccepted ? "yes" : "no",
       participant_names: participantNames.join(", "),
     };
 
