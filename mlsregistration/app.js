@@ -5,7 +5,12 @@
   const GOOGLE_MAPS_API_KEY_META =
     document.querySelector('meta[name="google-maps-api-key"]')?.content.trim() || "";
   const APP_ORIGIN = window.location.origin;
-  const API_ORIGIN = "";
+  const API_ORIGIN =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+      ? ""
+      : "https://mlsregistration.lifeprepacademyfoundation.com";
+  const FORM_UPSERT_ENDPOINT = `${API_ORIGIN}/api/forms/upsert`;
   const PUBLIC_CONFIG_ENDPOINT = `${API_ORIGIN}/api/public-config`;
   const FORM_UPSERT_ENDPOINT = `${API_ORIGIN}/api/forms/upsert`;
   const GOOGLE_APPS_SCRIPT_URL =
