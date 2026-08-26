@@ -648,6 +648,20 @@ function scholarshipWriteLine_(body, firstLabel, firstValue, secondLabel, second
   text.setUnderline(firstPrefix.length, firstPrefix.length + first.length - 1, true);
   const secondStart = firstPrefix.length + first.length + secondPrefix.length;
   text.setUnderline(secondStart, secondStart + second.length - 1, true);
+
+  if (firstLabel === 'Parent/Guardian') {
+    const signatureName = scholarshipNormalize_(firstValue).replace(/[\r\n]+/g, ' ');
+    if (signatureName) {
+      const signatureStart = firstPrefix.length;
+      const signatureEnd = signatureStart + signatureName.length - 1;
+      if (signatureEnd >= signatureStart && signatureEnd < line.length) {
+        text.setFontFamily(signatureStart, signatureEnd, 'Great Vibes');
+        text.setFontSize(signatureStart, signatureEnd, 18);
+        text.setBold(signatureStart, signatureEnd, false);
+        text.setItalic(signatureStart, signatureEnd, false);
+      }
+    }
+  }
 }
 
 function scholarshipUnderlinedField_(value, minimumWidth) {
