@@ -11,7 +11,8 @@
 	"compatibility_date": "2026-08-05",
 	"assets": {
 		"directory": "./mlsregistration",
-		"binding": "ASSETS"
+		"binding": "ASSETS",
+		"run_worker_first": ["/api/*"]
 	},
 	"durable_objects": {
 		"bindings": [
