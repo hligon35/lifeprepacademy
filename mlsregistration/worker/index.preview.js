@@ -69,9 +69,10 @@ function buildPlayerRegistrationPaymentUrl(options = {}) {
 
 export default {
   async fetch(request, env, ctx) {
-    // TEST-ONLY: route Apps Script calls to the isolated test deployment.
+    // TEST-ONLY: route every Apps Script call to the isolated test deployment.
     // Do not deploy this preview file as the production Worker.
     env = { ...env, APPS_SCRIPT_URL: TEST_APPS_SCRIPT_URL };
+
     const url = new URL(request.url);
 
     if (request.method === "OPTIONS" && url.pathname.startsWith("/api/")) {
@@ -253,7 +254,6 @@ async function handleSignAgreement(request, env, ctx) {
   if (!validation.ok) return json(validation, 400, request, env);
 
   const { agreementType, formType, submissionId } = payload;
-  const acceptedAtUtc = payload.audit?.signedAtUtc || payload.audit?.viewedAtUtc;
   const template = AGREEMENT_TEMPLATES[agreementType];
   if (!template) return json({ ok: false, error: "Unknown agreement type" }, 400, request, env);
 
@@ -295,7 +295,7 @@ async function handleSignAgreement(request, env, ctx) {
         submissionId,
         agreementType,
         signerName: payload.signer.printedName,
-        signedAt: acceptedAtUtc,
+        signedAt: payload.audit.viewedAtUtc,
         transactionId: txId,
         fileId: "",
         pdfUrl: "",
@@ -314,7 +314,7 @@ async function handleSignAgreement(request, env, ctx) {
         submissionId,
         agreementType,
         signerName: payload.signer.printedName,
-        signedAt: acceptedAtUtc,
+        signedAt: payload.audit.viewedAtUtc,
         transactionId: txId,
         fileId: "",
         pdfUrl: "",
@@ -361,10 +361,7 @@ async function handleSignAgreement(request, env, ctx) {
           completedHash,
           transactionId: txId,
           signerName: payload.signer.printedName,
-          viewedAt: acceptedAtUtc,
-          signedAt: acceptedAtUtc,
-          consentAccepted: true,
-          signatureMethod: "checkbox-consent",
+          viewedAt: payload.audit.viewedAtUtc,
         },
       }),
     });
@@ -374,7 +371,7 @@ async function handleSignAgreement(request, env, ctx) {
       submissionId,
       agreementType,
       signerName: payload.signer.printedName,
-      signedAt: acceptedAtUtc,
+      signedAt: payload.audit.viewedAtUtc,
       transactionId: txId,
       fileId: objectKey,
       pdfUrl: emailDownloadUrl,
@@ -411,7 +408,7 @@ async function handleSignAgreement(request, env, ctx) {
       completedHash,
       transactionId: txId,
       signerName: payload.signer.printedName,
-      viewedAt: acceptedAtUtc,
+      viewedAt: payload.audit.viewedAtUtc,
     },
   }),
 });
@@ -420,7 +417,7 @@ async function handleSignAgreement(request, env, ctx) {
       ok: true,
       transactionId: txId,
       agreementType,
-      viewedAt: acceptedAtUtc,
+      viewedAt: payload.audit.viewedAtUtc,
       signerDownloadUrl: signerUrl,
       emailDownloadUrl,
       sheetUpdate: {
@@ -443,7 +440,7 @@ async function handleSignAgreement(request, env, ctx) {
       submissionId,
       agreementType,
       signerName: payload.signer.printedName,
-      viewedAt: acceptedAtUtc,
+      viewedAt: payload.audit.viewedAtUtc,
       transactionId: txId,
       fileId: "",
       pdfUrl: "",
@@ -461,8 +458,8 @@ async function handleFormUpsert(request, env) {
     return json({ ok: false, error: "Origin not allowed" }, 403, request, env);
   }
 
-  if (!env.APPS_SCRIPT_URL) {
-    return json({ ok: false, error: "Apps Script URL is not configured" }, 500, request, env);
+  if (!env.APPS_SCRIPT_URL || !hasAppsScriptUpdateToken(env)) {
+    return json({ ok: false, error: "Apps Script update configuration is missing" }, 500, request, env);
   }
 
   const payload = await request.json().catch(() => null);
@@ -479,9 +476,6 @@ async function handleFormUpsert(request, env) {
 
   const params = new URLSearchParams();
   params.append("form_type", formType);
-  if (env.APPS_SCRIPT_UPDATE_TOKEN) {
-    appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
-  }
   Object.entries(values).forEach(([key, value]) => {
     if (!key) return;
     if (value === undefined || value === null) return;
@@ -494,8 +488,9 @@ async function handleFormUpsert(request, env) {
   });
 
   try {
-    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
-    const parsed = safeJsonParse(text);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const text = response.text;
+    const parsed = response.parsed;
 
     if (!parsed?.ok) {
       return json({
@@ -896,21 +891,8 @@ function validateSigningPayload(payload, env) {
     return { ok: false, error: "Invalid or mismatched consent version" };
   }
 
-  if (!payload.signer?.printedName || typeof payload.signer.printedName !== "string") {
-    return { ok: false, error: "Missing signer name" };
-  }
-
-  if (payload.signature?.method !== "checkbox-consent") {
-    return { ok: false, error: "Agreement must be accepted using checkbox consent" };
-  }
-
-  if (payload.audit?.consentAccepted !== true) {
-    return { ok: false, error: "Electronic consent was not accepted" };
-  }
-
-  const acceptedAtUtc = payload.audit?.signedAtUtc || payload.audit?.viewedAtUtc;
-  if (!acceptedAtUtc) {
-    return { ok: false, error: "Missing acceptance timestamp" };
+  if (!payload.audit?.viewedAtUtc) {
+    return { ok: false, error: "Missing viewed timestamp" };
   }
 
   if (payload.agreementType === "player") {
@@ -952,17 +934,17 @@ async function generateSignedPdf({ payload, templateBytes, env, txId, templateHa
 
   const acceptedSignerName = String(payload.signer?.printedName || "").trim();
   if (acceptedSignerName && map.signatureBounds?.primary) {
-    // The rendered name is derived from the checkbox-consent event; the user
-    // does not draw or type a separate signature.
-    drawTypedSignature(targetPage, acceptedSignerName, map.signatureBounds.primary, signatureFont);
+    const signatureOptions = payload.agreementType === "volunteer"
+      ? { maxFontSize: 16 }
+      : {};
+    drawTypedSignature(
+      targetPage,
+      acceptedSignerName,
+      map.signatureBounds.primary,
+      signatureFont,
+      signatureOptions
+    );
   }
-
-  appendCertificatePage(pdfDoc, {
-    payload,
-    templateVersion: AGREEMENT_TEMPLATES[payload.agreementType]?.version || "",
-    templateHash,
-    txId,
-  }, helvetica, helveticaBold);
 
   return pdfDoc.save();
 }
@@ -999,7 +981,7 @@ function drawImageFit(page, img, bounds) {
   page.drawImage(img, { x, y, width: drawWidth, height: drawHeight });
 }
 
-function drawTypedSignature(page, typed, bounds, font) {
+function drawTypedSignature(page, typed, bounds, font, options = {}) {
   const safe = String(typed || "").trim().slice(0, MAX_TYPED_SIGNATURE_LEN);
   if (!safe || !bounds || !font) return;
 
@@ -1007,7 +989,11 @@ function drawTypedSignature(page, typed, bounds, font) {
   const verticalPadding = 2;
   const maxWidth = Math.max(1, bounds.width - horizontalPadding * 2);
   const maxHeight = Math.max(1, bounds.height - verticalPadding * 2);
-  let size = Math.min(24, Math.max(12, maxHeight * 0.95));
+  const configuredMaxFontSize = Number(options.maxFontSize || 24);
+  const maxFontSize = Number.isFinite(configuredMaxFontSize)
+    ? Math.max(9, Math.min(24, configuredMaxFontSize))
+    : 24;
+  let size = Math.min(maxFontSize, Math.max(12, maxHeight * 0.95));
   const initialWidth = font.widthOfTextAtSize(safe, size);
   if (initialWidth > maxWidth) {
     size *= maxWidth / initialWidth;
@@ -1042,10 +1028,10 @@ function appendCertificatePage(pdfDoc, cert, font, bold) {
     ["Agreement/Template Version", cert.templateVersion],
     ["Template SHA-256", cert.templateHash],
     ["Registration/Application ID", cert.payload.submissionId],
-    ["Signer Name", cert.payload.signer?.printedName || ""],
+    ["Printed Signer Name", cert.payload.signer?.printedName || ""],
     ["Signing Timestamp UTC", cert.payload.audit?.signedAtUtc || ""],
     ["Electronic Consent Version", cert.payload.audit?.consentVersion || ""],
-    ["Electronic Signature Method", cert.payload.signature?.method || ""],
+    ["Signature Method", cert.payload.signature?.method || ""],
     ["Signing Transaction ID", cert.txId],
   ];
 
@@ -1113,7 +1099,10 @@ async function updateAgreementInSheets(env, input) {
 }
 
 async function handlePpfPdfRender(request, env) {
-  if (!isAuthorizedWebhookRequest(request, env.APPS_SCRIPT_UPDATE_TOKEN || "")) {
+  const authorized = getAppsScriptUpdateTokenCandidates(env)
+    .some((token) => isAuthorizedWebhookRequest(request, token));
+
+  if (!authorized) {
     return json({ ok: false, error: "Unauthorized" }, 403, request, env);
   }
 
@@ -1213,7 +1202,13 @@ async function generatePpfLiabilityPdf({ templateBytes, participants, parentName
       drawWrappedText(targetPage, value, cfg, helvetica);
     }
 
-    drawTypedSignature(targetPage, parentName, PPF_LIABILITY_FIELD_MAP.signatureBounds.primary, signatureFont);
+    drawTypedSignature(
+      targetPage,
+      parentName,
+      PPF_LIABILITY_FIELD_MAP.signatureBounds.primary,
+      signatureFont,
+      { maxFontSize: 16 }
+    );
   }
 
   return combinedPdf.save();

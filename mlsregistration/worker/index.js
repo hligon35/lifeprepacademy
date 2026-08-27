@@ -929,7 +929,16 @@ async function generateSignedPdf({ payload, templateBytes, env, txId, templateHa
 
   const acceptedSignerName = String(payload.signer?.printedName || "").trim();
   if (acceptedSignerName && map.signatureBounds?.primary) {
-    drawTypedSignature(targetPage, acceptedSignerName, map.signatureBounds.primary, signatureFont);
+    const signatureOptions = payload.agreementType === "volunteer"
+      ? { maxFontSize: 16 }
+      : {};
+    drawTypedSignature(
+      targetPage,
+      acceptedSignerName,
+      map.signatureBounds.primary,
+      signatureFont,
+      signatureOptions
+    );
   }
 
   return pdfDoc.save();
@@ -967,7 +976,7 @@ function drawImageFit(page, img, bounds) {
   page.drawImage(img, { x, y, width: drawWidth, height: drawHeight });
 }
 
-function drawTypedSignature(page, typed, bounds, font) {
+function drawTypedSignature(page, typed, bounds, font, options = {}) {
   const safe = String(typed || "").trim().slice(0, MAX_TYPED_SIGNATURE_LEN);
   if (!safe || !bounds || !font) return;
 
@@ -975,7 +984,11 @@ function drawTypedSignature(page, typed, bounds, font) {
   const verticalPadding = 2;
   const maxWidth = Math.max(1, bounds.width - horizontalPadding * 2);
   const maxHeight = Math.max(1, bounds.height - verticalPadding * 2);
-  let size = Math.min(24, Math.max(12, maxHeight * 0.95));
+  const configuredMaxFontSize = Number(options.maxFontSize || 24);
+  const maxFontSize = Number.isFinite(configuredMaxFontSize)
+    ? Math.max(9, Math.min(24, configuredMaxFontSize))
+    : 24;
+  let size = Math.min(maxFontSize, Math.max(12, maxHeight * 0.95));
   const initialWidth = font.widthOfTextAtSize(safe, size);
   if (initialWidth > maxWidth) {
     size *= maxWidth / initialWidth;
@@ -1184,7 +1197,13 @@ async function generatePpfLiabilityPdf({ templateBytes, participants, parentName
       drawWrappedText(targetPage, value, cfg, helvetica);
     }
 
-    drawTypedSignature(targetPage, parentName, PPF_LIABILITY_FIELD_MAP.signatureBounds.primary, signatureFont);
+    drawTypedSignature(
+      targetPage,
+      parentName,
+      PPF_LIABILITY_FIELD_MAP.signatureBounds.primary,
+      signatureFont,
+      { maxFontSize: 16 }
+    );
   }
 
   return combinedPdf.save();
