@@ -10,9 +10,10 @@
     window.location.hostname === "127.0.0.1"
       ? ""
       : "https://mlsregistration.lifeprepacademyfoundation.com";
+
   const FORM_UPSERT_ENDPOINT = `${API_ORIGIN}/api/forms/upsert`;
   const PUBLIC_CONFIG_ENDPOINT = `${API_ORIGIN}/api/public-config`;
-  const FORM_UPSERT_ENDPOINT = `${API_ORIGIN}/api/forms/upsert`;
+
   const GOOGLE_APPS_SCRIPT_URL =
     document.querySelector('meta[name="google-apps-script-url"]')?.content.trim() || "";
   const MLS_PLAYER_WAIVER_URL =
