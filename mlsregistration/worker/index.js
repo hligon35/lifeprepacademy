@@ -342,6 +342,25 @@ async function handleSignAgreement(request, env, ctx) {
     const signerUrl = await buildSignerUrl(request.url, txId, env);
     const emailDownloadUrl = await buildSignerUrl(request.url, txId, env, EMAIL_SIGNER_LINK_TTL_MS);
 
+    await doFetch(env, "/transaction", {
+      method: "POST",
+      body: JSON.stringify({
+        txId,
+        value: {
+          status: "generated",
+          agreementType,
+          formType,
+          submissionId,
+          objectKey,
+          templateHash,
+          completedHash,
+          transactionId: txId,
+          signerName: payload.signer.printedName,
+          viewedAt: payload.audit.viewedAtUtc,
+        },
+      }),
+    });
+
     const sheetUpdate = await updateAgreementInSheets(env, {
       formType,
       submissionId,
@@ -371,23 +390,23 @@ async function handleSignAgreement(request, env, ctx) {
     }
 
     await doFetch(env, "/transaction", {
-      method: "POST",
-      body: JSON.stringify({
-        txId,
-        value: {
-          status: "viewed",
-          agreementType,
-          formType,
-          submissionId,
-          objectKey,
-          templateHash,
-          completedHash,
-          transactionId: txId,
-          signerName: payload.signer.printedName,
-          viewedAt: payload.audit.viewedAtUtc,
-        },
-      }),
-    });
+  method: "POST",
+  body: JSON.stringify({
+    txId,
+    value: {
+      status: "viewed",
+      agreementType,
+      formType,
+      submissionId,
+      objectKey,
+      templateHash,
+      completedHash,
+      transactionId: txId,
+      signerName: payload.signer.printedName,
+      viewedAt: payload.audit.viewedAtUtc,
+    },
+  }),
+});
 
     return json({
       ok: true,
