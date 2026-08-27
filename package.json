@@ -10,6 +10,7 @@
     "build:prod": "node build-assets.js && node cache-bust.js && node minify-html.js",
     "format:html": "node format-html.js",
     "deploy:mlsregistration": "wrangler deploy --config wrangler.jsonc",
+    "deploy:mlsregistration-preview": "wrangler deploy --config wrangler.preview.jsonc",
     "preview:mlsregistration": "wrangler dev --config wrangler.jsonc",
     "preview:player-pdf": "node mlsregistration/preview/live-pdf-preview.mjs",
     "preview:player-pdf:watch": "node mlsregistration/preview/live-pdf-preview.mjs --watch",

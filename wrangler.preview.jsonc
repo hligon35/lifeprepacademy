@@ -1,0 +1,55 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  "name": "mlsregistration-preview",
+
+  "main": "mlsregistration/worker/index.preview.js",
+
+  "workers_dev": true,
+
+  "compatibility_date": "2026-08-05",
+
+  "assets": {
+    "directory": "./mlsregistration",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "SIGNING_TRANSACTIONS",
+        "class_name": "SigningTransactionsDO"
+      }
+    ]
+  },
+
+  "migrations": [
+    {
+      "tag": "v1-signing-transactions-do",
+      "new_sqlite_classes": [
+        "SigningTransactionsDO"
+      ]
+    }
+  ],
+
+  "r2_buckets": [
+    {
+      "binding": "SIGNED_AGREEMENTS",
+      "bucket_name": "lpaf-mls-signed-agreements-preview",
+      "remote": true
+    }
+  ],
+
+  "vars": {
+    "PLAYER_SIGNATURE_PLACEMENT_MODE": "parent_guardian_only",
+
+    "ALLOWED_ORIGINS": "https://mlsregistration-preview.hligon.workers.dev,http://127.0.0.1:3000,http://localhost:3000",
+
+    "E_CONSENT_TEXT_VERSION": "v1-2026-08-06"
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}

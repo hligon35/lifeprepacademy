@@ -13,6 +13,7 @@ const DEFAULT_SIGNER_LINK_TTL_MS = 1000 * 60 * 30;
 const EMAIL_SIGNER_LINK_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 const SIGNATURE_FONT_PATH = "/fonts/GreatVibes-Regular.ttf";
 const PRIMARY_APP_ORIGIN = "https://mlsregistration.lifeprepacademyfoundation.com";
+const TEST_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPd2B9w37fNIRazatFx1OoZfzN2EMlgJzqV9vaADousE8TP_kQMijROGEgeKNnlcn6Aw/exec";
 const DEFAULT_ALLOWED_ORIGINS = [
   PRIMARY_APP_ORIGIN,
   "https://lifeprepacademyfoundation.com",
@@ -68,6 +69,9 @@ function buildPlayerRegistrationPaymentUrl(options = {}) {
 
 export default {
   async fetch(request, env, ctx) {
+    // TEST-ONLY: route Apps Script calls to the isolated test deployment.
+    // Do not deploy this preview file as the production Worker.
+    env = { ...env, APPS_SCRIPT_URL: TEST_APPS_SCRIPT_URL };
     const url = new URL(request.url);
 
     if (request.method === "OPTIONS" && url.pathname.startsWith("/api/")) {
@@ -249,6 +253,7 @@ async function handleSignAgreement(request, env, ctx) {
   if (!validation.ok) return json(validation, 400, request, env);
 
   const { agreementType, formType, submissionId } = payload;
+  const acceptedAtUtc = payload.audit?.signedAtUtc || payload.audit?.viewedAtUtc;
   const template = AGREEMENT_TEMPLATES[agreementType];
   if (!template) return json({ ok: false, error: "Unknown agreement type" }, 400, request, env);
 
@@ -290,7 +295,7 @@ async function handleSignAgreement(request, env, ctx) {
         submissionId,
         agreementType,
         signerName: payload.signer.printedName,
-        signedAt: payload.audit.viewedAtUtc,
+        signedAt: acceptedAtUtc,
         transactionId: txId,
         fileId: "",
         pdfUrl: "",
@@ -309,7 +314,7 @@ async function handleSignAgreement(request, env, ctx) {
         submissionId,
         agreementType,
         signerName: payload.signer.printedName,
-        signedAt: payload.audit.viewedAtUtc,
+        signedAt: acceptedAtUtc,
         transactionId: txId,
         fileId: "",
         pdfUrl: "",
@@ -356,7 +361,10 @@ async function handleSignAgreement(request, env, ctx) {
           completedHash,
           transactionId: txId,
           signerName: payload.signer.printedName,
-          viewedAt: payload.audit.viewedAtUtc,
+          viewedAt: acceptedAtUtc,
+          signedAt: acceptedAtUtc,
+          consentAccepted: true,
+          signatureMethod: "checkbox-consent",
         },
       }),
     });
@@ -366,7 +374,7 @@ async function handleSignAgreement(request, env, ctx) {
       submissionId,
       agreementType,
       signerName: payload.signer.printedName,
-      signedAt: payload.audit.viewedAtUtc,
+      signedAt: acceptedAtUtc,
       transactionId: txId,
       fileId: objectKey,
       pdfUrl: emailDownloadUrl,
@@ -403,7 +411,7 @@ async function handleSignAgreement(request, env, ctx) {
       completedHash,
       transactionId: txId,
       signerName: payload.signer.printedName,
-      viewedAt: payload.audit.viewedAtUtc,
+      viewedAt: acceptedAtUtc,
     },
   }),
 });
@@ -412,7 +420,7 @@ async function handleSignAgreement(request, env, ctx) {
       ok: true,
       transactionId: txId,
       agreementType,
-      viewedAt: payload.audit.viewedAtUtc,
+      viewedAt: acceptedAtUtc,
       signerDownloadUrl: signerUrl,
       emailDownloadUrl,
       sheetUpdate: {
@@ -435,7 +443,7 @@ async function handleSignAgreement(request, env, ctx) {
       submissionId,
       agreementType,
       signerName: payload.signer.printedName,
-      viewedAt: payload.audit.viewedAtUtc,
+      viewedAt: acceptedAtUtc,
       transactionId: txId,
       fileId: "",
       pdfUrl: "",
@@ -453,8 +461,8 @@ async function handleFormUpsert(request, env) {
     return json({ ok: false, error: "Origin not allowed" }, 403, request, env);
   }
 
-  if (!env.APPS_SCRIPT_URL || !hasAppsScriptUpdateToken(env)) {
-    return json({ ok: false, error: "Apps Script update configuration is missing" }, 500, request, env);
+  if (!env.APPS_SCRIPT_URL) {
+    return json({ ok: false, error: "Apps Script URL is not configured" }, 500, request, env);
   }
 
   const payload = await request.json().catch(() => null);
@@ -471,6 +479,9 @@ async function handleFormUpsert(request, env) {
 
   const params = new URLSearchParams();
   params.append("form_type", formType);
+  if (env.APPS_SCRIPT_UPDATE_TOKEN) {
+    appendUpdateTokenParams(params, env.APPS_SCRIPT_UPDATE_TOKEN);
+  }
   Object.entries(values).forEach(([key, value]) => {
     if (!key) return;
     if (value === undefined || value === null) return;
@@ -483,9 +494,8 @@ async function handleFormUpsert(request, env) {
   });
 
   try {
-    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
-    const text = response.text;
-    const parsed = response.parsed;
+    const text = await postAppsScriptForm(env.APPS_SCRIPT_URL, params);
+    const parsed = safeJsonParse(text);
 
     if (!parsed?.ok) {
       return json({
@@ -886,8 +896,21 @@ function validateSigningPayload(payload, env) {
     return { ok: false, error: "Invalid or mismatched consent version" };
   }
 
-  if (!payload.audit?.viewedAtUtc) {
-    return { ok: false, error: "Missing viewed timestamp" };
+  if (!payload.signer?.printedName || typeof payload.signer.printedName !== "string") {
+    return { ok: false, error: "Missing signer name" };
+  }
+
+  if (payload.signature?.method !== "checkbox-consent") {
+    return { ok: false, error: "Agreement must be accepted using checkbox consent" };
+  }
+
+  if (payload.audit?.consentAccepted !== true) {
+    return { ok: false, error: "Electronic consent was not accepted" };
+  }
+
+  const acceptedAtUtc = payload.audit?.signedAtUtc || payload.audit?.viewedAtUtc;
+  if (!acceptedAtUtc) {
+    return { ok: false, error: "Missing acceptance timestamp" };
   }
 
   if (payload.agreementType === "player") {
@@ -929,8 +952,17 @@ async function generateSignedPdf({ payload, templateBytes, env, txId, templateHa
 
   const acceptedSignerName = String(payload.signer?.printedName || "").trim();
   if (acceptedSignerName && map.signatureBounds?.primary) {
+    // The rendered name is derived from the checkbox-consent event; the user
+    // does not draw or type a separate signature.
     drawTypedSignature(targetPage, acceptedSignerName, map.signatureBounds.primary, signatureFont);
   }
+
+  appendCertificatePage(pdfDoc, {
+    payload,
+    templateVersion: AGREEMENT_TEMPLATES[payload.agreementType]?.version || "",
+    templateHash,
+    txId,
+  }, helvetica, helveticaBold);
 
   return pdfDoc.save();
 }
@@ -1010,10 +1042,10 @@ function appendCertificatePage(pdfDoc, cert, font, bold) {
     ["Agreement/Template Version", cert.templateVersion],
     ["Template SHA-256", cert.templateHash],
     ["Registration/Application ID", cert.payload.submissionId],
-    ["Printed Signer Name", cert.payload.signer?.printedName || ""],
+    ["Signer Name", cert.payload.signer?.printedName || ""],
     ["Signing Timestamp UTC", cert.payload.audit?.signedAtUtc || ""],
     ["Electronic Consent Version", cert.payload.audit?.consentVersion || ""],
-    ["Signature Method", cert.payload.signature?.method || ""],
+    ["Electronic Signature Method", cert.payload.signature?.method || ""],
     ["Signing Transaction ID", cert.txId],
   ];
 
@@ -1081,10 +1113,7 @@ async function updateAgreementInSheets(env, input) {
 }
 
 async function handlePpfPdfRender(request, env) {
-  const authorized = getAppsScriptUpdateTokenCandidates(env)
-    .some((token) => isAuthorizedWebhookRequest(request, token));
-
-  if (!authorized) {
+  if (!isAuthorizedWebhookRequest(request, env.APPS_SCRIPT_UPDATE_TOKEN || "")) {
     return json({ ok: false, error: "Unauthorized" }, 403, request, env);
   }
 

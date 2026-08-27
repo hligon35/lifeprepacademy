@@ -12,7 +12,9 @@
 	"assets": {
 		"directory": "./mlsregistration",
 		"binding": "ASSETS",
-		"run_worker_first": ["/api/*"]
+		"run_worker_first": [
+			"/api/*"
+		]
 	},
 	"durable_objects": {
 		"bindings": [
@@ -34,6 +36,11 @@
 		{
 			"binding": "SIGNED_AGREEMENTS",
 			"bucket_name": "lpaf-mls-signed-agreements",
+			"remote": true
+		},
+		{
+			"bucket_name": "lpaf-mls-signed-agreements-preview",
+			"binding": "lpaf_mls_signed_agreements_preview",
 			"remote": true
 		}
 	],

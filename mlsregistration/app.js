@@ -12,7 +12,9 @@
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1"
       ? ""
-      : "https://mlsregistration.lifeprepacademyfoundation.com";
+      : window.location.hostname === "mlsregistration-preview.hligon.workers.dev"
+        ? "https://mlsregistration-preview.hligon.workers.dev"
+        : "https://mlsregistration.lifeprepacademyfoundation.com";
 
   const REGISTRATION_ASSET_ORIGIN =
     window.location.hostname === "localhost" ||
@@ -49,7 +51,7 @@
   const E_CONSENT_TEXT_VERSION = "v1-2026-08-06";
 
   const ELECTRONIC_CONSENT_TEXT =
-    "I have reviewed the complete agreement, consent to conduct this transaction electronically, and adopt the signature entered below as my electronic signature. I understand that my electronic signature has the same intended effect as my handwritten signature.";
+    "I have reviewed the complete agreement and agree to its terms. By checking this box and submitting, I consent to conduct this transaction electronically and intend this electronic acceptance to serve as my signature.";
 
   const REGISTRATION_FEE_AMOUNT_PER_PLAYER = 75;
 
@@ -143,7 +145,7 @@
     },
     [STAGES.PLAYER_AGREEMENT]: {
       title: "Player Agreement",
-      subtitle: "Review the required documents. We will generate and record the Player Agreement after you confirm this stage.",
+      subtitle: "Review the required documents and check each required acceptance box. Your electronic acceptance will serve as your signature, and we will generate and record the Player Agreement after you confirm this stage.",
       progressLabel: "Player agreement",
       submitLabel: "Record Player Agreement",
     },
@@ -167,7 +169,7 @@
     },
     [STAGES.VOLUNTEER_AGREEMENT]: {
       title: "Volunteer Agreement",
-      subtitle: "Review the Volunteer Agreement before we generate and record it for your application.",
+      subtitle: "Review the Volunteer Agreement and check the acceptance box. Your electronic acceptance will serve as your signature before we generate and record the agreement.",
       progressLabel: "Volunteer agreement",
       submitLabel: "Record Volunteer Agreement",
     },
@@ -1272,334 +1274,6 @@
 
     wrap.appendChild(container);
     return wrap;
-  }
-
-  function createAgreementSigningField(options) {
-    const {
-      prefix,
-      title,
-      agreementUrl,
-      signerNameLabel,
-      consentName,
-      printedNameName,
-      signatureDataName,
-      signatureMethodName,
-      typedSignatureName,
-    } = options;
-
-    const wrap = document.createElement("div");
-    wrap.className = "field-group agreement-signing-block";
-
-    const heading = document.createElement("h3");
-    heading.className = "agreement-signing-title";
-    heading.textContent = title;
-
-    const controls = document.createElement("div");
-    controls.className = "agreement-view-controls";
-    controls.innerHTML = `
-      <a href="${agreementUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm">View Complete Agreement</a>
-      <a href="${agreementUrl}" download class="btn btn-ghost btn-sm">Download Original Agreement</a>
-    `;
-
-    const viewer = document.createElement("iframe");
-    viewer.className = "agreement-viewer";
-    viewer.src = agreementUrl;
-    viewer.title = `${title} Viewer`;
-
-    const printedNameWrap = createFieldWrap(signerNameLabel, printedNameName, true);
-    const printedNameInput = document.createElement("input");
-    printedNameInput.type = "text";
-    printedNameInput.id = printedNameName;
-    printedNameInput.name = printedNameName;
-    printedNameInput.required = true;
-    printedNameWrap.appendChild(printedNameInput);
-
-    const consentWrap = document.createElement("div");
-    consentWrap.className = "agreement-consent-wrap";
-    const consentChoice = document.createElement("label");
-    consentChoice.className = "inline-toggle";
-    const consentInput = document.createElement("input");
-    consentInput.type = "checkbox";
-    consentInput.id = consentName;
-    consentInput.name = consentName;
-    consentInput.required = true;
-    const consentText = document.createElement("span");
-    consentText.textContent = ELECTRONIC_CONSENT_TEXT;
-    consentChoice.append(consentInput, consentText);
-    consentWrap.appendChild(consentChoice);
-
-    const typedToggle = document.createElement("label");
-    typedToggle.className = "inline-toggle";
-    const typedToggleInput = document.createElement("input");
-    typedToggleInput.type = "checkbox";
-    typedToggleInput.name = `${prefix}UseTypedSignature`;
-    typedToggleInput.id = `${prefix}UseTypedSignature`;
-    const typedToggleText = document.createElement("span");
-    typedToggleText.textContent = "Use typed signature accessibility alternative";
-    typedToggle.append(typedToggleInput, typedToggleText);
-
-    const typedInput = document.createElement("input");
-    typedInput.type = "text";
-    typedInput.name = typedSignatureName;
-    typedInput.id = typedSignatureName;
-    typedInput.className = "hidden";
-    typedInput.placeholder = "Type full legal name as signature";
-
-    const signatureStatus = document.createElement("p");
-    signatureStatus.className = "agreement-doc-status";
-    signatureStatus.textContent = "Signing status: Not signed";
-
-    const signatureActionRow = document.createElement("div");
-    signatureActionRow.className = "signature-action-row";
-    const openSignBtn = document.createElement("button");
-    openSignBtn.type = "button";
-    openSignBtn.className = "btn btn-primary";
-    openSignBtn.textContent = "Tap to Sign";
-
-    const preview = document.createElement("img");
-    preview.className = "signature-preview hidden";
-    preview.alt = "Accepted signature preview";
-
-    const signatureDataInput = document.createElement("input");
-    signatureDataInput.type = "text";
-    signatureDataInput.name = signatureDataName;
-    signatureDataInput.id = signatureDataName;
-    signatureDataInput.dataset.signatureRequired = "true";
-    signatureDataInput.className = "visually-hidden";
-    signatureDataInput.tabIndex = -1;
-
-    const signatureMethodInput = document.createElement("input");
-    signatureMethodInput.type = "hidden";
-    signatureMethodInput.name = signatureMethodName;
-    signatureMethodInput.id = signatureMethodName;
-
-    const enableTypedFallback = (reason) => {
-      typedToggleInput.checked = true;
-      typedInput.classList.remove("hidden");
-      openSignBtn.disabled = true;
-      signatureDataInput.value = "";
-      preview.src = "";
-      preview.classList.add("hidden");
-      signatureMethodInput.value = "typed";
-      signatureStatus.textContent = reason
-        ? `Signing status: ${reason} Type your full legal name to continue.`
-        : "Signing status: Typed signature mode enabled.";
-      typedInput.focus();
-    };
-
-    signatureActionRow.append(openSignBtn);
-
-    const modal = buildSignatureModal({
-      onAccept: (dataUrl) => {
-        signatureDataInput.value = dataUrl;
-        signatureMethodInput.value = "drawn";
-        preview.src = dataUrl;
-        preview.classList.remove("hidden");
-        typedToggleInput.checked = false;
-        typedInput.value = "";
-        typedInput.classList.add("hidden");
-        openSignBtn.disabled = false;
-        signatureStatus.textContent = "Signing status: Drawn signature accepted.";
-      },
-      onClear: () => {
-        signatureDataInput.value = "";
-        signatureMethodInput.value = "";
-        preview.src = "";
-        preview.classList.add("hidden");
-        signatureStatus.textContent = "Signing status: Not signed";
-      },
-    });
-
-    openSignBtn.addEventListener("click", () => {
-      const opened = modal.open();
-      if (!opened) {
-        enableTypedFallback("Draw signature is unavailable on this device.");
-      }
-    });
-
-    typedToggleInput.addEventListener("change", () => {
-      const typedMode = typedToggleInput.checked;
-      typedInput.classList.toggle("hidden", !typedMode);
-      openSignBtn.disabled = typedMode;
-      if (typedMode) {
-        signatureDataInput.value = "";
-        preview.classList.add("hidden");
-        signatureMethodInput.value = "typed";
-        signatureStatus.textContent = "Signing status: Typed signature mode enabled.";
-      } else {
-        typedInput.value = "";
-        signatureMethodInput.value = "";
-        signatureStatus.textContent = "Signing status: Not signed";
-      }
-    });
-
-    typedInput.addEventListener("input", () => {
-      if (!typedToggleInput.checked) return;
-      const value = typedInput.value.trim();
-      signatureDataInput.value = value;
-      signatureMethodInput.value = value ? "typed" : "";
-      signatureStatus.textContent = value
-        ? "Signing status: Typed signature accepted."
-        : "Signing status: Typed signature required.";
-    });
-
-    wrap.append(
-      heading,
-      controls,
-      viewer,
-      printedNameWrap,
-      consentWrap,
-      typedToggle,
-      typedInput,
-      signatureActionRow,
-      preview,
-      signatureStatus,
-      signatureDataInput,
-      signatureMethodInput,
-    );
-
-    return wrap;
-  }
-
-  function buildSignatureModal({ onAccept, onClear }) {
-    const overlay = document.createElement("div");
-    overlay.className = "signature-modal signature-modal--draw hidden";
-    overlay.setAttribute("role", "dialog");
-    overlay.setAttribute("aria-modal", "true");
-
-    const panel = document.createElement("div");
-    panel.className = "signature-modal-panel";
-    const heading = document.createElement("h4");
-    heading.textContent = "Draw Signature";
-
-    const canvas = document.createElement("canvas");
-    canvas.className = "signature-canvas";
-    canvas.setAttribute("aria-label", "Signature drawing area");
-
-    const controls = document.createElement("div");
-    controls.className = "signature-modal-controls";
-
-    const acceptBtn = document.createElement("button");
-    acceptBtn.type = "button";
-    acceptBtn.className = "btn btn-primary";
-    acceptBtn.setAttribute("aria-label", "Accept Signature");
-    acceptBtn.textContent = "✓";
-
-    const clearBtn = document.createElement("button");
-    clearBtn.type = "button";
-    clearBtn.className = "btn btn-ghost";
-    clearBtn.setAttribute("aria-label", "Clear Signature");
-    clearBtn.textContent = "X";
-
-    const cancelBtn = document.createElement("button");
-    cancelBtn.type = "button";
-    cancelBtn.className = "btn btn-ghost";
-    cancelBtn.textContent = "Cancel";
-
-    controls.append(acceptBtn, clearBtn, cancelBtn);
-    panel.append(heading, canvas, controls);
-    overlay.appendChild(panel);
-    document.body.appendChild(overlay);
-
-    const ctx = canvas.getContext("2d");
-    const canDraw = Boolean(ctx && typeof canvas.toDataURL === "function");
-    let drawing = false;
-    let hasStroke = false;
-
-    const resizeCanvas = () => {
-      if (!canDraw) return false;
-      const ratio = Math.max(window.devicePixelRatio || 1, 1);
-      const rect = canvas.getBoundingClientRect();
-      if (!rect.width || !rect.height) return false;
-      canvas.width = Math.floor(rect.width * ratio);
-      canvas.height = Math.floor(rect.height * ratio);
-      ctx.scale(ratio, ratio);
-      ctx.lineWidth = 2;
-      ctx.lineCap = "round";
-      ctx.strokeStyle = "#111";
-      return true;
-    };
-
-    const point = (ev) => {
-      const rect = canvas.getBoundingClientRect();
-      return { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
-    };
-
-    canvas.addEventListener("pointerdown", (ev) => {
-      if (!canDraw) return;
-      ev.preventDefault();
-      drawing = true;
-      hasStroke = true;
-      const p = point(ev);
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-      canvas.setPointerCapture(ev.pointerId);
-      document.body.classList.add("signing-lock-scroll");
-    });
-
-    canvas.addEventListener("pointermove", (ev) => {
-      if (!canDraw) return;
-      if (!drawing) return;
-      ev.preventDefault();
-      const p = point(ev);
-      ctx.lineTo(p.x, p.y);
-      ctx.stroke();
-    });
-
-    const endDraw = () => {
-      drawing = false;
-      document.body.classList.remove("signing-lock-scroll");
-    };
-
-    canvas.addEventListener("pointerup", endDraw);
-    canvas.addEventListener("pointercancel", endDraw);
-
-    clearBtn.addEventListener("click", () => {
-      if (!canDraw) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      hasStroke = false;
-      onClear();
-    });
-
-    acceptBtn.addEventListener("click", () => {
-      if (!canDraw) return;
-      if (!hasStroke || !hasMeaningfulInk(canvas)) {
-        return;
-      }
-      onAccept(canvas.toDataURL("image/png"));
-      overlay.classList.add("hidden");
-    });
-
-    cancelBtn.addEventListener("click", () => {
-      overlay.classList.add("hidden");
-      document.body.classList.remove("signing-lock-scroll");
-    });
-
-    return {
-      open() {
-        if (!canDraw) return false;
-        // Move draw modal to the end of body so it always layers above agreement overlay.
-        document.body.appendChild(overlay);
-        overlay.classList.remove("hidden");
-        const ready = resizeCanvas();
-        if (!ready) {
-          overlay.classList.add("hidden");
-          return false;
-        }
-        return true;
-      },
-    };
-  }
-
-  function hasMeaningfulInk(canvas) {
-    const ctx = canvas.getContext("2d");
-    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-    let nonTransparent = 0;
-    for (let i = 3; i < data.length; i += 4) {
-      if (data[i] > 0) nonTransparent += 1;
-      if (nonTransparent > 120) return true;
-    }
-    return false;
   }
 
   function createToggle(options) {
@@ -2726,120 +2400,6 @@
       : [];
   }
 
-  function requestAgreementSignature(options) {
-    const {
-      prefix,
-      title,
-      agreementUrl,
-      signerNameLabel,
-      defaultPrintedName,
-    } = options;
-
-    const printedNameName = `${prefix}PrintedName`;
-    const consentName = `${prefix}Consent`;
-    const signatureDataName = `${prefix}SignatureData`;
-    const signatureMethodName = `${prefix}SignatureMethod`;
-    const typedSignatureName = `${prefix}TypedSignature`;
-
-    return new Promise((resolve, reject) => {
-      const overlay = document.createElement("div");
-      overlay.className = "signature-modal";
-      overlay.setAttribute("role", "dialog");
-      overlay.setAttribute("aria-modal", "true");
-
-      const panel = document.createElement("div");
-      panel.className = "signature-modal-panel signature-modal-panel--agreement";
-
-      const heading = document.createElement("h4");
-      heading.textContent = title;
-
-      const block = createAgreementSigningField({
-        prefix,
-        title,
-        agreementUrl,
-        signerNameLabel,
-        consentName,
-        printedNameName,
-        signatureDataName,
-        signatureMethodName,
-        typedSignatureName,
-      });
-      const blockHeading = block.querySelector(".agreement-signing-title");
-      if (blockHeading) blockHeading.remove();
-
-      const printedNameInput = block.querySelector(`[name="${printedNameName}"]`);
-      if (printedNameInput instanceof HTMLInputElement) {
-        printedNameInput.value = String(defaultPrintedName || "").trim();
-      }
-
-      const status = document.createElement("p");
-      status.className = "agreement-doc-status";
-      status.setAttribute("aria-live", "polite");
-
-      const controls = document.createElement("div");
-      controls.className = "signature-modal-controls";
-
-      const submitBtn = document.createElement("button");
-      submitBtn.type = "button";
-      submitBtn.className = "btn btn-primary";
-      submitBtn.textContent = "Sign and Continue";
-
-      const cancelBtn = document.createElement("button");
-      cancelBtn.type = "button";
-      cancelBtn.className = "btn btn-ghost";
-      cancelBtn.textContent = "Cancel";
-
-      controls.append(submitBtn, cancelBtn);
-      panel.append(heading, block, status, controls);
-      overlay.appendChild(panel);
-      document.body.appendChild(overlay);
-
-      const cleanup = () => {
-        overlay.remove();
-        document.body.classList.remove("signing-lock-scroll");
-      };
-
-      cancelBtn.addEventListener("click", () => {
-        cleanup();
-        reject(new Error("Signature is required to submit this form."));
-      });
-
-      submitBtn.addEventListener("click", () => {
-        const printedName = String(block.querySelector(`[name="${printedNameName}"]`)?.value || "").trim();
-        const consentAccepted = Boolean(block.querySelector(`[name="${consentName}"]`)?.checked);
-        const signatureData = String(block.querySelector(`[name="${signatureDataName}"]`)?.value || "").trim();
-        const signatureMethod = String(block.querySelector(`[name="${signatureMethodName}"]`)?.value || "").trim();
-        const typedSignature = String(block.querySelector(`[name="${typedSignatureName}"]`)?.value || "").trim();
-
-        if (!printedName) {
-          status.textContent = "Printed name is required.";
-          return;
-        }
-        if (!consentAccepted) {
-          status.textContent = "You must accept electronic consent to continue.";
-          return;
-        }
-        if (!signatureData || (signatureMethod !== "drawn" && signatureMethod !== "typed")) {
-          status.textContent = "A typed or drawn signature is required.";
-          return;
-        }
-        if (signatureMethod === "typed" && !typedSignature) {
-          status.textContent = "Type your full legal name as your signature.";
-          return;
-        }
-
-        cleanup();
-        resolve({
-          printedName,
-          consentAccepted,
-          signatureData,
-          signatureMethod,
-          typedSignature,
-        });
-      });
-    });
-  }
-
   function collectCoachingData() {
     return {
       ...collectVolunteerData(),
@@ -2870,8 +2430,13 @@
       signer: {
         printedName,
       },
+      signature: {
+        method: "checkbox-consent",
+      },
       audit: {
         viewedAtUtc,
+        signedAtUtc: viewedAtUtc,
+        consentAccepted: true,
         consentVersion: E_CONSENT_TEXT_VERSION,
       },
       fields: {
@@ -2961,8 +2526,13 @@
         printedName,
         ageYears: calculateAgeYears(data.dob),
       },
+      signature: {
+        method: "checkbox-consent",
+      },
       audit: {
         viewedAtUtc,
+        signedAtUtc: viewedAtUtc,
+        consentAccepted: true,
         consentVersion: E_CONSENT_TEXT_VERSION,
       },
       fields: {
@@ -3010,45 +2580,6 @@
 
   function generateSubmissionId(prefix) {
     return `${prefix}_${crypto.randomUUID()}`;
-  }
-
-  function splitLegalName(fullName) {
-    const normalized = String(fullName || "").trim().replace(/\s+/g, " ");
-    if (!normalized) return { firstName: "", lastName: "" };
-    const parts = normalized.split(" ");
-    if (parts.length === 1) return { firstName: parts[0], lastName: "" };
-    return {
-      firstName: parts[0],
-      lastName: parts.slice(1).join(" "),
-    };
-  }
-
-  function syncParentIdentityFromAgreement(registrationData) {
-    const printed = registrationData?.agreementSigning?.printedName || "";
-    if (!printed.trim()) return;
-    const parsed = splitLegalName(printed);
-    if (parsed.firstName) {
-      registrationData.parent.firstName = parsed.firstName;
-      setValue("parentFirstName", parsed.firstName);
-    }
-    if (parsed.lastName) {
-      registrationData.parent.lastName = parsed.lastName;
-      setValue("parentLastName", parsed.lastName);
-    }
-  }
-
-  function syncVolunteerIdentityFromAgreement(data) {
-    const printed = data?.agreementSigning?.printedName || "";
-    if (!printed.trim()) return;
-    const parsed = splitLegalName(printed);
-    if (parsed.firstName) {
-      data.firstName = parsed.firstName;
-      setValue("volFirstName", parsed.firstName);
-    }
-    if (parsed.lastName) {
-      data.lastName = parsed.lastName;
-      setValue("volLastName", parsed.lastName);
-    }
   }
 
   async function postFormResponse(params) {
