@@ -2,13 +2,22 @@
   const FORM_ACTION =
     "https://docs.google.com/forms/d/e/1FAIpQLScCUTOgeNb7shvYUrpjbNKn5kh_K_U3tEwks8aJ4zvbXFKWLw/formResponse";
   const FBZX = "-3891024944817654155";
+
   const GOOGLE_MAPS_API_KEY_META =
     document.querySelector('meta[name="google-maps-api-key"]')?.content.trim() || "";
+
   const APP_ORIGIN = window.location.origin;
+
   const API_ORIGIN =
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1"
       ? ""
+      : "https://mlsregistration.lifeprepacademyfoundation.com";
+
+  const REGISTRATION_ASSET_ORIGIN =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
+      ? APP_ORIGIN
       : "https://mlsregistration.lifeprepacademyfoundation.com";
 
   const FORM_UPSERT_ENDPOINT = `${API_ORIGIN}/api/forms/upsert`;
@@ -16,30 +25,51 @@
 
   const GOOGLE_APPS_SCRIPT_URL =
     document.querySelector('meta[name="google-apps-script-url"]')?.content.trim() || "";
+
   const MLS_PLAYER_WAIVER_URL =
     "https://cdn.mediavalet.com/usca/rcx/ViZqxKaKCkOG_lY1tHVXHQ/0NjqRSjMNUKvGw1yBUgd4Q/Original/2.1%20Player%20Registration%20Agreement%20-%20MLS%20GO.pdf";
+
   const MLS_PRIVACY_POLICY_URL =
     "https://www.mlssoccer.com/legal/privacy-policy";
+
   const MLS_TERMS_OF_SERVICE_URL =
     "https://www.mlssoccer.com/legal/terms-of-service";
-  const PPF_LIABILITY_FORM_URL = `${APP_ORIGIN}/documents/PPF%20Liability%20Form.pdf`;
-  const PLAYER_AGREEMENT_TEMPLATE_URL = `${APP_ORIGIN}/documents/MLS GO Player Registration Agreement.pdf`;
-  const VOLUNTEER_AGREEMENT_TEMPLATE_URL = `${APP_ORIGIN}/documents/MLS GO Volunteer Agreement.pdf`;
+
+  const PPF_LIABILITY_FORM_URL =
+    `${REGISTRATION_ASSET_ORIGIN}/documents/PPF%20Liability%20Form.pdf`;
+
+  const PLAYER_AGREEMENT_TEMPLATE_URL =
+    `${REGISTRATION_ASSET_ORIGIN}/documents/MLS%20GO%20Player%20Registration%20Agreement.pdf`;
+
+  const VOLUNTEER_AGREEMENT_TEMPLATE_URL =
+    `${REGISTRATION_ASSET_ORIGIN}/documents/MLS%20GO%20Volunteer%20Agreement.pdf`;
+
   const SIGNING_ENDPOINT = `${API_ORIGIN}/api/sign-agreement`;
+
   const E_CONSENT_TEXT_VERSION = "v1-2026-08-06";
+
   const ELECTRONIC_CONSENT_TEXT =
     "I have reviewed the complete agreement, consent to conduct this transaction electronically, and adopt the signature entered below as my electronic signature. I understand that my electronic signature has the same intended effect as my handwritten signature.";
+
   const REGISTRATION_FEE_AMOUNT_PER_PLAYER = 75;
+
   const PAYMENT_MODE_QUERY_PARAM = "paymentMode";
   const PAYMENT_MODE_DEFAULT = "redirect";
   const PAYMENT_MODE = resolvePaymentMode();
   const PAYMENT_PROVIDER = PAYMENT_MODE === "redirect" ? "quest" : "none";
-  const PAYMENT_PAUSED_MESSAGE = "Payment is temporarily paused while we transition to a new payment provider. Your registration is saved, and we will email a secure payment link when the service is available.";
-  const PAYMENT_REDIRECT_URL = "https://quest.build/get-tickets/1598/71794/info?teamId=686";
+
+  const PAYMENT_PAUSED_MESSAGE =
+    "Payment is temporarily paused while we transition to a new payment provider. Your registration is saved, and we will email a secure payment link when the service is available.";
+
+  const PAYMENT_REDIRECT_URL =
+    "https://quest.build/get-tickets/1598/71794/info?teamId=686";
+
   const PAYMENT_REDIRECT_DELAY_MS = 1200;
   const SCHOLARSHIP_GUIDELINES_DOCUMENT_VERSION = "1.0";
+
   let pendingPaymentRedirectTimeoutId = null;
   let lastPaymentRedirectUrl = "";
+
   const ENABLE_GOOGLE_FORM_MIRROR = false;
   const FORM_UPSERT_TIMEOUT_MS = 30000;
   const FINAL_CONFIRMATION_TIMEOUT_MS = 30000;
