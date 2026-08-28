@@ -402,6 +402,7 @@
   let googleMapsApiKeyPromise;
   let isSubmittingStage = false;
   let registrationResumeState = null;
+  let continuationBlockedByFamilyCompletion = false;
 
   buildPage();
   updatePaymentPageNote();
@@ -426,6 +427,7 @@
     if (!resumeToken) return;
 
     const requestedTestMode = params.get("resumeTest") === "1";
+    const requestedSandboxMode = params.get("resumeSandbox") === "1";
     const response = await fetchWithTimeout(RESUME_CONTEXT_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -433,6 +435,10 @@
     }, FORM_UPSERT_TIMEOUT_MS);
 
     const payload = await response.json().catch(() => null);
+    if (payload?.code === "ALREADY_COMPLETED_BY_FAMILY") {
+      blockRegistrationContinuationBecauseFamilyCompleted(payload?.error);
+      return;
+    }
     if (!response.ok || !payload?.ok || !payload?.context) {
       throw new Error(String(payload?.error || `Saved registration could not be loaded (${response.status}).`));
     }
@@ -441,6 +447,8 @@
     registrationResumeState = {
       token: resumeToken,
       testMode: Boolean(requestedTestMode || context.resume?.testMode),
+      testSandbox: Boolean(requestedSandboxMode || context.resume?.testSandbox),
+      testRecipientEmail: String(context.resume?.testRecipientEmail || "").trim(),
       context,
     };
 
@@ -450,11 +458,15 @@
     }
 
     applyRegistrationResumeContext(context);
-    if (registrationResumeState.testMode) showRegistrationResumeTestBanner();
+    if (registrationResumeState.testMode || registrationResumeState.testSandbox) {
+      showRegistrationResumeTestBanner();
+    }
 
-    formMessage.textContent = registrationResumeState.testMode
-      ? "TEST MODE: This is a read-only continuation preview. No live registration data will be changed."
-      : "Welcome back. We loaded the registration information you previously entered. Please review it carefully and continue where you left off.";
+    formMessage.textContent = registrationResumeState.testSandbox
+      ? "FULL SANDBOX TEST: Changes will be saved only to the temporary test registration. The original Players row will not be changed."
+      : registrationResumeState.testMode
+        ? "TEST MODE: This is a read-only continuation preview. No live registration data will be changed."
+        : "Welcome back. We loaded the registration information you previously entered. Please review it carefully and continue where you left off.";
   }
 
   function applyRegistrationResumeContext(context) {
@@ -523,12 +535,35 @@
     if (document.getElementById("registration-resume-test-banner")) return;
     const banner = document.createElement("div");
     banner.id = "registration-resume-test-banner";
-    banner.textContent = "TEST CONTINUATION — no live registration changes will be saved.";
+    banner.textContent = registrationResumeState?.testSandbox
+      ? "FULL SANDBOX TEST — SAVING ONLY TO THE TEMPORARY TEST REGISTRATION"
+      : "TEST CONTINUATION — no live registration changes will be saved.";
     Object.assign(banner.style, {
       position: "sticky", top: "0", zIndex: "9999", padding: "10px 14px",
       background: "#fff3cd", color: "#664d03", fontWeight: "700", textAlign: "center",
     });
     document.body.prepend(banner);
+  }
+
+  function blockRegistrationContinuationBecauseFamilyCompleted(message) {
+    continuationBlockedByFamilyCompletion = true;
+    isSubmittingStage = false;
+    form.hidden = true;
+    successPanel.hidden = false;
+    if (flowStatus) flowStatus.hidden = true;
+    if (progressFill) progressFill.style.width = "100%";
+    if (progressText) progressText.textContent = "Registration already completed";
+
+    const heading = successPanel.querySelector("h2");
+    const copy = successPanel.querySelector("p");
+    if (heading) heading.textContent = "This registration may already be complete";
+    if (copy) {
+      copy.textContent = String(
+        message ||
+        "This child may already have been registered by someone else in your family. No further registration changes were made."
+      );
+    }
+    formMessage.textContent = "";
   }
 
   function normalizeAutofilledFieldsSoon() {
@@ -1809,6 +1844,11 @@
   }
 
   function renderWizard() {
+    if (continuationBlockedByFamilyCompletion) {
+      blockRegistrationContinuationBecauseFamilyCompleted();
+      return;
+    }
+
     const stage = getCurrentStage();
     if (stage === STAGES.THANK_YOU || (stage === STAGES.PAYMENT && !form.hidden)) {
       renderSuccessStage();
@@ -2275,7 +2315,7 @@
         }
       }
 
-      if (registrationResumeState?.testMode) {
+      if (registrationResumeState?.testMode && !registrationResumeState?.testSandbox) {
         await simulateRegistrationResumeTestStage(stage);
         return;
       }
@@ -2601,7 +2641,7 @@
   async function finalizeFlowConfirmationStage() {
     setSubmissionStatus(STAGES.FINAL_CONFIRMATION_EMAIL, "submitting");
 
-    if (registrationResumeState?.testMode) {
+    if (registrationResumeState?.testMode && !registrationResumeState?.testSandbox) {
       finalConfirmationEmailFailed = false;
       setSubmissionStatus(STAGES.FINAL_CONFIRMATION_EMAIL, "idle", false);
       advanceToStage(STAGES.THANK_YOU);
@@ -2631,7 +2671,10 @@
   }
 
   async function finalizeRegistrationContinuation() {
-    if (!registrationResumeState?.token || registrationResumeState.testMode) return { ok: true, skipped: true };
+    if (
+      !registrationResumeState?.token ||
+      (registrationResumeState.testMode && !registrationResumeState.testSandbox)
+    ) return { ok: true, skipped: true };
     const response = await fetchWithTimeout(RESUME_COMPLETE_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -2642,6 +2685,10 @@
       }),
     }, FORM_UPSERT_TIMEOUT_MS);
     const payload = await response.json().catch(() => null);
+    if (payload?.code === "ALREADY_COMPLETED_BY_FAMILY") {
+      blockRegistrationContinuationBecauseFamilyCompleted(payload?.error);
+      return payload;
+    }
     if (!response.ok || !payload?.ok) {
       throw new Error(String(payload?.error || `Continuation reconciliation failed (${response.status}).`));
     }
@@ -2667,6 +2714,15 @@
       ...getFlowOptions(),
       emailSent: !finalConfirmationEmailFailed,
     });
+
+    if (registrationResumeState?.testSandbox) {
+      if (heading) heading.textContent = "Sandbox Continuation Test Completed";
+      if (copy) {
+        copy.textContent =
+          "The full continuation flow completed against the temporary test registration only. The original registration was not changed. You can now inspect the temporary Players row and remove it when finished.";
+      }
+      return;
+    }
 
     if (heading) heading.textContent = thankYouContent.heading;
     if (copy) copy.textContent = thankYouContent.message;
@@ -2699,6 +2755,7 @@
       descriptor.paymentRequired &&
       getRequiredStagesForCurrentFlow().includes(STAGES.PAYMENT) &&
       !registrationResumeState?.testMode &&
+      !registrationResumeState?.testSandbox &&
       !resumePaymentAlreadyPaid;
 
     if (resumePaymentAlreadyPaid) {
@@ -2708,7 +2765,7 @@
       successPanel.appendChild(paidMessage);
     }
 
-    if (registrationResumeState?.testMode) {
+    if (registrationResumeState?.testMode && !registrationResumeState?.testSandbox) {
       const testMessage = document.createElement("p");
       testMessage.dataset.dynamicSuccess = "true";
       testMessage.textContent = "TEST MODE complete. No registration, agreement, scholarship, volunteer, coaching, payment, or duplicate-reconciliation records were changed.";
@@ -3107,6 +3164,7 @@
     const printedName = `${registrationData.parent.firstName} ${registrationData.parent.lastName}`.trim();
 
     const payload = {
+      continuationResumeToken: registrationResumeState?.token || "",
       agreementType: "player",
       formType: "mls_registration",
       submissionId: registrationData.registrationSubmissionId,
@@ -3185,6 +3243,10 @@
     });
 
     const result = await res.json().catch(() => ({}));
+    if (result?.code === "ALREADY_COMPLETED_BY_FAMILY") {
+      blockRegistrationContinuationBecauseFamilyCompleted(result?.error);
+      throw new Error(result?.error || "This registration was already completed by your family.");
+    }
     if (!res.ok) {
       throw new Error(resolveAgreementRequestError(result, "Player agreement document generation failed."));
     }
@@ -3207,6 +3269,7 @@
       : volunteerAgreementTransactionId;
 
     const payload = {
+      continuationResumeToken: registrationResumeState?.token || "",
       agreementType: "volunteer",
       formType,
       submissionId,
@@ -3239,6 +3302,10 @@
     });
 
     const result = await res.json().catch(() => ({}));
+    if (result?.code === "ALREADY_COMPLETED_BY_FAMILY") {
+      blockRegistrationContinuationBecauseFamilyCompleted(result?.error);
+      throw new Error(result?.error || "This registration was already completed by your family.");
+    }
     if (!res.ok) {
       throw new Error(resolveAgreementRequestError(result, "Volunteer agreement document generation failed."));
     }
@@ -3362,6 +3429,7 @@
         Accept: "application/json",
       },
       body: JSON.stringify({
+        resumeToken: registrationResumeState?.token || "",
         submissionId,
         registrationSubmissionId,
         volunteerSubmissionId,
@@ -3383,6 +3451,10 @@
     }, FINAL_CONFIRMATION_TIMEOUT_MS);
 
     const payload = await res.json().catch(() => null);
+    if (payload?.code === "ALREADY_COMPLETED_BY_FAMILY") {
+      blockRegistrationContinuationBecauseFamilyCompleted(payload?.error);
+      throw new Error(payload?.error || "This registration was already completed by your family.");
+    }
     if (!res.ok || !payload?.ok) {
       throw new Error(String(payload?.error || `Final confirmation email failed (${res.status})`).trim());
     }
@@ -3498,6 +3570,7 @@
         },
         body: JSON.stringify({
           formType,
+          resumeToken: registrationResumeState?.token || "",
           values: {
             ...values,
             defer_confirmation_email: values?.defer_confirmation_email || "yes",
@@ -3505,7 +3578,10 @@
         }),
       }, FORM_UPSERT_TIMEOUT_MS);
       payload = await res.json().catch(() => null);
-      if (!res.ok || !payload?.ok) {
+      if (payload?.code === "ALREADY_COMPLETED_BY_FAMILY") {
+        blockRegistrationContinuationBecauseFamilyCompleted(payload?.error);
+        error = String(payload?.error || "This registration was already completed by your family.").trim();
+      } else if (!res.ok || !payload?.ok) {
         error = String(payload?.error || `Form upsert failed (${res.status})`).trim();
       }
     } catch (err) {
