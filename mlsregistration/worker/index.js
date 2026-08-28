@@ -922,7 +922,7 @@ async function generateSignedPdf({ payload, templateBytes, env, txId, templateHa
 
   const fieldData = payload.fields || {};
   for (const [fieldName, cfg] of Object.entries(map.fields)) {
-    const value = String(fieldData[fieldName] || "").trim();
+    const value = normalizeAgreementPdfFieldValue(fieldName, fieldData[fieldName]);
     if (!value) continue;
     drawWrappedText(targetPage, value, cfg, helvetica);
   }
@@ -942,6 +942,51 @@ async function generateSignedPdf({ payload, templateBytes, env, txId, templateHa
   }
 
   return pdfDoc.save();
+}
+
+function normalizeAgreementPdfFieldValue(fieldName, rawValue) {
+  const value = String(rawValue ?? "").trim();
+  if (!value) return "";
+
+  // Date of Birth is a calendar date, not a timestamp. Older refresh code
+  // could stringify a Google Sheets Date object and send a verbose value such
+  // as "Mon Nov 09 1981 00:00:00 GMT-0500 (...)". Never render that into the
+  // agreement. Keep the exact month/day/year only.
+  if (fieldName === "guardianDob") {
+    return normalizeAgreementDateOnly(value);
+  }
+
+  return value;
+}
+
+function normalizeAgreementDateOnly(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  let match = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (match) {
+    return `${String(match[1]).padStart(2, "0")}/${String(match[2]).padStart(2, "0")}/${match[3]}`;
+  }
+
+  match = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:T|$)/);
+  if (match) {
+    return `${match[2]}/${match[3]}/${match[1]}`;
+  }
+
+  const months = {
+    Jan: "01", Feb: "02", Mar: "03", Apr: "04",
+    May: "05", Jun: "06", Jul: "07", Aug: "08",
+    Sep: "09", Oct: "10", Nov: "11", Dec: "12",
+  };
+
+  match = raw.match(
+    /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\s+(\d{4})\b/
+  );
+  if (match) {
+    return `${months[match[1]]}/${String(match[2]).padStart(2, "0")}/${match[3]}`;
+  }
+
+  return raw;
 }
 
 async function embedSignatureFont(pdfDoc, env) {
