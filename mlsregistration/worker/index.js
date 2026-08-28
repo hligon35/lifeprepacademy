@@ -112,6 +112,20 @@ export default {
       return json({ ok: false, error: "Method not allowed" }, 405, request, env);
     }
 
+    if (url.pathname === "/api/resume/context" && request.method === "POST") {
+      return handleResumeContext(request, env);
+    }
+    if (url.pathname === "/api/resume/context") {
+      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+    }
+
+    if (url.pathname === "/api/resume/complete" && request.method === "POST") {
+      return handleResumeComplete(request, env);
+    }
+    if (url.pathname === "/api/resume/complete") {
+      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+    }
+
     if (url.pathname === "/api/payment-webhook/cornerstone" && (request.method === "POST" || request.method === "GET")) {
       return handlePaymentWebhook(request, env);
     }
@@ -143,6 +157,72 @@ export default {
     await handlePaymentReceiptEmail(message, env, ctx);
   },
 };
+
+async function handleResumeContext(request, env) {
+  const origin = request.headers.get("Origin") || "";
+  if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "", request.url)) {
+    return json({ ok: false, error: "Origin not allowed" }, 403, request, env);
+  }
+
+  const payload = await request.json().catch(() => null);
+  const resumeToken = String(payload?.resumeToken || "").trim();
+  if (!resumeToken) return json({ ok: false, error: "Missing resumeToken" }, 400, request, env);
+
+  return proxyContinuationRequest(request, env, {
+    action: "resume_context",
+    resumeToken,
+  });
+}
+
+async function handleResumeComplete(request, env) {
+  const origin = request.headers.get("Origin") || "";
+  if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "", request.url)) {
+    return json({ ok: false, error: "Origin not allowed" }, 403, request, env);
+  }
+
+  const payload = await request.json().catch(() => null);
+  const resumeToken = String(payload?.resumeToken || "").trim();
+  const registrationSubmissionId = String(payload?.registrationSubmissionId || "").trim();
+  const playerCount = Math.max(0, Math.min(4, Number(payload?.playerCount || 0)));
+  if (!resumeToken || !registrationSubmissionId) {
+    return json({ ok: false, error: "Missing continuation completion data" }, 400, request, env);
+  }
+
+  return proxyContinuationRequest(request, env, {
+    action: "resume_complete",
+    resumeToken,
+    registrationSubmissionId,
+    playerCount,
+  });
+}
+
+async function proxyContinuationRequest(request, env, payload) {
+  const webAppUrl = String(env.CONTINUATION_WEB_APP_URL || "").trim();
+  const sharedSecret = String(env.CONTINUATION_WORKER_SHARED_SECRET || "").trim();
+  if (!/^https:\/\/script\.google\.com\//i.test(webAppUrl) || !sharedSecret) {
+    return json({ ok: false, error: "Registration continuation service is not configured" }, 503, request, env);
+  }
+
+  try {
+    const response = await fetch(webAppUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, sharedSecret }),
+      redirect: "follow",
+    });
+    const text = await response.text();
+    let parsed;
+    try { parsed = JSON.parse(text); }
+    catch { return json({ ok: false, error: "Continuation service returned unreadable data" }, 502, request, env); }
+
+    if (!parsed?.ok) {
+      return json({ ok: false, error: parsed?.error || "Continuation service request failed" }, 502, request, env);
+    }
+    return json(parsed, 200, request, env);
+  } catch (error) {
+    return json({ ok: false, error: String(error?.message || error) }, 502, request, env);
+  }
+}
 
 function handlePublicConfig(env, request) {
   const googleMapsApiKey = String(env.GOOGLE_MAPS_API_KEY || "").trim();

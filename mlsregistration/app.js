@@ -105,6 +105,8 @@
   } = FlowLogic;
 
   const FINAL_CONFIRMATION_ENDPOINT = `${API_ORIGIN}/api/forms/final-confirmation`;
+  const RESUME_CONTEXT_ENDPOINT = `${API_ORIGIN}/api/resume/context`;
+  const RESUME_COMPLETE_ENDPOINT = `${API_ORIGIN}/api/resume/complete`;
   const STAGE_SECTION_IDS = Object.freeze({
     [STAGES.PLAYER_REGISTRATION]: [
       "parent-section",
@@ -399,6 +401,7 @@
   let registrationSyncWarning = "";
   let googleMapsApiKeyPromise;
   let isSubmittingStage = false;
+  let registrationResumeState = null;
 
   buildPage();
   updatePaymentPageNote();
@@ -412,6 +415,121 @@
   normalizeAutofilledFieldsSoon();
   syncAgreementPrefills();
   updateExperienceSummaryRequirements();
+  initializeRegistrationContinuation().catch((error) => {
+    console.error("registration-resume-init-failed", error);
+    formMessage.textContent = String(error?.message || "We could not load your saved registration. Please use the original email link again.");
+  });
+
+  async function initializeRegistrationContinuation() {
+    const params = new URLSearchParams(window.location.search);
+    const resumeToken = String(params.get("resume") || "").trim();
+    if (!resumeToken) return;
+
+    const requestedTestMode = params.get("resumeTest") === "1";
+    const response = await fetchWithTimeout(RESUME_CONTEXT_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ resumeToken }),
+    }, FORM_UPSERT_TIMEOUT_MS);
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload?.ok || !payload?.context) {
+      throw new Error(String(payload?.error || `Saved registration could not be loaded (${response.status}).`));
+    }
+
+    const context = payload.context;
+    registrationResumeState = {
+      token: resumeToken,
+      testMode: Boolean(requestedTestMode || context.resume?.testMode),
+      context,
+    };
+
+    registrationSubmissionId = String(context.registrationSubmissionId || "").trim();
+    if (!registrationSubmissionId) {
+      throw new Error("The saved registration is missing its registration ID.");
+    }
+
+    applyRegistrationResumeContext(context);
+    if (registrationResumeState.testMode) showRegistrationResumeTestBanner();
+
+    formMessage.textContent = registrationResumeState.testMode
+      ? "TEST MODE: This is a read-only continuation preview. No live registration data will be changed."
+      : "Welcome back. We loaded the registration information you previously entered. Please review it carefully and continue where you left off.";
+  }
+
+  function applyRegistrationResumeContext(context) {
+    const parent = context.parent || {};
+    setValue("parentFirstName", parent.firstName || "");
+    setValue("parentLastName", parent.lastName || "");
+    setValue("parentEmail", parent.email || "");
+    setValue("parentPhone", parent.phone || "");
+    setValue("parentGuardianDob", parent.dob || "");
+    setValue("parentStreet", parent.street || "");
+    setValue("parentApt", parent.apt || "");
+    setValue("parentCity", parent.city || "");
+    setValue("parentState", parent.state || "");
+    setValue("parentZip", parent.zip || "");
+
+    const emergency = context.emergency || {};
+    const sameAsParent = /^(yes|true|1)$/i.test(String(emergency.sameAsParent || ""));
+    const emergencyToggle = form.elements.namedItem("emergencySameAsParent");
+    if (emergencyToggle instanceof HTMLInputElement) emergencyToggle.checked = sameAsParent;
+    setValue("emergencyFirstName", emergency.firstName || "");
+    setValue("emergencyLastName", emergency.lastName || "");
+    setValue("emergencyRelationship", emergency.relationship || "");
+    setValue("emergencyEmail", emergency.email || "");
+    setValue("emergencyPhone", emergency.phone || "");
+    setValue("emergencyStreet", emergency.street || "");
+    setValue("emergencyApt", emergency.apt || "");
+    setValue("emergencyCity", emergency.city || "");
+    setValue("emergencyState", emergency.state || "");
+    setValue("emergencyZip", emergency.zip || "");
+
+    const players = Array.isArray(context.players) ? context.players.slice(0, 4) : [];
+    if (!players.length) throw new Error("No claimed participants were available to continue.");
+
+    for (let i = 1; i <= 4; i += 1) {
+      const player = players[i - 1] || {};
+      setValue(`p${i}FirstName`, player.firstName || "");
+      setValue(`p${i}LastName`, player.lastName || "");
+      setValue(`p${i}Dob`, player.dob || "");
+      setValue(`p${i}Gender`, player.gender || "");
+      setValue(`p${i}Grade`, player.grade || "");
+      setValue(`p${i}Jersey`, player.jersey || "");
+      setValue(`p${i}Shorts`, player.shorts || "");
+      setValue(`p${i}Socks`, player.socks || "");
+      setValue(`p${i}Race`, player.race || "");
+      setValue(`p${i}RaceOther`, player.raceOther || "");
+      setValue(`p${i}FavoriteClub`, player.favoriteClub || "");
+      setValue(`p${i}HearAbout`, player.hearAbout || "");
+      if (i < 4) setValue(`addPlayer${i + 1}`, players.length > i ? "Yes" : "No");
+    }
+
+    setValue("scholarshipRequested", context.scholarshipRequested || "No");
+    setValue("helpChoice", context.helpChoice || "No, finish my registration");
+
+    normalizeAutofilledFieldsSoon();
+    updateFlowMeta();
+    applyVisibility();
+    updateScholarshipAgreementPreview();
+    syncAgreementPrefills();
+    updateExperienceSummaryRequirements();
+    activeStageIndex = 0;
+    activeSectionIndex = 0;
+    renderWizard();
+  }
+
+  function showRegistrationResumeTestBanner() {
+    if (document.getElementById("registration-resume-test-banner")) return;
+    const banner = document.createElement("div");
+    banner.id = "registration-resume-test-banner";
+    banner.textContent = "TEST CONTINUATION — no live registration changes will be saved.";
+    Object.assign(banner.style, {
+      position: "sticky", top: "0", zIndex: "9999", padding: "10px 14px",
+      background: "#fff3cd", color: "#664d03", fontWeight: "700", textAlign: "center",
+    });
+    document.body.prepend(banner);
+  }
 
   function normalizeAutofilledFieldsSoon() {
     [250, 750, 1500].forEach((delay) => {
@@ -2157,6 +2275,11 @@
         }
       }
 
+      if (registrationResumeState?.testMode) {
+        await simulateRegistrationResumeTestStage(stage);
+        return;
+      }
+
       if (stage === STAGES.PLAYER_REGISTRATION) {
         await submitPlayerRegistrationStage();
       } else if (stage === STAGES.PLAYER_AGREEMENT) {
@@ -2177,6 +2300,38 @@
       isSubmittingStage = false;
       renderWizard();
     }
+  }
+
+  async function simulateRegistrationResumeTestStage(stage) {
+    setSubmissionStatus(stage, "submitting");
+
+    if (stage === STAGES.PLAYER_REGISTRATION) {
+      const data = collectRegistrationData();
+      data.registrationSubmissionId = registrationSubmissionId;
+      completedRegistrationData = data;
+      playerSubmitted = true;
+      prefillVolunteerContact();
+      lockFlowOptionsFromRegistration(data);
+    } else if (stage === STAGES.PLAYER_AGREEMENT) {
+      playerAgreementSigned = true;
+    } else if (stage === STAGES.SCHOLARSHIP_APPLICATION) {
+      if (completedRegistrationData) completedRegistrationData.scholarship = collectScholarshipApplicationData();
+      scholarshipSubmitted = true;
+    } else if (stage === STAGES.VOLUNTEER_APPLICATION) {
+      completedVolunteerData = collectVolunteerData();
+      volunteerSubmissionId = volunteerSubmissionId || "test-volunteer";
+      volunteerSubmitted = true;
+    } else if (stage === STAGES.COACHING_APPLICATION) {
+      completedCoachingData = collectCoachingData();
+      coachingSubmissionId = coachingSubmissionId || "test-coach";
+      coachingSubmitted = true;
+    } else if (stage === STAGES.VOLUNTEER_AGREEMENT) {
+      volunteerAgreementSigned = Boolean(completedVolunteerData);
+      coachingAgreementSigned = Boolean(completedCoachingData);
+    }
+
+    setSubmissionStatus(stage, "idle");
+    await advanceAfterStageSuccess(stage);
   }
 
   function setSubmissionStatus(stage, state, optionalError, details) {
@@ -2445,6 +2600,14 @@
 
   async function finalizeFlowConfirmationStage() {
     setSubmissionStatus(STAGES.FINAL_CONFIRMATION_EMAIL, "submitting");
+
+    if (registrationResumeState?.testMode) {
+      finalConfirmationEmailFailed = false;
+      setSubmissionStatus(STAGES.FINAL_CONFIRMATION_EMAIL, "idle", false);
+      advanceToStage(STAGES.THANK_YOU);
+      return;
+    }
+
     try {
       const emailResult = await sendFinalConfirmationEmail();
       scholarshipDocumentUrl = String(emailResult?.scholarshipDocumentUrl || scholarshipDocumentUrl || "").trim();
@@ -2454,8 +2617,35 @@
       console.warn("final-confirmation-email-failed", error);
     }
 
+    if (registrationResumeState?.token && registrationSubmissionId) {
+      try {
+        await finalizeRegistrationContinuation();
+      } catch (error) {
+        console.warn("registration-resume-reconciliation-failed", error);
+        registrationSyncWarning = "Your registration was saved, but we could not automatically reconcile the earlier attempts. Our team will review them; you do not need to register again.";
+      }
+    }
+
     setSubmissionStatus(STAGES.FINAL_CONFIRMATION_EMAIL, "idle", false);
     advanceToStage(STAGES.THANK_YOU);
+  }
+
+  async function finalizeRegistrationContinuation() {
+    if (!registrationResumeState?.token || registrationResumeState.testMode) return { ok: true, skipped: true };
+    const response = await fetchWithTimeout(RESUME_COMPLETE_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        resumeToken: registrationResumeState.token,
+        registrationSubmissionId,
+        playerCount: completedRegistrationData?.players?.length || selectedPlayerCount(),
+      }),
+    }, FORM_UPSERT_TIMEOUT_MS);
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload?.ok) {
+      throw new Error(String(payload?.error || `Continuation reconciliation failed (${response.status}).`));
+    }
+    return payload;
   }
 
   function renderSuccessStage() {
@@ -2503,7 +2693,28 @@
     }
 
     const descriptor = getFlowDescriptor(getFlowOptions());
-    const paymentAllowed = descriptor.paymentRequired && getRequiredStagesForCurrentFlow().includes(STAGES.PAYMENT);
+    const resumePaymentStatus = String(registrationResumeState?.context?.payment?.status || "").trim().toLowerCase();
+    const resumePaymentAlreadyPaid = resumePaymentStatus === "paid";
+    const paymentAllowed =
+      descriptor.paymentRequired &&
+      getRequiredStagesForCurrentFlow().includes(STAGES.PAYMENT) &&
+      !registrationResumeState?.testMode &&
+      !resumePaymentAlreadyPaid;
+
+    if (resumePaymentAlreadyPaid) {
+      const paidMessage = document.createElement("p");
+      paidMessage.dataset.dynamicSuccess = "true";
+      paidMessage.textContent = "Your previously recorded registration payment is already marked paid. No additional payment is required from this continuation.";
+      successPanel.appendChild(paidMessage);
+    }
+
+    if (registrationResumeState?.testMode) {
+      const testMessage = document.createElement("p");
+      testMessage.dataset.dynamicSuccess = "true";
+      testMessage.textContent = "TEST MODE complete. No registration, agreement, scholarship, volunteer, coaching, payment, or duplicate-reconciliation records were changed.";
+      successPanel.appendChild(testMessage);
+    }
+
     if (!paymentAllowed) return;
 
     if (pendingPaymentRedirectTimeoutId) {
