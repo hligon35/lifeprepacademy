@@ -49,7 +49,7 @@
   const E_CONSENT_TEXT_VERSION = "v1-2026-08-06";
 
   const ELECTRONIC_CONSENT_TEXT =
-    "I have reviewed the complete agreement, consent to conduct this transaction electronically, and adopt the signature entered below as my electronic signature. I understand that my electronic signature has the same intended effect as my handwritten signature.";
+    "I have reviewed the complete agreement and agree to its terms. By checking this box and submitting, I consent to conduct this transaction electronically and intend this electronic acceptance to serve as my signature.";
 
   const REGISTRATION_FEE_AMOUNT_PER_PLAYER = 75;
 
@@ -232,6 +232,15 @@
     "DC", "PR",
   ];
 
+  const EMAIL_FIELD_NAMES = new Set([
+    "parentEmail",
+    "emergencyEmail",
+    "volEmail",
+    "coachRef1Email",
+  ]);
+
+  const NAME_FIELD_PATTERN = /(FirstName|LastName|Name)$/i;
+
   const PLAYER_ENTRY_MAP = {
     1: {
       firstName: "925997673",
@@ -400,8 +409,25 @@
   setActiveSectionById(initialSectionId);
   renderWizard();
   initAddressAutocomplete();
+  normalizeAutofilledFieldsSoon();
   syncAgreementPrefills();
   updateExperienceSummaryRequirements();
+
+  function normalizeAutofilledFieldsSoon() {
+    [250, 750, 1500].forEach((delay) => {
+      window.setTimeout(() => {
+        Array.from(form.elements).forEach((field) => {
+          if (
+            field instanceof HTMLInputElement ||
+            field instanceof HTMLSelectElement ||
+            field instanceof HTMLTextAreaElement
+          ) {
+            normalizeFieldValue(field);
+          }
+        });
+      }, delay);
+    });
+  }
 
   function parseStandaloneFlow() {
     const value = new URLSearchParams(window.location.search).get("flow");
@@ -1076,10 +1102,25 @@
     if (required) input.required = true;
 
     if (addressField) input.dataset.addressField = "true";
-    if (name.toLowerCase().includes("phone")) input.dataset.phoneField = "true";
+
+    if (name.toLowerCase().includes("phone")) {
+      input.dataset.phoneField = "true";
+      input.maxLength = 14;
+      input.inputMode = "tel";
+      input.autocomplete = input.autocomplete || "tel";
+    }
+
+    if (/zip/i.test(name)) {
+      input.dataset.zipField = "true";
+      input.maxLength = 10;
+      input.inputMode = "numeric";
+    }
+
     if (/dob/i.test(name)) {
       input.dataset.dobField = "true";
       input.maxLength = 10;
+      input.inputMode = "numeric";
+      input.autocomplete = "bday";
     }
 
     if (conditionalOn && conditionalValue) {
@@ -1279,15 +1320,11 @@
 
   function createAgreementSigningField(options) {
     const {
-      prefix,
       title,
       agreementUrl,
       signerNameLabel,
       consentName,
       printedNameName,
-      signatureDataName,
-      signatureMethodName,
-      typedSignatureName,
     } = options;
 
     const wrap = document.createElement("div");
@@ -1315,136 +1352,25 @@
     printedNameInput.id = printedNameName;
     printedNameInput.name = printedNameName;
     printedNameInput.required = true;
+    printedNameInput.autocomplete = "name";
     printedNameWrap.appendChild(printedNameInput);
 
     const consentWrap = document.createElement("div");
     consentWrap.className = "agreement-consent-wrap";
     const consentChoice = document.createElement("label");
     consentChoice.className = "inline-toggle";
+
     const consentInput = document.createElement("input");
     consentInput.type = "checkbox";
     consentInput.id = consentName;
     consentInput.name = consentName;
     consentInput.required = true;
+
     const consentText = document.createElement("span");
     consentText.textContent = ELECTRONIC_CONSENT_TEXT;
+
     consentChoice.append(consentInput, consentText);
     consentWrap.appendChild(consentChoice);
-
-    const typedToggle = document.createElement("label");
-    typedToggle.className = "inline-toggle";
-    const typedToggleInput = document.createElement("input");
-    typedToggleInput.type = "checkbox";
-    typedToggleInput.name = `${prefix}UseTypedSignature`;
-    typedToggleInput.id = `${prefix}UseTypedSignature`;
-    const typedToggleText = document.createElement("span");
-    typedToggleText.textContent = "Use typed signature accessibility alternative";
-    typedToggle.append(typedToggleInput, typedToggleText);
-
-    const typedInput = document.createElement("input");
-    typedInput.type = "text";
-    typedInput.name = typedSignatureName;
-    typedInput.id = typedSignatureName;
-    typedInput.className = "hidden";
-    typedInput.placeholder = "Type full legal name as signature";
-
-    const signatureStatus = document.createElement("p");
-    signatureStatus.className = "agreement-doc-status";
-    signatureStatus.textContent = "Signing status: Not signed";
-
-    const signatureActionRow = document.createElement("div");
-    signatureActionRow.className = "signature-action-row";
-    const openSignBtn = document.createElement("button");
-    openSignBtn.type = "button";
-    openSignBtn.className = "btn btn-primary";
-    openSignBtn.textContent = "Tap to Sign";
-
-    const preview = document.createElement("img");
-    preview.className = "signature-preview hidden";
-    preview.alt = "Accepted signature preview";
-
-    const signatureDataInput = document.createElement("input");
-    signatureDataInput.type = "text";
-    signatureDataInput.name = signatureDataName;
-    signatureDataInput.id = signatureDataName;
-    signatureDataInput.dataset.signatureRequired = "true";
-    signatureDataInput.className = "visually-hidden";
-    signatureDataInput.tabIndex = -1;
-
-    const signatureMethodInput = document.createElement("input");
-    signatureMethodInput.type = "hidden";
-    signatureMethodInput.name = signatureMethodName;
-    signatureMethodInput.id = signatureMethodName;
-
-    const enableTypedFallback = (reason) => {
-      typedToggleInput.checked = true;
-      typedInput.classList.remove("hidden");
-      openSignBtn.disabled = true;
-      signatureDataInput.value = "";
-      preview.src = "";
-      preview.classList.add("hidden");
-      signatureMethodInput.value = "typed";
-      signatureStatus.textContent = reason
-        ? `Signing status: ${reason} Type your full legal name to continue.`
-        : "Signing status: Typed signature mode enabled.";
-      typedInput.focus();
-    };
-
-    signatureActionRow.append(openSignBtn);
-
-    const modal = buildSignatureModal({
-      onAccept: (dataUrl) => {
-        signatureDataInput.value = dataUrl;
-        signatureMethodInput.value = "drawn";
-        preview.src = dataUrl;
-        preview.classList.remove("hidden");
-        typedToggleInput.checked = false;
-        typedInput.value = "";
-        typedInput.classList.add("hidden");
-        openSignBtn.disabled = false;
-        signatureStatus.textContent = "Signing status: Drawn signature accepted.";
-      },
-      onClear: () => {
-        signatureDataInput.value = "";
-        signatureMethodInput.value = "";
-        preview.src = "";
-        preview.classList.add("hidden");
-        signatureStatus.textContent = "Signing status: Not signed";
-      },
-    });
-
-    openSignBtn.addEventListener("click", () => {
-      const opened = modal.open();
-      if (!opened) {
-        enableTypedFallback("Draw signature is unavailable on this device.");
-      }
-    });
-
-    typedToggleInput.addEventListener("change", () => {
-      const typedMode = typedToggleInput.checked;
-      typedInput.classList.toggle("hidden", !typedMode);
-      openSignBtn.disabled = typedMode;
-      if (typedMode) {
-        signatureDataInput.value = "";
-        preview.classList.add("hidden");
-        signatureMethodInput.value = "typed";
-        signatureStatus.textContent = "Signing status: Typed signature mode enabled.";
-      } else {
-        typedInput.value = "";
-        signatureMethodInput.value = "";
-        signatureStatus.textContent = "Signing status: Not signed";
-      }
-    });
-
-    typedInput.addEventListener("input", () => {
-      if (!typedToggleInput.checked) return;
-      const value = typedInput.value.trim();
-      signatureDataInput.value = value;
-      signatureMethodInput.value = value ? "typed" : "";
-      signatureStatus.textContent = value
-        ? "Signing status: Typed signature accepted."
-        : "Signing status: Typed signature required.";
-    });
 
     wrap.append(
       heading,
@@ -1452,157 +1378,9 @@
       viewer,
       printedNameWrap,
       consentWrap,
-      typedToggle,
-      typedInput,
-      signatureActionRow,
-      preview,
-      signatureStatus,
-      signatureDataInput,
-      signatureMethodInput,
     );
 
     return wrap;
-  }
-
-  function buildSignatureModal({ onAccept, onClear }) {
-    const overlay = document.createElement("div");
-    overlay.className = "signature-modal signature-modal--draw hidden";
-    overlay.setAttribute("role", "dialog");
-    overlay.setAttribute("aria-modal", "true");
-
-    const panel = document.createElement("div");
-    panel.className = "signature-modal-panel";
-    const heading = document.createElement("h4");
-    heading.textContent = "Draw Signature";
-
-    const canvas = document.createElement("canvas");
-    canvas.className = "signature-canvas";
-    canvas.setAttribute("aria-label", "Signature drawing area");
-
-    const controls = document.createElement("div");
-    controls.className = "signature-modal-controls";
-
-    const acceptBtn = document.createElement("button");
-    acceptBtn.type = "button";
-    acceptBtn.className = "btn btn-primary";
-    acceptBtn.setAttribute("aria-label", "Accept Signature");
-    acceptBtn.textContent = "✓";
-
-    const clearBtn = document.createElement("button");
-    clearBtn.type = "button";
-    clearBtn.className = "btn btn-ghost";
-    clearBtn.setAttribute("aria-label", "Clear Signature");
-    clearBtn.textContent = "X";
-
-    const cancelBtn = document.createElement("button");
-    cancelBtn.type = "button";
-    cancelBtn.className = "btn btn-ghost";
-    cancelBtn.textContent = "Cancel";
-
-    controls.append(acceptBtn, clearBtn, cancelBtn);
-    panel.append(heading, canvas, controls);
-    overlay.appendChild(panel);
-    document.body.appendChild(overlay);
-
-    const ctx = canvas.getContext("2d");
-    const canDraw = Boolean(ctx && typeof canvas.toDataURL === "function");
-    let drawing = false;
-    let hasStroke = false;
-
-    const resizeCanvas = () => {
-      if (!canDraw) return false;
-      const ratio = Math.max(window.devicePixelRatio || 1, 1);
-      const rect = canvas.getBoundingClientRect();
-      if (!rect.width || !rect.height) return false;
-      canvas.width = Math.floor(rect.width * ratio);
-      canvas.height = Math.floor(rect.height * ratio);
-      ctx.scale(ratio, ratio);
-      ctx.lineWidth = 2;
-      ctx.lineCap = "round";
-      ctx.strokeStyle = "#111";
-      return true;
-    };
-
-    const point = (ev) => {
-      const rect = canvas.getBoundingClientRect();
-      return { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
-    };
-
-    canvas.addEventListener("pointerdown", (ev) => {
-      if (!canDraw) return;
-      ev.preventDefault();
-      drawing = true;
-      hasStroke = true;
-      const p = point(ev);
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-      canvas.setPointerCapture(ev.pointerId);
-      document.body.classList.add("signing-lock-scroll");
-    });
-
-    canvas.addEventListener("pointermove", (ev) => {
-      if (!canDraw) return;
-      if (!drawing) return;
-      ev.preventDefault();
-      const p = point(ev);
-      ctx.lineTo(p.x, p.y);
-      ctx.stroke();
-    });
-
-    const endDraw = () => {
-      drawing = false;
-      document.body.classList.remove("signing-lock-scroll");
-    };
-
-    canvas.addEventListener("pointerup", endDraw);
-    canvas.addEventListener("pointercancel", endDraw);
-
-    clearBtn.addEventListener("click", () => {
-      if (!canDraw) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      hasStroke = false;
-      onClear();
-    });
-
-    acceptBtn.addEventListener("click", () => {
-      if (!canDraw) return;
-      if (!hasStroke || !hasMeaningfulInk(canvas)) {
-        return;
-      }
-      onAccept(canvas.toDataURL("image/png"));
-      overlay.classList.add("hidden");
-    });
-
-    cancelBtn.addEventListener("click", () => {
-      overlay.classList.add("hidden");
-      document.body.classList.remove("signing-lock-scroll");
-    });
-
-    return {
-      open() {
-        if (!canDraw) return false;
-        // Move draw modal to the end of body so it always layers above agreement overlay.
-        document.body.appendChild(overlay);
-        overlay.classList.remove("hidden");
-        const ready = resizeCanvas();
-        if (!ready) {
-          overlay.classList.add("hidden");
-          return false;
-        }
-        return true;
-      },
-    };
-  }
-
-  function hasMeaningfulInk(canvas) {
-    const ctx = canvas.getContext("2d");
-    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-    let nonTransparent = 0;
-    for (let i = 3; i < data.length; i += 4) {
-      if (data[i] > 0) nonTransparent += 1;
-      if (nonTransparent > 120) return true;
-    }
-    return false;
   }
 
   function createToggle(options) {
@@ -1636,8 +1414,11 @@
       const target = event.target;
       if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) return;
 
+      clearFieldValidationState(target);
+
       if (target.dataset.phoneField === "true") formatPhoneField(target);
       if (target.dataset.dobField === "true") formatDobField(target);
+      if (target.dataset.zipField === "true") formatZipField(target);
 
       if (target.name === "emergencySameAsParent") {
         const emergencyFields = form.querySelector('[data-emergency-fields="true"]');
@@ -1689,6 +1470,13 @@
       }
       updateScholarshipAgreementPreview();
     });
+
+    form.addEventListener("blur", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) return;
+      normalizeFieldValue(target);
+      validateField(target, { showMessage: false });
+    }, true);
   }
 
   function updateScholarshipAgreementPreview() {
@@ -1975,7 +1763,12 @@
       const label =
         invalid.closest(".field-group")?.querySelector("label")?.textContent ||
         "this field";
-      formMessage.textContent = `Please complete ${label.replace(" *", "")}.`;
+      const customMessage =
+        typeof invalid.validationMessage === "string"
+          ? invalid.validationMessage.trim()
+          : "";
+      formMessage.textContent =
+        customMessage || `Please complete ${label.replace(" *", "")}.`;
       invalid.focus?.();
       return;
     }
@@ -1990,21 +1783,328 @@
     renderWizard();
   }
 
+  function normalizeFieldValue(field) {
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement)) return;
+
+    const name = String(field.name || "");
+    if (!name || field.type === "checkbox" || field.type === "radio") return;
+
+    if (field.dataset.phoneField === "true") {
+      field.value = formatUsPhone(field.value);
+      return;
+    }
+
+    if (field.dataset.dobField === "true") {
+      field.value = formatDobText(field.value);
+      return;
+    }
+
+    if (field.dataset.zipField === "true") {
+      field.value = formatUsZip(field.value);
+      return;
+    }
+
+    if (EMAIL_FIELD_NAMES.has(name) || field.type === "email") {
+      field.value = normalizeEmailValue(field.value);
+      return;
+    }
+
+    if (NAME_FIELD_PATTERN.test(name)) {
+      field.value = normalizeNameValue(field.value);
+      return;
+    }
+
+    if (name.toLowerCase().includes("street")) {
+      splitAddressFieldIfNeeded(field);
+      field.value = collapseSpaces(field.value);
+      return;
+    }
+
+    field.value = collapseSpaces(field.value);
+  }
+
+  function validateField(field, { showMessage = true } = {}) {
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement)) return "";
+
+    clearFieldValidationState(field);
+
+    if (field.closest(".hidden")) return "";
+
+    const value = String(field.value || "").trim();
+
+    if (field instanceof HTMLInputElement && field.type === "checkbox") {
+      if (field.required && !field.checked) {
+        return setFieldValidationError(field, "This acknowledgement is required.", showMessage);
+      }
+      return "";
+    }
+
+    if (field.required && !value) {
+      return setFieldValidationError(field, "This field is required.", showMessage);
+    }
+
+    if (!value) return "";
+
+    if (field.dataset.dobField === "true") {
+      const parsed = parseUsDate(value);
+      if (!parsed) {
+        return setFieldValidationError(field, "Enter a valid date in MM/DD/YYYY format.", showMessage);
+      }
+
+      if (field.name === "parentGuardianDob" || field.name === "volDob") {
+        if (!isAtLeastAge(parsed, 18)) {
+          return setFieldValidationError(field, "You must be at least 18 years old.", showMessage);
+        }
+      }
+
+      if (/^p[1-4]Dob$/.test(field.name) && !isUnderAge(parsed, 18)) {
+        return setFieldValidationError(field, "Participants must be under 18 years old.", showMessage);
+      }
+    }
+
+    if (field.dataset.phoneField === "true" && !isValidNanpPhone(value)) {
+      return setFieldValidationError(
+        field,
+        "Enter a valid 10-digit U.S./Canada phone number.",
+        showMessage,
+      );
+    }
+
+    if (field.dataset.zipField === "true" && !/^\d{5}(?:-\d{4})?$/.test(value)) {
+      return setFieldValidationError(field, "Enter a valid ZIP code (12345 or 12345-6789).", showMessage);
+    }
+
+    if ((field.type === "email" || EMAIL_FIELD_NAMES.has(field.name)) && !isValidEmailValue(value)) {
+      return setFieldValidationError(field, "Enter a valid email address.", showMessage);
+    }
+
+    if (NAME_FIELD_PATTERN.test(field.name) && !isValidPersonName(value)) {
+      return setFieldValidationError(
+        field,
+        "Enter a valid name using letters, spaces, apostrophes, periods, or hyphens.",
+        showMessage,
+      );
+    }
+
+    if (
+      ["parentState", "emergencyState", "volState"].includes(field.name) &&
+      !STATE_ABBREVIATIONS.includes(value.toUpperCase())
+    ) {
+      return setFieldValidationError(field, "Select a valid U.S. state or territory.", showMessage);
+    }
+
+    return "";
+  }
+
+  function setFieldValidationError(field, message, showMessage) {
+    field.setCustomValidity(message);
+    markFieldInvalid(field, message);
+    if (showMessage && formMessage) formMessage.textContent = message;
+    return message;
+  }
+
+  function markFieldInvalid(field, message) {
+    field.setAttribute("aria-invalid", "true");
+    const wrap = field.closest(".field-group");
+    if (!wrap) return;
+
+    let error = wrap.querySelector(".field-error");
+    if (!error) {
+      error = document.createElement("p");
+      error.className = "field-error";
+      error.setAttribute("role", "alert");
+      wrap.appendChild(error);
+    }
+    error.textContent = message;
+  }
+
+  function clearFieldValidationState(field) {
+    if (typeof field.setCustomValidity === "function") field.setCustomValidity("");
+    field.removeAttribute("aria-invalid");
+    const error = field.closest(".field-group")?.querySelector(".field-error");
+    if (error) error.remove();
+  }
+
+  function parseUsDate(value) {
+    const match = String(value || "").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!match) return null;
+
+    const month = Number(match[1]);
+    const day = Number(match[2]);
+    const year = Number(match[3]);
+
+    if (!Number.isInteger(month) || !Number.isInteger(day) || !Number.isInteger(year)) return null;
+    if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900 || year > 2100) return null;
+
+    const date = new Date(year, month - 1, day);
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day
+    ) {
+      return null;
+    }
+
+    const today = startOfLocalDay(new Date());
+    if (date > today) return null;
+
+    return date;
+  }
+
+  function startOfLocalDay(date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  }
+
+  function isAtLeastAge(dob, age) {
+    const today = startOfLocalDay(new Date());
+    const threshold = new Date(
+      today.getFullYear() - age,
+      today.getMonth(),
+      today.getDate(),
+    );
+    return dob <= threshold;
+  }
+
+  function isUnderAge(dob, age) {
+    return !isAtLeastAge(dob, age);
+  }
+
+  function formatDobText(value) {
+    const digits = String(value || "").replace(/\D/g, "").slice(0, 8);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+  }
+
+  function formatUsPhone(value) {
+    let digits = String(value || "").replace(/\D/g, "");
+    if (digits.length === 11 && digits.startsWith("1")) digits = digits.slice(1);
+    digits = digits.slice(0, 10);
+
+    if (digits.length === 0) return "";
+    if (digits.length <= 3) return `(${digits}`;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+
+  function isValidNanpPhone(value) {
+    let digits = String(value || "").replace(/\D/g, "");
+    if (digits.length === 11 && digits.startsWith("1")) digits = digits.slice(1);
+    if (!/^\d{10}$/.test(digits)) return false;
+
+    const area = digits.slice(0, 3);
+    const exchange = digits.slice(3, 6);
+
+    if (/^[01]/.test(area) || /^[01]/.test(exchange)) return false;
+
+    return true;
+  }
+
+  function formatUsZip(value) {
+    const digits = String(value || "").replace(/\D/g, "").slice(0, 9);
+    if (digits.length <= 5) return digits;
+    return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  }
+
+  function normalizeEmailValue(value) {
+    return String(value || "").trim().toLowerCase();
+  }
+
+  function isValidEmailValue(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(value || "").trim());
+  }
+
+  function normalizeNameValue(value) {
+    return collapseSpaces(value)
+      .replace(/\s*([-'])\s*/g, "$1")
+      .trim();
+  }
+
+  function isValidPersonName(value) {
+    const normalized = normalizeNameValue(value);
+    if (normalized.length < 2 || normalized.length > 80) return false;
+    if (!/[A-Za-zÀ-ÖØ-öø-ÿ]/.test(normalized)) return false;
+    return /^[A-Za-zÀ-ÖØ-öø-ÿ.'’\-\s]+$/.test(normalized);
+  }
+
+  function collapseSpaces(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function splitAddressFieldIfNeeded(streetField) {
+    const raw = collapseSpaces(streetField.value);
+    if (!raw || !raw.includes(",")) return;
+
+    const prefix = streetField.name.replace(/Street$/, "");
+    const cityField = form.elements.namedItem(`${prefix}City`);
+    const stateField = form.elements.namedItem(`${prefix}State`);
+    const zipField = form.elements.namedItem(`${prefix}Zip`);
+
+    if (
+      !(cityField instanceof HTMLInputElement || cityField instanceof HTMLSelectElement) ||
+      !(stateField instanceof HTMLInputElement || stateField instanceof HTMLSelectElement) ||
+      !(zipField instanceof HTMLInputElement || zipField instanceof HTMLSelectElement)
+    ) {
+      return;
+    }
+
+    if (cityField.value.trim() || stateField.value.trim() || zipField.value.trim()) return;
+
+    const match = raw.match(
+      /^(.*?),\s*([^,]+?),\s*([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)\s*$/,
+    );
+    if (!match) return;
+
+    const state = match[3].toUpperCase();
+    if (!STATE_ABBREVIATIONS.includes(state)) return;
+
+    streetField.value = collapseSpaces(match[1]);
+    cityField.value = collapseSpaces(match[2]);
+    stateField.value = state;
+    zipField.value = formatUsZip(match[4]);
+  }
+
+  function findDuplicatePlayerField() {
+    const playerCount = selectedPlayerCount();
+    const seen = new Map();
+
+    for (let index = 1; index <= playerCount; index += 1) {
+      const first = normalizeNameValue(getTextValue(`p${index}FirstName`)).toLowerCase();
+      const last = normalizeNameValue(getTextValue(`p${index}LastName`)).toLowerCase();
+      const dob = formatDobText(getTextValue(`p${index}Dob`));
+
+      if (!first || !last || !dob) continue;
+
+      const key = `${first}|${last}|${dob}`;
+      if (seen.has(key)) {
+        const field = form.elements.namedItem(`p${index}FirstName`);
+        if (field instanceof HTMLInputElement) {
+          setFieldValidationError(
+            field,
+            `This participant duplicates Player ${seen.get(key)}. Check the name and date of birth.`,
+            true,
+          );
+          return field;
+        }
+      }
+
+      seen.set(key, index);
+    }
+
+    return null;
+  }
+
   function validateSection(section) {
     if (!section) return null;
 
-    const requiredFields = Array.from(section.querySelectorAll("[required]")).filter(
-      (field) => !field.closest(".hidden"),
-    );
+    const fields = Array.from(
+      section.querySelectorAll("input, select, textarea"),
+    ).filter((field) => !field.closest(".hidden"));
 
-    for (const field of requiredFields) {
-      if (field instanceof HTMLInputElement && field.type === "checkbox") {
-        if (!field.checked) return field;
-      } else if (field.dataset.dobField === "true") {
-        if (!isValidDobValue(field.value)) return field;
-      } else if (!field.value || !String(field.value).trim()) {
-        return field;
-      }
+    for (const field of fields) {
+      normalizeFieldValue(field);
+      const error = validateField(field, { showMessage: false });
+      if (error) return field;
     }
 
     const groups = Array.from(section.querySelectorAll("[data-required-group]"));
@@ -2014,8 +2114,18 @@
       if (!key) continue;
       const checked = group.querySelectorAll(`input[name="${key}[]"]:checked`).length;
       if (!checked) {
-        return group.querySelector(`input[name="${key}[]"]`);
+        const first = group.querySelector(`input[name="${key}[]"]`);
+        if (first instanceof HTMLInputElement) {
+          first.setCustomValidity("Select at least one option.");
+          markFieldInvalid(first, "Select at least one option.");
+        }
+        return first;
       }
+    }
+
+    if (/^player-section-\d+$/.test(section.id)) {
+      const duplicateField = findDuplicatePlayerField();
+      if (duplicateField) return duplicateField;
     }
 
     return null;
@@ -2030,6 +2140,23 @@
       renderWizard();
 
       const stage = getCurrentStage();
+
+      const stageSections = getSectionsForStage(stage);
+      for (let index = 0; index < stageSections.length; index += 1) {
+        const invalid = validateSection(stageSections[index]);
+        if (invalid) {
+          activeSectionIndex = index;
+          renderWizard();
+          const message =
+            typeof invalid.validationMessage === "string"
+              ? invalid.validationMessage.trim()
+              : "";
+          formMessage.textContent = message || "Please correct the highlighted field.";
+          invalid.focus?.();
+          return;
+        }
+      }
+
       if (stage === STAGES.PLAYER_REGISTRATION) {
         await submitPlayerRegistrationStage();
       } else if (stage === STAGES.PLAYER_AGREEMENT) {
@@ -2530,9 +2657,9 @@
 
     for (let playerIndex = 1; playerIndex <= playerCount; playerIndex += 1) {
       players.push({
-        firstName: getTextValue(`p${playerIndex}FirstName`),
-        lastName: getTextValue(`p${playerIndex}LastName`),
-        dob: getTextValue(`p${playerIndex}Dob`),
+        firstName: normalizeNameValue(getTextValue(`p${playerIndex}FirstName`)),
+        lastName: normalizeNameValue(getTextValue(`p${playerIndex}LastName`)),
+        dob: formatDobText(getTextValue(`p${playerIndex}Dob`)),
         gender: getTextValue(`p${playerIndex}Gender`),
         grade: getTextValue(`p${playerIndex}Grade`),
         jersey: getTextValue(`p${playerIndex}Jersey`),
@@ -2550,16 +2677,16 @@
       submittedAt: new Date().toISOString(),
       pageUrl: window.location.href,
       parent: {
-        firstName: getTextValue("parentFirstName"),
-        lastName: getTextValue("parentLastName"),
-        email: getTextValue("parentEmail"),
-        phone: getTextValue("parentPhone"),
-        dob: getTextValue("parentGuardianDob"),
+        firstName: normalizeNameValue(getTextValue("parentFirstName")),
+        lastName: normalizeNameValue(getTextValue("parentLastName")),
+        email: normalizeEmailValue(getTextValue("parentEmail")),
+        phone: formatUsPhone(getTextValue("parentPhone")),
+        dob: formatDobText(getTextValue("parentGuardianDob")),
         street: getTextValue("parentStreet"),
         apt: getTextValue("parentApt"),
         city: getTextValue("parentCity"),
         state: getTextValue("parentState"),
-        zip: getTextValue("parentZip"),
+        zip: formatUsZip(getTextValue("parentZip")),
       },
       emergency: emergencySameAsParent
         ? {
@@ -2580,13 +2707,13 @@
             firstName: getTextValue("emergencyFirstName"),
             lastName: getTextValue("emergencyLastName"),
             relationship: getTextValue("emergencyRelationship"),
-            email: getTextValue("emergencyEmail"),
-            phone: getTextValue("emergencyPhone"),
+            email: normalizeEmailValue(getTextValue("emergencyEmail")),
+            phone: formatUsPhone(getTextValue("emergencyPhone")),
             street: getTextValue("emergencyStreet"),
             apt: getTextValue("emergencyApt"),
             city: getTextValue("emergencyCity"),
             state: getTextValue("emergencyState"),
-            zip: getTextValue("emergencyZip"),
+            zip: formatUsZip(getTextValue("emergencyZip")),
           },
       players,
       scholarship: {
@@ -2702,16 +2829,16 @@
     return {
       submittedAt: new Date().toISOString(),
       pageUrl: window.location.href,
-      firstName: getTextValue("volFirstName"),
-      lastName: getTextValue("volLastName"),
-      email: getTextValue("volEmail"),
-      phone: getTextValue("volPhone"),
-      dob: getTextValue("volDob"),
+      firstName: normalizeNameValue(getTextValue("volFirstName")),
+      lastName: normalizeNameValue(getTextValue("volLastName")),
+      email: normalizeEmailValue(getTextValue("volEmail")),
+      phone: formatUsPhone(getTextValue("volPhone")),
+      dob: formatDobText(getTextValue("volDob")),
       street: getTextValue("volStreet"),
       apt: getTextValue("volApt"),
       city: getTextValue("volCity"),
       state: getTextValue("volState"),
-      zip: getTextValue("volZip"),
+      zip: formatUsZip(getTextValue("volZip")),
       roles: getCheckedValues("volunteerRoles"),
       hasExperience: getTextValue("volHasExperience"),
       experienceSummary: getTextValue("volExperienceSummary"),
@@ -2746,120 +2873,6 @@
       : [];
   }
 
-  function requestAgreementSignature(options) {
-    const {
-      prefix,
-      title,
-      agreementUrl,
-      signerNameLabel,
-      defaultPrintedName,
-    } = options;
-
-    const printedNameName = `${prefix}PrintedName`;
-    const consentName = `${prefix}Consent`;
-    const signatureDataName = `${prefix}SignatureData`;
-    const signatureMethodName = `${prefix}SignatureMethod`;
-    const typedSignatureName = `${prefix}TypedSignature`;
-
-    return new Promise((resolve, reject) => {
-      const overlay = document.createElement("div");
-      overlay.className = "signature-modal";
-      overlay.setAttribute("role", "dialog");
-      overlay.setAttribute("aria-modal", "true");
-
-      const panel = document.createElement("div");
-      panel.className = "signature-modal-panel signature-modal-panel--agreement";
-
-      const heading = document.createElement("h4");
-      heading.textContent = title;
-
-      const block = createAgreementSigningField({
-        prefix,
-        title,
-        agreementUrl,
-        signerNameLabel,
-        consentName,
-        printedNameName,
-        signatureDataName,
-        signatureMethodName,
-        typedSignatureName,
-      });
-      const blockHeading = block.querySelector(".agreement-signing-title");
-      if (blockHeading) blockHeading.remove();
-
-      const printedNameInput = block.querySelector(`[name="${printedNameName}"]`);
-      if (printedNameInput instanceof HTMLInputElement) {
-        printedNameInput.value = String(defaultPrintedName || "").trim();
-      }
-
-      const status = document.createElement("p");
-      status.className = "agreement-doc-status";
-      status.setAttribute("aria-live", "polite");
-
-      const controls = document.createElement("div");
-      controls.className = "signature-modal-controls";
-
-      const submitBtn = document.createElement("button");
-      submitBtn.type = "button";
-      submitBtn.className = "btn btn-primary";
-      submitBtn.textContent = "Sign and Continue";
-
-      const cancelBtn = document.createElement("button");
-      cancelBtn.type = "button";
-      cancelBtn.className = "btn btn-ghost";
-      cancelBtn.textContent = "Cancel";
-
-      controls.append(submitBtn, cancelBtn);
-      panel.append(heading, block, status, controls);
-      overlay.appendChild(panel);
-      document.body.appendChild(overlay);
-
-      const cleanup = () => {
-        overlay.remove();
-        document.body.classList.remove("signing-lock-scroll");
-      };
-
-      cancelBtn.addEventListener("click", () => {
-        cleanup();
-        reject(new Error("Signature is required to submit this form."));
-      });
-
-      submitBtn.addEventListener("click", () => {
-        const printedName = String(block.querySelector(`[name="${printedNameName}"]`)?.value || "").trim();
-        const consentAccepted = Boolean(block.querySelector(`[name="${consentName}"]`)?.checked);
-        const signatureData = String(block.querySelector(`[name="${signatureDataName}"]`)?.value || "").trim();
-        const signatureMethod = String(block.querySelector(`[name="${signatureMethodName}"]`)?.value || "").trim();
-        const typedSignature = String(block.querySelector(`[name="${typedSignatureName}"]`)?.value || "").trim();
-
-        if (!printedName) {
-          status.textContent = "Printed name is required.";
-          return;
-        }
-        if (!consentAccepted) {
-          status.textContent = "You must accept electronic consent to continue.";
-          return;
-        }
-        if (!signatureData || (signatureMethod !== "drawn" && signatureMethod !== "typed")) {
-          status.textContent = "A typed or drawn signature is required.";
-          return;
-        }
-        if (signatureMethod === "typed" && !typedSignature) {
-          status.textContent = "Type your full legal name as your signature.";
-          return;
-        }
-
-        cleanup();
-        resolve({
-          printedName,
-          consentAccepted,
-          signatureData,
-          signatureMethod,
-          typedSignature,
-        });
-      });
-    });
-  }
-
   function collectCoachingData() {
     return {
       ...collectVolunteerData(),
@@ -2868,8 +2881,8 @@
       coachAvailability: getCheckedValues("coachAvailability"),
       ref1Name: getTextValue("coachRef1Name"),
       ref1Relationship: getTextValue("coachRef1Relationship"),
-      ref1Phone: getTextValue("coachRef1Phone"),
-      ref1Email: getTextValue("coachRef1Email"),
+      ref1Phone: formatUsPhone(getTextValue("coachRef1Phone")),
+      ref1Email: normalizeEmailValue(getTextValue("coachRef1Email")),
       coachCertifications: getCheckedValues("coachCertifications"),
       coachBackgroundConsent: getCheckboxValue("coachBackgroundConsent"),
       coachSignature: getTextValue("coachSignature"),
@@ -2890,8 +2903,13 @@
       signer: {
         printedName,
       },
+      signature: {
+        method: "checkbox-consent",
+      },
       audit: {
         viewedAtUtc,
+        signedAtUtc: viewedAtUtc,
+        consentAccepted: true,
         consentVersion: E_CONSENT_TEXT_VERSION,
       },
       fields: {
@@ -2986,8 +3004,13 @@
         printedName,
         ageYears: calculateAgeYears(data.dob),
       },
+      signature: {
+        method: "checkbox-consent",
+      },
       audit: {
         viewedAtUtc,
+        signedAtUtc: viewedAtUtc,
+        consentAccepted: true,
         consentVersion: E_CONSENT_TEXT_VERSION,
       },
       fields: {
@@ -3023,14 +3046,21 @@
     }
   }
 
-  function calculateAgeYears(isoDate) {
-    if (!isoDate) return 0;
-    const dob = new Date(isoDate);
-    if (Number.isNaN(dob.getTime())) return 0;
-    const now = new Date();
+  function calculateAgeYears(value) {
+    const dob = parseUsDate(value);
+    if (!dob) return 0;
+
+    const now = startOfLocalDay(new Date());
     let age = now.getFullYear() - dob.getFullYear();
-    const m = now.getMonth() - dob.getMonth();
-    if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age -= 1;
+    const monthDelta = now.getMonth() - dob.getMonth();
+
+    if (
+      monthDelta < 0 ||
+      (monthDelta === 0 && now.getDate() < dob.getDate())
+    ) {
+      age -= 1;
+    }
+
     return age;
   }
 
@@ -3374,71 +3404,36 @@
   }
 
   function formatPhoneField(input) {
-    const digits = input.value.replace(/\D/g, "").slice(0, 10);
-    let formatted = digits;
-    if (digits.length > 6) {
-      formatted = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-    } else if (digits.length > 3) {
-      formatted = `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-    } else if (digits.length > 0) {
-      formatted = `(${digits}`;
-    }
-    input.value = formatted;
+    input.value = formatUsPhone(input.value);
+    validateField(input, { showMessage: false });
   }
 
   function isValidDobValue(value) {
-    const text = String(value || "").trim();
-    if (!text) return false;
-
-    const match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (!match) return false;
-
-    const month = Number(match[1]);
-    const day = Number(match[2]);
-    const year = Number(match[3]);
-
-    if (!Number.isInteger(month) || !Number.isInteger(day) || !Number.isInteger(year)) return false;
-    if (month < 1 || month > 12) return false;
-    if (day < 1 || day > 31) return false;
-
-    const date = new Date(year, month - 1, day);
-    return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+    return Boolean(parseUsDate(value));
   }
 
   function validateDobField(input) {
     if (!(input instanceof HTMLInputElement)) return;
-    if (!input.value || !String(input.value).trim()) {
-      input.setCustomValidity("");
-      return;
-    }
-
-    if (!isValidDobValue(input.value)) {
-      input.setCustomValidity("Please enter a valid date in MM/DD/YYYY format.");
-      return;
-    }
-
-    input.setCustomValidity("");
+    validateField(input, { showMessage: false });
   }
 
   function formatDobField(input) {
     const digits = input.value.replace(/\D/g, "").slice(0, 8);
-    let formatted = digits;
-    if (digits.length > 4) {
-      formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-    } else if (digits.length > 2) {
-      formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
-    }
-
-    input.value = formatted;
+    input.value = formatDobText(input.value);
     validateDobField(input);
 
-    if (digits.length >= 8) {
+    if (digits.length >= 8 && !input.validationMessage) {
       window.setTimeout(() => {
         const wrap = input.closest(".field-group");
         const nextField = wrap?.nextElementSibling?.querySelector("input, select, textarea");
         if (nextField && typeof nextField.focus === "function") nextField.focus();
       }, 0);
     }
+  }
+
+  function formatZipField(input) {
+    input.value = formatUsZip(input.value);
+    validateField(input, { showMessage: false });
   }
 
   function fetchGoogleMapsApiKey() {
@@ -3539,10 +3534,10 @@
               ? "vol"
               : "parent";
 
-          if (parsed.street) setValue(`${prefix}Street`, parsed.street);
-          if (parsed.city) setValue(`${prefix}City`, parsed.city);
-          if (parsed.state) setValue(`${prefix}State`, parsed.state);
-          if (parsed.zip) setValue(`${prefix}Zip`, parsed.zip);
+          if (parsed.street) setValue(`${prefix}Street`, collapseSpaces(parsed.street));
+          if (parsed.city) setValue(`${prefix}City`, collapseSpaces(parsed.city));
+          if (parsed.state) setValue(`${prefix}State`, parsed.state.toUpperCase());
+          if (parsed.zip) setValue(`${prefix}Zip`, formatUsZip(parsed.zip));
         });
       });
     } catch (error) {
