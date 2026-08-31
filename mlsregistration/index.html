@@ -9,7 +9,10 @@
       content="MLS GO registration form for LifePrep Academy Foundation."
     />
     <meta name="robots" content="noindex,nofollow" />
-    <meta name="google-apps-script-url" content="https://script.google.com/macros/s/AKfycbwFGPZH8uWVuroO83DbJiyEjohYKaGUfoyMmpiiBTZtkiuF2IOH8L88Jn_iFucCw_Ll9Q/exec" />
+    <meta
+      name="google-apps-script-url"
+      content="https://script.google.com/macros/s/AKfycbwFGPZH8uWVuroO83DbJiyEjohYKaGUfoyMmpiiBTZtkiuF2IOH8L88Jn_iFucCw_Ll9Q/exec"
+    />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,6 +21,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./styles.css?v=2026-08-25-1" />
+    <link rel="stylesheet" href="./validation-ux.css?v=2026-08-31-1" />
   </head>
   <body>
     <main class="page-shell">
@@ -39,7 +43,8 @@
               details together to make it easier.
             </p>
             <p class="subtitle" id="payment-page-note">
-              Payments are temporarily paused while we update our payment system. Your registration is still saved, and we’ll email you a secure payment link when it’s ready.
+              After submission, you will be redirected to our secure Quest
+              payment page to complete registration.
             </p>
           </div>
         </header>
@@ -62,7 +67,12 @@
               <button type="button" class="btn btn-primary" id="next-btn">
                 Next Section
               </button>
-              <button type="button" class="btn btn-ghost skip-btn" id="skip-btn" hidden>
+              <button
+                type="button"
+                class="btn btn-ghost skip-btn"
+                id="skip-btn"
+                hidden
+              >
                 Skip and Finish
               </button>
             </div>
@@ -81,7 +91,6 @@
     </main>
 
     <script src="./flow-logic.js?v=2026-08-27-1" defer></script>
-    <script src="./resume-status.js?v=2026-08-29-1" defer></script>
-    <script src="./app.js?v=2026-08-27-1" defer></script>
+    <script src="./app.js?v=2026-08-31-1" defer></script>
   </body>
 </html>
