@@ -2,7 +2,11 @@ import PostalMime from "postal-mime";
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { AGREEMENT_TEMPLATES } from "./template-hashes.js";
-import { PLAYER_AGREEMENT_FIELD_MAP, PPF_LIABILITY_FIELD_MAP, VOLUNTEER_AGREEMENT_FIELD_MAP } from "./pdf-field-maps.js";
+import {
+  PLAYER_AGREEMENT_FIELD_MAP,
+  PPF_LIABILITY_FIELD_MAP,
+  VOLUNTEER_AGREEMENT_FIELD_MAP,
+} from "./pdf-field-maps.js";
 import { buildPaymentConfig } from "./payment-config.js";
 import { parseQuestReceiptEmail } from "./receipt-parser.mjs";
 
@@ -12,7 +16,8 @@ const RATE_LIMIT_PER_MINUTE = 30;
 const DEFAULT_SIGNER_LINK_TTL_MS = 1000 * 60 * 30;
 const EMAIL_SIGNER_LINK_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 const SIGNATURE_FONT_PATH = "/fonts/GreatVibes-Regular.ttf";
-const PRIMARY_APP_ORIGIN = "https://mlsregistration.lifeprepacademyfoundation.com";
+const PRIMARY_APP_ORIGIN =
+  "https://mlsregistration.lifeprepacademyfoundation.com";
 const DEFAULT_ALLOWED_ORIGINS = [
   PRIMARY_APP_ORIGIN,
   "https://lifeprepacademyfoundation.com",
@@ -23,7 +28,10 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:3000",
 ];
 function splitName(fullName) {
-  const parts = String(fullName || "").trim().split(/\s+/).filter(Boolean);
+  const parts = String(fullName || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
   if (!parts.length) return { firstName: "", lastName: "" };
   if (parts.length === 1) return { firstName: parts[0], lastName: "" };
   return {
@@ -52,14 +60,59 @@ function buildPlayerRegistrationPaymentUrl(options = {}) {
 
   try {
     const url = new URL(base);
-    appendPaymentParamVariants(url, ["firstName", "firstname", "first_name", "givenName", "given_name"], firstName);
-    appendPaymentParamVariants(url, ["lastName", "lastname", "last_name", "familyName", "family_name"], lastName);
-    appendPaymentParamVariants(url, ["fullName", "full_name", "name"], [firstName, lastName].filter(Boolean).join(" "));
-    appendPaymentParamVariants(url, ["email", "emailAddress", "email_address", "customerEmail", "customer_email"], email);
-    appendPaymentParamVariants(url, ["zip", "zipCode", "zipcode", "postalCode", "postal_code", "postal"], zip);
-    appendPaymentParamVariants(url, ["registration_submission_id", "submission_id", "submissionId", "registrationId", "reference", "external_reference"], submissionId);
-    appendPaymentParamVariants(url, ["payment_amount", "amount", "total"], amount);
-    appendPaymentParamVariants(url, ["payment_currency", "currency"], currency || "USD");
+    appendPaymentParamVariants(
+      url,
+      ["firstName", "firstname", "first_name", "givenName", "given_name"],
+      firstName,
+    );
+    appendPaymentParamVariants(
+      url,
+      ["lastName", "lastname", "last_name", "familyName", "family_name"],
+      lastName,
+    );
+    appendPaymentParamVariants(
+      url,
+      ["fullName", "full_name", "name"],
+      [firstName, lastName].filter(Boolean).join(" "),
+    );
+    appendPaymentParamVariants(
+      url,
+      [
+        "email",
+        "emailAddress",
+        "email_address",
+        "customerEmail",
+        "customer_email",
+      ],
+      email,
+    );
+    appendPaymentParamVariants(
+      url,
+      ["zip", "zipCode", "zipcode", "postalCode", "postal_code", "postal"],
+      zip,
+    );
+    appendPaymentParamVariants(
+      url,
+      [
+        "registration_submission_id",
+        "submission_id",
+        "submissionId",
+        "registrationId",
+        "reference",
+        "external_reference",
+      ],
+      submissionId,
+    );
+    appendPaymentParamVariants(
+      url,
+      ["payment_amount", "amount", "total"],
+      amount,
+    );
+    appendPaymentParamVariants(
+      url,
+      ["payment_currency", "currency"],
+      currency || "USD",
+    );
     return url.toString();
   } catch (_error) {
     return base;
@@ -81,70 +134,162 @@ export default {
       return handlePaymentSession(request, env);
     }
     if (url.pathname === "/api/public-config") {
-      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+      return json(
+        { ok: false, error: "Method not allowed" },
+        405,
+        request,
+        env,
+      );
     }
 
     if (url.pathname === "/api/sign-agreement" && request.method === "POST") {
       return handleSignAgreement(request, env, ctx);
     }
     if (url.pathname === "/api/sign-agreement") {
-      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+      return json(
+        { ok: false, error: "Method not allowed" },
+        405,
+        request,
+        env,
+      );
     }
 
     if (url.pathname === "/api/forms/upsert" && request.method === "POST") {
       return handleFormUpsert(request, env);
     }
     if (url.pathname === "/api/forms/upsert") {
-      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+      return json(
+        { ok: false, error: "Method not allowed" },
+        405,
+        request,
+        env,
+      );
     }
 
     if (url.pathname === "/api/forms/ppf-pdf" && request.method === "POST") {
       return handlePpfPdfRender(request, env);
     }
     if (url.pathname === "/api/forms/ppf-pdf") {
-      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+      return json(
+        { ok: false, error: "Method not allowed" },
+        405,
+        request,
+        env,
+      );
     }
 
-    if (url.pathname === "/api/forms/final-confirmation" && request.method === "POST") {
+    if (
+      url.pathname === "/api/forms/final-confirmation" &&
+      request.method === "POST"
+    ) {
       return handleFinalConfirmationEmail(request, env);
     }
     if (url.pathname === "/api/forms/final-confirmation") {
-      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+      return json(
+        { ok: false, error: "Method not allowed" },
+        405,
+        request,
+        env,
+      );
     }
 
     if (url.pathname === "/api/resume/context" && request.method === "POST") {
       return handleResumeContext(request, env);
     }
     if (url.pathname === "/api/resume/context") {
-      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+      return json(
+        { ok: false, error: "Method not allowed" },
+        405,
+        request,
+        env,
+      );
     }
 
     if (url.pathname === "/api/resume/complete" && request.method === "POST") {
       return handleResumeComplete(request, env);
     }
     if (url.pathname === "/api/resume/complete") {
-      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+      return json(
+        { ok: false, error: "Method not allowed" },
+        405,
+        request,
+        env,
+      );
     }
 
-    if (url.pathname === "/api/payment-webhook/cornerstone" && (request.method === "POST" || request.method === "GET")) {
+    if (
+      url.pathname === "/api/resume/withdraw/verify" &&
+      request.method === "POST"
+    ) {
+      return handleResumeWithdrawVerify(request, env);
+    }
+    if (url.pathname === "/api/resume/withdraw/verify") {
+      return json(
+        { ok: false, error: "Method not allowed" },
+        405,
+        request,
+        env,
+      );
+    }
+
+    if (
+      url.pathname === "/api/resume/withdraw/confirm" &&
+      request.method === "POST"
+    ) {
+      return handleResumeWithdrawConfirm(request, env);
+    }
+    if (url.pathname === "/api/resume/withdraw/confirm") {
+      return json(
+        { ok: false, error: "Method not allowed" },
+        405,
+        request,
+        env,
+      );
+    }
+
+    if (
+      url.pathname === "/api/payment-webhook/cornerstone" &&
+      (request.method === "POST" || request.method === "GET")
+    ) {
       return handlePaymentWebhook(request, env);
     }
     if (url.pathname === "/api/payment-webhook/cornerstone") {
-      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+      return json(
+        { ok: false, error: "Method not allowed" },
+        405,
+        request,
+        env,
+      );
     }
 
-    if (url.pathname.startsWith("/api/signer/agreement/") && request.method === "GET") {
+    if (
+      url.pathname.startsWith("/api/signer/agreement/") &&
+      request.method === "GET"
+    ) {
       return handleSignerDownload(request, env);
     }
     if (url.pathname.startsWith("/api/signer/agreement/")) {
-      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+      return json(
+        { ok: false, error: "Method not allowed" },
+        405,
+        request,
+        env,
+      );
     }
 
-    if (url.pathname.startsWith("/api/admin/agreement/") && request.method === "GET") {
+    if (
+      url.pathname.startsWith("/api/admin/agreement/") &&
+      request.method === "GET"
+    ) {
       return handleAdminDownload(request, env);
     }
     if (url.pathname.startsWith("/api/admin/agreement/")) {
-      return json({ ok: false, error: "Method not allowed" }, 405, request, env);
+      return json(
+        { ok: false, error: "Method not allowed" },
+        405,
+        request,
+        env,
+      );
     }
 
     if (url.pathname.startsWith("/api/")) {
@@ -166,7 +311,8 @@ async function handleResumeContext(request, env) {
 
   const payload = await request.json().catch(() => null);
   const resumeToken = String(payload?.resumeToken || "").trim();
-  if (!resumeToken) return json({ ok: false, error: "Missing resumeToken" }, 400, request, env);
+  if (!resumeToken)
+    return json({ ok: false, error: "Missing resumeToken" }, 400, request, env);
 
   return proxyContinuationRequest(request, env, {
     action: "resume_context",
@@ -182,10 +328,20 @@ async function handleResumeComplete(request, env) {
 
   const payload = await request.json().catch(() => null);
   const resumeToken = String(payload?.resumeToken || "").trim();
-  const registrationSubmissionId = String(payload?.registrationSubmissionId || "").trim();
-  const playerCount = Math.max(0, Math.min(4, Number(payload?.playerCount || 0)));
+  const registrationSubmissionId = String(
+    payload?.registrationSubmissionId || "",
+  ).trim();
+  const playerCount = Math.max(
+    0,
+    Math.min(4, Number(payload?.playerCount || 0)),
+  );
   if (!resumeToken || !registrationSubmissionId) {
-    return json({ ok: false, error: "Missing continuation completion data" }, 400, request, env);
+    return json(
+      { ok: false, error: "Missing continuation completion data" },
+      400,
+      request,
+      env,
+    );
   }
 
   return proxyContinuationRequest(request, env, {
@@ -196,11 +352,93 @@ async function handleResumeComplete(request, env) {
   });
 }
 
+async function handleResumeWithdrawVerify(request, env) {
+  const origin = request.headers.get("Origin") || "";
+  if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "", request.url)) {
+    return json({ ok: false, error: "Origin not allowed" }, 403, request, env);
+  }
+
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  const rate = await doFetch(env, "/rate-limit", {
+    method: "POST",
+    body: JSON.stringify({ key: `withdraw:${ip}`, limit: 5 }),
+  });
+  if (!rate.ok) {
+    return json(
+      {
+        ok: false,
+        error:
+          "Too many verification attempts. Please wait a minute and try again.",
+      },
+      429,
+      request,
+      env,
+    );
+  }
+
+  const payload = await request.json().catch(() => null);
+  const resumeToken = String(payload?.resumeToken || "").trim();
+  const subjectType = String(payload?.subjectType || "").trim();
+  const playerIndex = payload?.playerIndex;
+  const dob = String(payload?.dob || "").trim();
+  if (!resumeToken || !subjectType || !dob) {
+    return json(
+      { ok: false, error: "Missing withdrawal verification data" },
+      400,
+      request,
+      env,
+    );
+  }
+
+  return proxyContinuationRequest(request, env, {
+    action: "resume_withdraw_verify",
+    resumeToken,
+    subjectType,
+    playerIndex,
+    dob,
+  });
+}
+
+async function handleResumeWithdrawConfirm(request, env) {
+  const origin = request.headers.get("Origin") || "";
+  if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "", request.url)) {
+    return json({ ok: false, error: "Origin not allowed" }, 403, request, env);
+  }
+
+  const payload = await request.json().catch(() => null);
+  const resumeToken = String(payload?.resumeToken || "").trim();
+  const verificationToken = String(payload?.verificationToken || "").trim();
+  if (!resumeToken || !verificationToken) {
+    return json(
+      { ok: false, error: "Missing withdrawal confirmation data" },
+      400,
+      request,
+      env,
+    );
+  }
+
+  return proxyContinuationRequest(request, env, {
+    action: "resume_withdraw_confirm",
+    resumeToken,
+    verificationToken,
+  });
+}
+
 async function proxyContinuationRequest(request, env, payload) {
   const webAppUrl = String(env.CONTINUATION_WEB_APP_URL || "").trim();
-  const sharedSecret = String(env.CONTINUATION_WORKER_SHARED_SECRET || "").trim();
+  const sharedSecret = String(
+    env.CONTINUATION_WORKER_SHARED_SECRET || "",
+  ).trim();
   if (!/^https:\/\/script\.google\.com\//i.test(webAppUrl) || !sharedSecret) {
-    return json({ ok: false, error: "Registration continuation service is not configured" }, 503, request, env);
+    return json(
+      {
+        ok: false,
+        error: "Registration continuation service is not configured",
+      },
+      503,
+      request,
+      env,
+    );
   }
 
   try {
@@ -212,15 +450,36 @@ async function proxyContinuationRequest(request, env, payload) {
     });
     const text = await response.text();
     let parsed;
-    try { parsed = JSON.parse(text); }
-    catch { return json({ ok: false, error: "Continuation service returned unreadable data" }, 502, request, env); }
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      return json(
+        { ok: false, error: "Continuation service returned unreadable data" },
+        502,
+        request,
+        env,
+      );
+    }
 
     if (!parsed?.ok) {
-      return json({ ok: false, error: parsed?.error || "Continuation service request failed" }, 502, request, env);
+      return json(
+        {
+          ok: false,
+          error: parsed?.error || "Continuation service request failed",
+        },
+        502,
+        request,
+        env,
+      );
     }
     return json(parsed, 200, request, env);
   } catch (error) {
-    return json({ ok: false, error: String(error?.message || error) }, 502, request, env);
+    return json(
+      { ok: false, error: String(error?.message || error) },
+      502,
+      request,
+      env,
+    );
   }
 }
 
@@ -233,20 +492,25 @@ function handlePublicConfig(env, request) {
     currency: "USD",
   });
 
-  return new Response(JSON.stringify({ googleMapsApiKey, payment: paymentConfig }), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store",
-      "X-Robots-Tag": "noindex, nofollow, noarchive",
-      ...corsHeaders,
+  return new Response(
+    JSON.stringify({ googleMapsApiKey, payment: paymentConfig }),
+    {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "noindex, nofollow, noarchive",
+        ...corsHeaders,
+      },
     },
-  });
+  );
 }
 
 function handlePaymentSession(request, env) {
   const corsHeaders = buildCorsHeaders(request, env);
-  const playerCount = Number(new URL(request.url).searchParams.get("playerCount") || 1);
+  const playerCount = Number(
+    new URL(request.url).searchParams.get("playerCount") || 1,
+  );
   const paymentConfig = buildPaymentConfig({
     feePerPlayer: 75,
     playerCount,
@@ -279,7 +543,9 @@ export class SigningTransactionsDO {
       if (current >= limit) {
         return json({ ok: false, allowed: false }, 429);
       }
-      await this.state.storage.put(minuteKey, current + 1, { expirationTtl: 180 });
+      await this.state.storage.put(minuteKey, current + 1, {
+        expirationTtl: 180,
+      });
       return json({ ok: true, allowed: true });
     }
 
@@ -297,7 +563,8 @@ export class SigningTransactionsDO {
       const key = `tx:${txId}`;
       if (ifAbsent) {
         const existing = await this.state.storage.get(key);
-        if (existing) return json({ ok: true, created: false, value: existing });
+        if (existing)
+          return json({ ok: true, created: false, value: existing });
       }
       await this.state.storage.put(key, value);
       return json({ ok: true, created: true, value });
@@ -323,27 +590,47 @@ async function handleSignAgreement(request, env, ctx) {
   }
 
   const payload = await request.json().catch(() => null);
-  if (!payload) return json({ ok: false, error: "Invalid JSON" }, 400, request, env);
+  if (!payload)
+    return json({ ok: false, error: "Invalid JSON" }, 400, request, env);
 
   const validation = validateSigningPayload(payload, env);
   if (!validation.ok) return json(validation, 400, request, env);
 
   const { agreementType, formType, submissionId } = payload;
   const template = AGREEMENT_TEMPLATES[agreementType];
-  if (!template) return json({ ok: false, error: "Unknown agreement type" }, 400, request, env);
+  if (!template)
+    return json(
+      { ok: false, error: "Unknown agreement type" },
+      400,
+      request,
+      env,
+    );
 
   const txId = payload.transactionId || crypto.randomUUID();
-  const existing = await doFetch(env, `/transaction?txId=${encodeURIComponent(txId)}`);
+  const existing = await doFetch(
+    env,
+    `/transaction?txId=${encodeURIComponent(txId)}`,
+  );
   if (existing.value?.status === "viewed") {
     const signerUrl = await buildSignerUrl(request.url, txId, env);
-    const emailDownloadUrl = await buildSignerUrl(request.url, txId, env, EMAIL_SIGNER_LINK_TTL_MS);
-    return json({
-      ok: true,
-      transactionId: txId,
-      signerDownloadUrl: signerUrl,
-      emailDownloadUrl,
-      alreadyExisted: true,
-    }, 200, request, env);
+    const emailDownloadUrl = await buildSignerUrl(
+      request.url,
+      txId,
+      env,
+      EMAIL_SIGNER_LINK_TTL_MS,
+    );
+    return json(
+      {
+        ok: true,
+        transactionId: txId,
+        signerDownloadUrl: signerUrl,
+        emailDownloadUrl,
+        alreadyExisted: true,
+      },
+      200,
+      request,
+      env,
+    );
   }
 
   await doFetch(env, "/transaction", {
@@ -378,7 +665,12 @@ async function handleSignAgreement(request, env, ctx) {
         status: "Generation Failed",
         agreementVersion: template.version,
       });
-      return json({ ok: false, error: "Template not found" }, 500, request, env);
+      return json(
+        { ok: false, error: "Template not found" },
+        500,
+        request,
+        env,
+      );
     }
 
     const templateHash = await sha256Hex(templateBytes);
@@ -397,10 +689,21 @@ async function handleSignAgreement(request, env, ctx) {
         status: "Generation Failed",
         agreementVersion: template.version,
       });
-      return json({ ok: false, error: "Template hash mismatch" }, 409, request, env);
+      return json(
+        { ok: false, error: "Template hash mismatch" },
+        409,
+        request,
+        env,
+      );
     }
 
-    const completedPdf = await generateSignedPdf({ payload, templateBytes, env, txId, templateHash });
+    const completedPdf = await generateSignedPdf({
+      payload,
+      templateBytes,
+      env,
+      txId,
+      templateHash,
+    });
     const completedHash = await sha256Hex(completedPdf);
 
     const objectKey = buildObjectKey(agreementType, submissionId, txId);
@@ -420,7 +723,12 @@ async function handleSignAgreement(request, env, ctx) {
 
     const adminUrl = buildAdminUrl(request.url, txId);
     const signerUrl = await buildSignerUrl(request.url, txId, env);
-    const emailDownloadUrl = await buildSignerUrl(request.url, txId, env, EMAIL_SIGNER_LINK_TTL_MS);
+    const emailDownloadUrl = await buildSignerUrl(
+      request.url,
+      txId,
+      env,
+      EMAIL_SIGNER_LINK_TTL_MS,
+    );
 
     await doFetch(env, "/transaction", {
       method: "POST",
@@ -461,45 +769,61 @@ async function handleSignAgreement(request, env, ctx) {
         formType,
         error: sheetUpdate.error,
       });
-      await markTransactionFailed(env, txId, String(sheetUpdate.error || "Sheet update failed"));
-      return json({
-        ok: false,
-        error: `Agreement sheet update failed: ${String(sheetUpdate.error || "Sheet update failed")}`,
-        sheetUpdate,
-      }, 502, request, env);
+      await markTransactionFailed(
+        env,
+        txId,
+        String(sheetUpdate.error || "Sheet update failed"),
+      );
+      return json(
+        {
+          ok: false,
+          error: `Agreement sheet update failed: ${String(sheetUpdate.error || "Sheet update failed")}`,
+          sheetUpdate,
+        },
+        502,
+        request,
+        env,
+      );
     }
 
     await doFetch(env, "/transaction", {
-  method: "POST",
-  body: JSON.stringify({
-    txId,
-    value: {
-      status: "viewed",
-      agreementType,
-      formType,
-      submissionId,
-      objectKey,
-      templateHash,
-      completedHash,
-      transactionId: txId,
-      signerName: payload.signer.printedName,
-      viewedAt: payload.audit.viewedAtUtc,
-    },
-  }),
-});
+      method: "POST",
+      body: JSON.stringify({
+        txId,
+        value: {
+          status: "viewed",
+          agreementType,
+          formType,
+          submissionId,
+          objectKey,
+          templateHash,
+          completedHash,
+          transactionId: txId,
+          signerName: payload.signer.printedName,
+          viewedAt: payload.audit.viewedAtUtc,
+        },
+      }),
+    });
 
-    return json({
-      ok: true,
-      transactionId: txId,
-      agreementType,
-      viewedAt: payload.audit.viewedAtUtc,
-      signerDownloadUrl: signerUrl,
-      emailDownloadUrl,
-      sheetUpdate: {
-        ok: Boolean(sheetUpdate.ok),
-        error: sheetUpdate.ok ? "" : String(sheetUpdate.error || "Sheet update failed"),
+    return json(
+      {
+        ok: true,
+        transactionId: txId,
+        agreementType,
+        viewedAt: payload.audit.viewedAtUtc,
+        signerDownloadUrl: signerUrl,
+        emailDownloadUrl,
+        sheetUpdate: {
+          ok: Boolean(sheetUpdate.ok),
+          error: sheetUpdate.ok
+            ? ""
+            : String(sheetUpdate.error || "Sheet update failed"),
+        },
       },
-    }, 200, request, env);
+      200,
+      request,
+      env,
+    );
   } catch (error) {
     console.error("sign-agreement-failed", {
       txId,
@@ -523,7 +847,12 @@ async function handleSignAgreement(request, env, ctx) {
       status: "Generation Failed",
       agreementVersion: template.version,
     });
-    return json({ ok: false, error: "Agreement generation failed" }, 500, request, env);
+    return json(
+      { ok: false, error: "Agreement generation failed" },
+      500,
+      request,
+      env,
+    );
   }
 }
 
@@ -534,7 +863,12 @@ async function handleFormUpsert(request, env) {
   }
 
   if (!env.APPS_SCRIPT_URL || !hasAppsScriptUpdateToken(env)) {
-    return json({ ok: false, error: "Apps Script update configuration is missing" }, 500, request, env);
+    return json(
+      { ok: false, error: "Apps Script update configuration is missing" },
+      500,
+      request,
+      env,
+    );
   }
 
   const payload = await request.json().catch(() => null);
@@ -543,10 +877,21 @@ async function handleFormUpsert(request, env) {
   }
 
   const formType = String(payload.formType || "").trim();
-  const values = payload.values && typeof payload.values === "object" ? payload.values : null;
-  const deferConfirmationEmail = String(values?.defer_confirmation_email || "").trim().toLowerCase() === "yes";
+  const values =
+    payload.values && typeof payload.values === "object"
+      ? payload.values
+      : null;
+  const deferConfirmationEmail =
+    String(values?.defer_confirmation_email || "")
+      .trim()
+      .toLowerCase() === "yes";
   if (!formType || !values) {
-    return json({ ok: false, error: "Missing formType or values" }, 400, request, env);
+    return json(
+      { ok: false, error: "Missing formType or values" },
+      400,
+      request,
+      env,
+    );
   }
 
   const params = new URLSearchParams();
@@ -563,27 +908,44 @@ async function handleFormUpsert(request, env) {
   });
 
   try {
-    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(
+      env,
+      params,
+    );
     const text = response.text;
     const parsed = response.parsed;
 
     if (!parsed?.ok) {
-      return json({
-        ok: false,
-        error: parsed?.error || "Apps Script upsert failed",
-        details: parsed || text.slice(0, 500),
-      }, 502, request, env);
+      return json(
+        {
+          ok: false,
+          error: parsed?.error || "Apps Script upsert failed",
+          details: parsed || text.slice(0, 500),
+        },
+        502,
+        request,
+        env,
+      );
     }
 
     let email = { ok: true, skipped: true, deferred: deferConfirmationEmail };
     if (!deferConfirmationEmail && formType === "mls_registration") {
-      email = await postRegistrationEmailAction(env, "send_registration_receipt_email", {
-        registration_submission_id: values.registration_submission_id || "",
-        parent_email: values.parent_email || "",
-        parent_name: `${values.parent_first_name || ""} ${values.parent_last_name || ""}`.trim(),
-        participant_names: buildParticipantNames(values),
-      });
-    } else if (!deferConfirmationEmail && (formType === "volunteer_application" || formType === "coaching_application")) {
+      email = await postRegistrationEmailAction(
+        env,
+        "send_registration_receipt_email",
+        {
+          registration_submission_id: values.registration_submission_id || "",
+          parent_email: values.parent_email || "",
+          parent_name:
+            `${values.parent_first_name || ""} ${values.parent_last_name || ""}`.trim(),
+          participant_names: buildParticipantNames(values),
+        },
+      );
+    } else if (
+      !deferConfirmationEmail &&
+      (formType === "volunteer_application" ||
+        formType === "coaching_application")
+    ) {
       email = await sendVolunteerCoachConfirmationEmail(env, {
         formType,
         submissionId: values.submission_id || "",
@@ -592,7 +954,12 @@ async function handleFormUpsert(request, env) {
 
     return json({ ok: true, result: parsed, email }, 200, request, env);
   } catch (error) {
-    return json({ ok: false, error: String(error?.message || error) }, 502, request, env);
+    return json(
+      { ok: false, error: String(error?.message || error) },
+      502,
+      request,
+      env,
+    );
   }
 }
 
@@ -603,7 +970,12 @@ async function handleFinalConfirmationEmail(request, env) {
   }
 
   if (!env.APPS_SCRIPT_URL || !hasAppsScriptUpdateToken(env)) {
-    return json({ ok: false, error: "Apps Script email configuration is missing" }, 500, request, env);
+    return json(
+      { ok: false, error: "Apps Script email configuration is missing" },
+      500,
+      request,
+      env,
+    );
   }
 
   const payload = await request.json().catch(() => null);
@@ -612,81 +984,199 @@ async function handleFinalConfirmationEmail(request, env) {
   }
 
   const recipientEmail = String(payload.recipientEmail || "").trim();
-  const submissionId = String(payload.submissionId || payload.registrationSubmissionId || payload.volunteerSubmissionId || payload.coachingSubmissionId || "").trim();
+  const submissionId = String(
+    payload.submissionId ||
+      payload.registrationSubmissionId ||
+      payload.volunteerSubmissionId ||
+      payload.coachingSubmissionId ||
+      "",
+  ).trim();
   const emailType = String(payload.emailType || "").trim();
   if (!recipientEmail || !submissionId || !emailType) {
-    return json({ ok: false, error: "Missing recipientEmail, submissionId, or emailType" }, 400, request, env);
+    return json(
+      {
+        ok: false,
+        error: "Missing recipientEmail, submissionId, or emailType",
+      },
+      400,
+      request,
+      env,
+    );
   }
 
   try {
-    const scholarshipRequested = String(payload.scholarshipRequested || "No").trim().toLowerCase() === "yes";
-    const signedDocumentUrls = Array.isArray(payload.signedDocumentUrls) ? [...payload.signedDocumentUrls] : [];
+    const scholarshipRequested =
+      String(payload.scholarshipRequested || "No")
+        .trim()
+        .toLowerCase() === "yes";
+    const signedDocumentUrls = Array.isArray(payload.signedDocumentUrls)
+      ? [...payload.signedDocumentUrls]
+      : [];
     let scholarshipDocumentUrl = "";
 
     if (scholarshipRequested) {
       const scholarshipResult = await acceptScholarshipApplication(env, {
-        registrationSubmissionId: String(payload.registrationSubmissionId || submissionId || "").trim(),
+        registrationSubmissionId: String(
+          payload.registrationSubmissionId || submissionId || "",
+        ).trim(),
         parentEmail: recipientEmail,
-        parentName: `${String(payload.applicantFirstName || "").trim()} ${String(payload.applicantLastName || "").trim()}`.trim(),
-        participantNames: Array.isArray(payload.participantNames) ? payload.participantNames.join(", ") : String(payload.participantNames || "").trim(),
+        parentName:
+          `${String(payload.applicantFirstName || "").trim()} ${String(payload.applicantLastName || "").trim()}`.trim(),
+        participantNames: Array.isArray(payload.participantNames)
+          ? payload.participantNames.join(", ")
+          : String(payload.participantNames || "").trim(),
       });
       if (!scholarshipResult.ok) {
-        return json({ ok: false, error: scholarshipResult.error || "Apps Script scholarship acceptance failed" }, 502, request, env);
+        return json(
+          {
+            ok: false,
+            error:
+              scholarshipResult.error ||
+              "Apps Script scholarship acceptance failed",
+          },
+          502,
+          request,
+          env,
+        );
       }
-      scholarshipDocumentUrl = String(scholarshipResult.documentUrl || "").trim();
+      scholarshipDocumentUrl = String(
+        scholarshipResult.documentUrl || "",
+      ).trim();
       if (scholarshipDocumentUrl) {
-        signedDocumentUrls.push({ label: "Scholarship Guidelines", url: scholarshipDocumentUrl });
+        signedDocumentUrls.push({
+          label: "Scholarship Guidelines",
+          url: scholarshipDocumentUrl,
+        });
       }
     }
 
     const params = new URLSearchParams();
     params.append("action", "send_flow_confirmation_email");
     params.append("submission_id", submissionId);
-    params.append("registration_submission_id", String(payload.registrationSubmissionId || "").trim());
-    params.append("volunteer_submission_id", String(payload.volunteerSubmissionId || "").trim());
-    params.append("coaching_submission_id", String(payload.coachingSubmissionId || "").trim());
+    params.append(
+      "registration_submission_id",
+      String(payload.registrationSubmissionId || "").trim(),
+    );
+    params.append(
+      "volunteer_submission_id",
+      String(payload.volunteerSubmissionId || "").trim(),
+    );
+    params.append(
+      "coaching_submission_id",
+      String(payload.coachingSubmissionId || "").trim(),
+    );
     params.append("email_type", emailType);
     params.append("recipient_email", recipientEmail);
-    params.append("applicant_first_name", String(payload.applicantFirstName || "").trim());
-    params.append("applicant_last_name", String(payload.applicantLastName || "").trim());
-    params.append("participant_names", Array.isArray(payload.participantNames) ? payload.participantNames.join(", ") : String(payload.participantNames || "").trim());
-    params.append("forms_recorded_json", JSON.stringify(Array.isArray(payload.formsRecorded) ? payload.formsRecorded : []));
-    params.append("agreements_recorded_json", JSON.stringify(Array.isArray(payload.agreementsRecorded) ? payload.agreementsRecorded : []));
-    params.append("scholarship_requested", String(payload.scholarshipRequested || "No").trim());
+    params.append(
+      "applicant_first_name",
+      String(payload.applicantFirstName || "").trim(),
+    );
+    params.append(
+      "applicant_last_name",
+      String(payload.applicantLastName || "").trim(),
+    );
+    params.append(
+      "participant_names",
+      Array.isArray(payload.participantNames)
+        ? payload.participantNames.join(", ")
+        : String(payload.participantNames || "").trim(),
+    );
+    params.append(
+      "forms_recorded_json",
+      JSON.stringify(
+        Array.isArray(payload.formsRecorded) ? payload.formsRecorded : [],
+      ),
+    );
+    params.append(
+      "agreements_recorded_json",
+      JSON.stringify(
+        Array.isArray(payload.agreementsRecorded)
+          ? payload.agreementsRecorded
+          : [],
+      ),
+    );
+    params.append(
+      "scholarship_requested",
+      String(payload.scholarshipRequested || "No").trim(),
+    );
     params.append("payment_required", payload.paymentRequired ? "yes" : "no");
     params.append("payment_url", String(payload.paymentUrl || "").trim());
     params.append("payment_amount", String(payload.paymentAmount || "").trim());
-    params.append("signed_document_urls_json", JSON.stringify(signedDocumentUrls));
+    params.append(
+      "signed_document_urls_json",
+      JSON.stringify(signedDocumentUrls),
+    );
     params.append("source_url", String(payload.sourceUrl || "").trim());
 
-    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(
+      env,
+      params,
+    );
     const parsed = response.parsed;
     if (!parsed?.ok) {
-      return json({ ok: false, error: parsed?.error || "Apps Script final confirmation email failed" }, 502, request, env);
+      return json(
+        {
+          ok: false,
+          error: parsed?.error || "Apps Script final confirmation email failed",
+        },
+        502,
+        request,
+        env,
+      );
     }
-    return json({ ok: true, result: { ...parsed, scholarshipDocumentUrl } }, 200, request, env);
+    return json(
+      { ok: true, result: { ...parsed, scholarshipDocumentUrl } },
+      200,
+      request,
+      env,
+    );
   } catch (error) {
-    return json({ ok: false, error: String(error?.message || error) }, 502, request, env);
+    return json(
+      { ok: false, error: String(error?.message || error) },
+      502,
+      request,
+      env,
+    );
   }
 }
 
 async function acceptScholarshipApplication(env, input) {
   if (!env.APPS_SCRIPT_URL || !hasAppsScriptUpdateToken(env)) {
-    return { ok: false, error: "Missing Apps Script scholarship configuration" };
+    return {
+      ok: false,
+      error: "Missing Apps Script scholarship configuration",
+    };
   }
 
   const params = new URLSearchParams();
   params.append("action", "accept_scholarship_application");
-  params.append("registration_submission_id", String(input.registrationSubmissionId || "").trim());
-  params.append("parent_email", String(input.parentEmail || "").trim().toLowerCase());
+  params.append(
+    "registration_submission_id",
+    String(input.registrationSubmissionId || "").trim(),
+  );
+  params.append(
+    "parent_email",
+    String(input.parentEmail || "")
+      .trim()
+      .toLowerCase(),
+  );
   params.append("parent_name", String(input.parentName || "").trim());
-  params.append("participant_names", String(input.participantNames || "").trim());
+  params.append(
+    "participant_names",
+    String(input.participantNames || "").trim(),
+  );
 
   try {
-    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(
+      env,
+      params,
+    );
     const parsed = response.parsed;
     if (!parsed?.ok) {
-      return { ok: false, error: parsed?.error || "Apps Script scholarship acceptance failed" };
+      return {
+        ok: false,
+        error: parsed?.error || "Apps Script scholarship acceptance failed",
+      };
     }
     return {
       ok: true,
@@ -701,7 +1191,8 @@ async function acceptScholarshipApplication(env, input) {
 function buildParticipantNames(values) {
   const names = [];
   for (let index = 1; index <= 4; index += 1) {
-    const name = `${values[`player_${index}_first_name`] || ""} ${values[`player_${index}_last_name`] || ""}`.trim();
+    const name =
+      `${values[`player_${index}_first_name`] || ""} ${values[`player_${index}_last_name`] || ""}`.trim();
     if (name) names.push(name);
   }
   return names.join(", ");
@@ -719,26 +1210,48 @@ async function handlePaymentWebhook(request, env) {
 
   const normalized = normalizePaymentWebhookPayload(payload);
   if (!normalized.submissionId) {
-    return json({ ok: false, error: "Missing registration_submission_id" }, 400);
+    return json(
+      { ok: false, error: "Missing registration_submission_id" },
+      400,
+    );
   }
   if (!normalized.paid) {
-    return json({ ok: true, ignored: true, reason: "Payment not completed" }, 202);
+    return json(
+      { ok: true, ignored: true, reason: "Payment not completed" },
+      202,
+    );
   }
 
   const context = await getRegistrationContext(env, normalized.submissionId);
   if (!context.ok) {
-    return json({ ok: false, error: context.error || "Registration context lookup failed" }, 404);
+    return json(
+      {
+        ok: false,
+        error: context.error || "Registration context lookup failed",
+      },
+      404,
+    );
   }
   if (String(context.paymentStatus || "").toLowerCase() === "paid") {
-    return json({ ok: true, duplicate: true, submissionId: normalized.submissionId });
+    return json({
+      ok: true,
+      duplicate: true,
+      submissionId: normalized.submissionId,
+    });
   }
 
-  const agreementTxId = context.transactionId || normalized.agreementTransactionId;
+  const agreementTxId =
+    context.transactionId || normalized.agreementTransactionId;
   if (!agreementTxId) {
     return json({ ok: false, error: "Missing agreement transaction id" }, 404);
   }
 
-  const signedDocumentUrl = await buildSignerUrl(request.url, agreementTxId, env, EMAIL_SIGNER_LINK_TTL_MS);
+  const signedDocumentUrl = await buildSignerUrl(
+    request.url,
+    agreementTxId,
+    env,
+    EMAIL_SIGNER_LINK_TTL_MS,
+  );
   const paymentUpdate = await updatePaymentInSheets(env, {
     submissionId: normalized.submissionId,
     paymentStatus: "Paid",
@@ -749,7 +1262,13 @@ async function handlePaymentWebhook(request, env) {
     paymentReceiptUrl: normalized.receiptUrl,
   });
   if (!paymentUpdate.ok) {
-    return json({ ok: false, error: paymentUpdate.error || "Payment sheet update failed" }, 502);
+    return json(
+      {
+        ok: false,
+        error: paymentUpdate.error || "Payment sheet update failed",
+      },
+      502,
+    );
   }
 
   const emailResult = await sendRegistrationPaidEmail(env, {
@@ -773,10 +1292,21 @@ async function handlePaymentWebhook(request, env) {
     paidAt: normalized.paidAt,
   });
   if (!emailResult.ok) {
-    return json({ ok: false, error: emailResult.error || "Payment confirmation email failed" }, 502);
+    return json(
+      {
+        ok: false,
+        error: emailResult.error || "Payment confirmation email failed",
+      },
+      502,
+    );
   }
 
-  return json({ ok: true, paid: true, emailed: true, submissionId: normalized.submissionId });
+  return json({
+    ok: true,
+    paid: true,
+    emailed: true,
+    submissionId: normalized.submissionId,
+  });
 }
 
 async function handlePaymentReceiptEmail(message, env, ctx) {
@@ -809,7 +1339,11 @@ async function handlePaymentReceiptEmail(message, env, ctx) {
   }
 
   const { submissionId, context } = resolved;
-  if (String(context.paymentStatus || "").trim().toLowerCase() === "paid") {
+  if (
+    String(context.paymentStatus || "")
+      .trim()
+      .toLowerCase() === "paid"
+  ) {
     console.log("payment-receipt-email-duplicate", {
       submissionId,
       orderId: receipt.orderId,
@@ -839,7 +1373,12 @@ async function handlePaymentReceiptEmail(message, env, ctx) {
   let signedDocumentUrl = "";
   if (context.transactionId) {
     try {
-      signedDocumentUrl = await buildSignerUrl(`${PRIMARY_APP_ORIGIN}/`, context.transactionId, env, EMAIL_SIGNER_LINK_TTL_MS);
+      signedDocumentUrl = await buildSignerUrl(
+        `${PRIMARY_APP_ORIGIN}/`,
+        context.transactionId,
+        env,
+        EMAIL_SIGNER_LINK_TTL_MS,
+      );
     } catch (error) {
       console.warn("payment-receipt-signer-url-failed", {
         submissionId,
@@ -868,23 +1407,25 @@ async function handlePaymentReceiptEmail(message, env, ctx) {
     paymentReceiptUrl: receipt.receiptUrl,
     registrationFeeAmount: receipt.amount || "75",
     paidAt: receipt.paidAt,
-  }).then((result) => {
-    if (!result.ok) {
+  })
+    .then((result) => {
+      if (!result.ok) {
+        console.warn("payment-receipt-email-send-failed", {
+          submissionId,
+          orderId: receipt.orderId,
+          error: result.error,
+        });
+      }
+      return result;
+    })
+    .catch((error) => {
       console.warn("payment-receipt-email-send-failed", {
         submissionId,
         orderId: receipt.orderId,
-        error: result.error,
+        error: String(error?.message || error),
       });
-    }
-    return result;
-  }).catch((error) => {
-    console.warn("payment-receipt-email-send-failed", {
-      submissionId,
-      orderId: receipt.orderId,
-      error: String(error?.message || error),
+      return { ok: false, error: String(error?.message || error) };
     });
-    return { ok: false, error: String(error?.message || error) };
-  });
 
   if (ctx && typeof ctx.waitUntil === "function") {
     ctx.waitUntil(emailWork);
@@ -899,16 +1440,28 @@ async function handleSignerDownload(request, env) {
   const exp = url.searchParams.get("exp");
   const sig = url.searchParams.get("sig");
 
-  if (!txId || !exp || !sig) return new Response("Invalid link", { status: 400 });
-  if (Date.now() > Number(exp)) return new Response("Link expired", { status: 410 });
+  if (!txId || !exp || !sig)
+    return new Response("Invalid link", { status: 400 });
+  if (Date.now() > Number(exp))
+    return new Response("Link expired", { status: 410 });
 
-  const expected = await hmacHex(env.SIGNER_LINK_SECRET || "", `${txId}:${exp}`);
-  if (!timingSafeEq(sig, expected)) return new Response("Invalid link", { status: 403 });
+  const expected = await hmacHex(
+    env.SIGNER_LINK_SECRET || "",
+    `${txId}:${exp}`,
+  );
+  if (!timingSafeEq(sig, expected))
+    return new Response("Invalid link", { status: 403 });
 
-  const tx = await doFetch(env, `/transaction?txId=${encodeURIComponent(txId)}`);
-  if (!tx.value?.objectKey) return new Response("Document unavailable", { status: 404 });
+  const tx = await doFetch(
+    env,
+    `/transaction?txId=${encodeURIComponent(txId)}`,
+  );
+  if (!tx.value?.objectKey)
+    return new Response("Document unavailable", { status: 404 });
 
-  const object = await env.SIGNED_AGREEMENTS.get(tx.value.objectKey, { type: "stream" });
+  const object = await env.SIGNED_AGREEMENTS.get(tx.value.objectKey, {
+    type: "stream",
+  });
   if (!object) return new Response("Document unavailable", { status: 404 });
 
   return new Response(object.body, {
@@ -930,10 +1483,16 @@ async function handleAdminDownload(request, env) {
   }
 
   const txId = new URL(request.url).pathname.split("/").pop();
-  const tx = await doFetch(env, `/transaction?txId=${encodeURIComponent(txId)}`);
-  if (!tx.value?.objectKey) return new Response("Document unavailable", { status: 404 });
+  const tx = await doFetch(
+    env,
+    `/transaction?txId=${encodeURIComponent(txId)}`,
+  );
+  if (!tx.value?.objectKey)
+    return new Response("Document unavailable", { status: 404 });
 
-  const object = await env.SIGNED_AGREEMENTS.get(tx.value.objectKey, { type: "stream" });
+  const object = await env.SIGNED_AGREEMENTS.get(tx.value.objectKey, {
+    type: "stream",
+  });
   if (!object) return new Response("Document unavailable", { status: 404 });
 
   return new Response(object.body, {
@@ -948,7 +1507,8 @@ async function handleAdminDownload(request, env) {
 }
 
 function validateSigningPayload(payload, env) {
-  if (!payload || typeof payload !== "object") return { ok: false, error: "Missing payload" };
+  if (!payload || typeof payload !== "object")
+    return { ok: false, error: "Missing payload" };
   if (!payload.agreementType || !AGREEMENT_TEMPLATES[payload.agreementType]) {
     return { ok: false, error: "Invalid agreementType" };
   }
@@ -987,37 +1547,46 @@ function validateSigningPayload(payload, env) {
   return { ok: true };
 }
 
-async function generateSignedPdf({ payload, templateBytes, env, txId, templateHash }) {
+async function generateSignedPdf({
+  payload,
+  templateBytes,
+  env,
+  txId,
+  templateHash,
+}) {
   const pdfDoc = await PDFDocument.load(templateBytes);
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const signatureFont = await embedSignatureFont(pdfDoc, env);
 
-  const map = payload.agreementType === "player"
-    ? PLAYER_AGREEMENT_FIELD_MAP
-    : VOLUNTEER_AGREEMENT_FIELD_MAP;
+  const map =
+    payload.agreementType === "player"
+      ? PLAYER_AGREEMENT_FIELD_MAP
+      : VOLUNTEER_AGREEMENT_FIELD_MAP;
 
   const pages = pdfDoc.getPages();
   const targetPage = pages[Math.max(0, pages.length - map.pageFromEnd)];
 
   const fieldData = payload.fields || {};
   for (const [fieldName, cfg] of Object.entries(map.fields)) {
-    const value = normalizeAgreementPdfFieldValue(fieldName, fieldData[fieldName]);
+    const value = normalizeAgreementPdfFieldValue(
+      fieldName,
+      fieldData[fieldName],
+    );
     if (!value) continue;
     drawWrappedText(targetPage, value, cfg, helvetica);
   }
 
   const acceptedSignerName = String(payload.signer?.printedName || "").trim();
   if (acceptedSignerName && map.signatureBounds?.primary) {
-    const signatureOptions = payload.agreementType === "volunteer"
-      ? { maxFontSize: 16 }
-      : {};
+    const signatureOptions =
+      payload.agreementType === "volunteer" ? { maxFontSize: 16 } : {};
     drawTypedSignature(
       targetPage,
       acceptedSignerName,
       map.signatureBounds.primary,
       signatureFont,
-      signatureOptions
+      signatureOptions,
     );
   }
 
@@ -1054,13 +1623,22 @@ function normalizeAgreementDateOnly(value) {
   }
 
   const months = {
-    Jan: "01", Feb: "02", Mar: "03", Apr: "04",
-    May: "05", Jun: "06", Jul: "07", Aug: "08",
-    Sep: "09", Oct: "10", Nov: "11", Dec: "12",
+    Jan: "01",
+    Feb: "02",
+    Mar: "03",
+    Apr: "04",
+    May: "05",
+    Jun: "06",
+    Jul: "07",
+    Aug: "08",
+    Sep: "09",
+    Oct: "10",
+    Nov: "11",
+    Dec: "12",
   };
 
   match = raw.match(
-    /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\s+(\d{4})\b/
+    /^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\s+(\d{4})\b/,
   );
   if (match) {
     return `${months[match[1]]}/${String(match[2]).padStart(2, "0")}/${match[3]}`;
@@ -1102,7 +1680,9 @@ function drawImageFit(page, img, bounds) {
 }
 
 function drawTypedSignature(page, typed, bounds, font, options = {}) {
-  const safe = String(typed || "").trim().slice(0, MAX_TYPED_SIGNATURE_LEN);
+  const safe = String(typed || "")
+    .trim()
+    .slice(0, MAX_TYPED_SIGNATURE_LEN);
   if (!safe || !bounds || !font) return;
 
   const horizontalPadding = 4;
@@ -1120,10 +1700,12 @@ function drawTypedSignature(page, typed, bounds, font, options = {}) {
   }
   size = Math.max(9, size);
 
-  const textHeight = typeof font.heightAtSize === "function"
-    ? font.heightAtSize(size, { descender: false })
-    : size;
-  const y = bounds.y + Math.max(verticalPadding, (bounds.height - textHeight) / 2 + 1);
+  const textHeight =
+    typeof font.heightAtSize === "function"
+      ? font.heightAtSize(size, { descender: false })
+      : size;
+  const y =
+    bounds.y + Math.max(verticalPadding, (bounds.height - textHeight) / 2 + 1);
 
   page.drawText(safe, {
     x: bounds.x + horizontalPadding,
@@ -1207,7 +1789,10 @@ async function updateAgreementInSheets(env, input) {
   params.append("agreement_transaction_id", input.transactionId);
 
   try {
-    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(
+      env,
+      params,
+    );
     const parsed = response.parsed;
     if (!parsed?.ok) {
       return { ok: false, error: parsed?.error || "Apps Script update failed" };
@@ -1219,8 +1804,9 @@ async function updateAgreementInSheets(env, input) {
 }
 
 async function handlePpfPdfRender(request, env) {
-  const authorized = getAppsScriptUpdateTokenCandidates(env)
-    .some((token) => isAuthorizedWebhookRequest(request, token));
+  const authorized = getAppsScriptUpdateTokenCandidates(env).some((token) =>
+    isAuthorizedWebhookRequest(request, token),
+  );
 
   if (!authorized) {
     return json({ ok: false, error: "Unauthorized" }, 403, request, env);
@@ -1231,25 +1817,48 @@ async function handlePpfPdfRender(request, env) {
     return json({ ok: false, error: "Invalid payload" }, 400, request, env);
   }
 
-  const submissionId = String(payload.submissionId || payload.submission_id || "").trim();
-  const parentName = String(payload.parentName || payload.parent_name || "").trim();
-  const signingDate = String(payload.signingDate || payload.signing_date || "").trim();
-  const participantRecords = normalizePpfParticipantRecords(payload.participants || payload.participantRecords);
+  const submissionId = String(
+    payload.submissionId || payload.submission_id || "",
+  ).trim();
+  const parentName = String(
+    payload.parentName || payload.parent_name || "",
+  ).trim();
+  const signingDate = String(
+    payload.signingDate || payload.signing_date || "",
+  ).trim();
+  const participantRecords = normalizePpfParticipantRecords(
+    payload.participants || payload.participantRecords,
+  );
 
   if (!submissionId) {
-    return json({ ok: false, error: "Missing submissionId" }, 400, request, env);
+    return json(
+      { ok: false, error: "Missing submissionId" },
+      400,
+      request,
+      env,
+    );
   }
   if (!parentName) {
     return json({ ok: false, error: "Missing parentName" }, 400, request, env);
   }
   if (!participantRecords.length) {
-    return json({ ok: false, error: "At least one participant is required" }, 400, request, env);
+    return json(
+      { ok: false, error: "At least one participant is required" },
+      400,
+      request,
+      env,
+    );
   }
 
   const template = AGREEMENT_TEMPLATES.ppf;
   const templateBytes = await readTemplateBytes(env, template.key);
   if (!templateBytes) {
-    return json({ ok: false, error: "PPF template not found" }, 500, request, env);
+    return json(
+      { ok: false, error: "PPF template not found" },
+      500,
+      request,
+      env,
+    );
   }
 
   const pdfBytes = await generatePpfLiabilityPdf({
@@ -1282,15 +1891,27 @@ async function updatePaymentInSheets(env, input) {
   params.append("payment_status", input.paymentStatus || "Paid");
   params.append("payment_amount", String(input.paymentAmount || ""));
   params.append("payment_currency", String(input.paymentCurrency || ""));
-  params.append("payment_paid_at", String(input.paymentPaidAt || new Date().toISOString()));
-  params.append("payment_transaction_id", String(input.paymentTransactionId || ""));
+  params.append(
+    "payment_paid_at",
+    String(input.paymentPaidAt || new Date().toISOString()),
+  );
+  params.append(
+    "payment_transaction_id",
+    String(input.paymentTransactionId || ""),
+  );
   params.append("payment_receipt_url", String(input.paymentReceiptUrl || ""));
 
   try {
-    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(
+      env,
+      params,
+    );
     const parsed = response.parsed;
     if (!parsed?.ok) {
-      return { ok: false, error: parsed?.error || "Apps Script payment update failed" };
+      return {
+        ok: false,
+        error: parsed?.error || "Apps Script payment update failed",
+      };
     }
     return { ok: true };
   } catch (error) {
@@ -1298,16 +1919,28 @@ async function updatePaymentInSheets(env, input) {
   }
 }
 
-async function generatePpfLiabilityPdf({ templateBytes, participants, parentName, signingDate, env }) {
+async function generatePpfLiabilityPdf({
+  templateBytes,
+  participants,
+  parentName,
+  signingDate,
+  env,
+}) {
   const sourcePdf = await PDFDocument.load(templateBytes);
   const combinedPdf = await PDFDocument.create();
   const helvetica = await combinedPdf.embedFont(StandardFonts.Helvetica);
   const signatureFont = await embedSignatureFont(combinedPdf, env);
 
   for (const participant of participants) {
-    const copiedPages = await combinedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
+    const copiedPages = await combinedPdf.copyPages(
+      sourcePdf,
+      sourcePdf.getPageIndices(),
+    );
     copiedPages.forEach((page) => combinedPdf.addPage(page));
-    const targetPage = copiedPages[Math.max(0, copiedPages.length - PPF_LIABILITY_FIELD_MAP.pageFromEnd)];
+    const targetPage =
+      copiedPages[
+        Math.max(0, copiedPages.length - PPF_LIABILITY_FIELD_MAP.pageFromEnd)
+      ];
     const fields = {
       participantSignatureDate: signingDate,
       participantName: String(participant.name || "").trim(),
@@ -1316,7 +1949,9 @@ async function generatePpfLiabilityPdf({ templateBytes, participants, parentName
       parentName,
     };
 
-    for (const [fieldName, cfg] of Object.entries(PPF_LIABILITY_FIELD_MAP.fields)) {
+    for (const [fieldName, cfg] of Object.entries(
+      PPF_LIABILITY_FIELD_MAP.fields,
+    )) {
       const value = String(fields[fieldName] || "").trim();
       if (!value) continue;
       drawWrappedText(targetPage, value, cfg, helvetica);
@@ -1327,7 +1962,7 @@ async function generatePpfLiabilityPdf({ templateBytes, participants, parentName
       parentName,
       PPF_LIABILITY_FIELD_MAP.signatureBounds.primary,
       signatureFont,
-      { maxFontSize: 16 }
+      { maxFontSize: 16 },
     );
   }
 
@@ -1341,10 +1976,12 @@ function normalizePpfParticipantRecords(value) {
   if (!Array.isArray(records)) return [];
   return records
     .map((participant) => ({
-      name: String(participant?.name || participant?.participantName || "").trim(),
+      name: String(
+        participant?.name || participant?.participantName || "",
+      ).trim(),
       grade: formatPpfParticipantDivisionLabel(
         participant?.grade || participant?.participantGrade || "",
-        participant?.gender || participant?.participantGender || ""
+        participant?.gender || participant?.participantGender || "",
       ),
     }))
     .filter((participant) => participant.name);
@@ -1355,8 +1992,10 @@ function formatPpfParticipantDivisionLabel(grade, gender) {
   const normalizedGender = String(gender || "").trim();
   if (!normalizedGrade) return normalizedGender;
   if (/\b(Boys|Girls)\b/i.test(normalizedGrade)) return normalizedGrade;
-  if (/^(Male|Boy|Boys)$/i.test(normalizedGender)) return `${normalizedGrade} Boys`;
-  if (/^(Female|Girl|Girls)$/i.test(normalizedGender)) return `${normalizedGrade} Girls`;
+  if (/^(Male|Boy|Boys)$/i.test(normalizedGender))
+    return `${normalizedGrade} Boys`;
+  if (/^(Female|Girl|Girls)$/i.test(normalizedGender))
+    return `${normalizedGrade} Girls`;
   return normalizedGrade;
 }
 
@@ -1371,10 +2010,16 @@ async function getRegistrationContext(env, submissionId) {
   params.append("submission_id", submissionId);
 
   try {
-    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(
+      env,
+      params,
+    );
     const parsed = response.parsed;
     if (!parsed?.ok) {
-      return { ok: false, error: parsed?.error || "Apps Script context lookup failed" };
+      return {
+        ok: false,
+        error: parsed?.error || "Apps Script context lookup failed",
+      };
     }
     return {
       ok: true,
@@ -1399,20 +2044,34 @@ async function lookupRegistrationForPaymentReceipt(env, input) {
   const params = new URLSearchParams();
   params.append("action", "lookup_registration_for_payment_receipt");
   params.append("form_type", "mls_registration");
-  params.append("parent_email", String(input.parentEmail || "").trim().toLowerCase());
+  params.append(
+    "parent_email",
+    String(input.parentEmail || "")
+      .trim()
+      .toLowerCase(),
+  );
   params.append("parent_name", String(input.parentName || "").trim());
   params.append("payment_amount", String(input.amount || "").trim());
   params.append("payment_paid_at", String(input.paidAt || "").trim());
-  params.append("payment_transaction_id", String(input.paymentTransactionId || "").trim());
+  params.append(
+    "payment_transaction_id",
+    String(input.paymentTransactionId || "").trim(),
+  );
   params.append("payment_receipt_url", String(input.receiptUrl || "").trim());
   params.append("event_name", String(input.eventName || "").trim());
   params.append("player_count", String(input.playerCount || "").trim());
 
   try {
-    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(
+      env,
+      params,
+    );
     const parsed = response.parsed;
     if (!parsed?.ok) {
-      return { ok: false, error: parsed?.error || "Apps Script payment receipt lookup failed" };
+      return {
+        ok: false,
+        error: parsed?.error || "Apps Script payment receipt lookup failed",
+      };
     }
     return {
       ok: true,
@@ -1466,7 +2125,8 @@ async function readTemplateBytes(env, templatePath) {
 }
 
 function buildObjectKey(agreementType, submissionId, txId) {
-  const base = agreementType === "player" ? "player-agreements" : "volunteer-agreements";
+  const base =
+    agreementType === "player" ? "player-agreements" : "volunteer-agreements";
   return `${base}/${submissionId}/${txId}.pdf`;
 }
 
@@ -1475,7 +2135,12 @@ function buildAdminUrl(baseUrl, txId) {
   return `${base.origin}/api/admin/agreement/${encodeURIComponent(txId)}`;
 }
 
-function buildSignerUrl(baseUrl, txId, env, ttlMs = DEFAULT_SIGNER_LINK_TTL_MS) {
+function buildSignerUrl(
+  baseUrl,
+  txId,
+  env,
+  ttlMs = DEFAULT_SIGNER_LINK_TTL_MS,
+) {
   if (!env.SIGNER_LINK_SECRET) {
     throw new Error("Missing SIGNER_LINK_SECRET");
   }
@@ -1501,22 +2166,43 @@ async function sendRegistrationPaidEmail(env, input) {
   const params = new URLSearchParams();
   params.append("action", "send_registration_paid_email");
   params.append("form_type", "mls_registration");
-  params.append("registration_submission_id", String(input.submissionId || "").trim());
+  params.append(
+    "registration_submission_id",
+    String(input.submissionId || "").trim(),
+  );
   params.append("parent_email", parentEmail);
   params.append("parent_name", String(input.parentName || "").trim());
-  params.append("participant_names", String(input.participantNames || "").trim());
+  params.append(
+    "participant_names",
+    String(input.participantNames || "").trim(),
+  );
   params.append("signed_at", String(input.signedAt || "").trim());
-  params.append("signed_document_url", String(input.signedDocumentUrl || "").trim());
+  params.append(
+    "signed_document_url",
+    String(input.signedDocumentUrl || "").trim(),
+  );
   params.append("payment_url", String(input.paymentUrl || "").trim());
-  params.append("payment_receipt_url", String(input.paymentReceiptUrl || "").trim());
+  params.append(
+    "payment_receipt_url",
+    String(input.paymentReceiptUrl || "").trim(),
+  );
   params.append("payment_paid_at", String(input.paidAt || "").trim());
-  params.append("registration_fee_amount", String(input.registrationFeeAmount || "75").trim());
+  params.append(
+    "registration_fee_amount",
+    String(input.registrationFeeAmount || "75").trim(),
+  );
 
   try {
-    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(
+      env,
+      params,
+    );
     const parsed = response.parsed;
     if (!parsed?.ok) {
-      return { ok: false, error: parsed?.error || "Apps Script email send failed" };
+      return {
+        ok: false,
+        error: parsed?.error || "Apps Script email send failed",
+      };
     }
     return { ok: true };
   } catch (error) {
@@ -1537,30 +2223,60 @@ async function sendRegistrationSubmissionEmail(env, input) {
   const parentName = String(input.parentName || "").trim();
   const participantNames = String(input.participantNames || "").trim();
   const allResponseRows = Array.isArray(input.allResponseRows)
-    ? input.allResponseRows.map((row) => ({
-      label: String(row?.label || "").trim(),
-      value: String(row?.value || "").trim(),
-    })).filter((row) => row.label && row.value)
+    ? input.allResponseRows
+        .map((row) => ({
+          label: String(row?.label || "").trim(),
+          value: String(row?.value || "").trim(),
+        }))
+        .filter((row) => row.label && row.value)
     : [];
 
-  const registrationFormValues = allResponseRows.length ? allResponseRows : [
-    { label: "Parent/Guardian Full Name", value: parentName },
-    { label: "Relationship to Child", value: String(input.relationshipToChild || "").trim() },
-    { label: "Email Address", value: parentEmail },
-    { label: "Primary Phone Number", value: String(input.primaryPhone || "").trim() },
-    { label: "Alternate Phone Number", value: String(input.alternatePhone || "").trim() },
-    { label: "Emergency Contact Name", value: String(input.emergencyContactName || "").trim() },
-    { label: "Emergency Relationship", value: String(input.emergencyRelationship || "").trim() },
-    { label: "Emergency Contact Email", value: String(input.emergencyEmail || "").trim() },
-    { label: "Emergency Contact Phone", value: String(input.emergencyPhone || "").trim() },
-    {
-      label: "Emergency Contact Address",
-      value: [input.emergencyStreet, input.emergencyCity, input.emergencyState, input.emergencyZip]
-        .filter(Boolean)
-        .join(", "),
-    },
-    { label: "Participant(s)", value: participantNames },
-  ].filter((row) => String(row.value || "").trim());
+  const registrationFormValues = allResponseRows.length
+    ? allResponseRows
+    : [
+        { label: "Parent/Guardian Full Name", value: parentName },
+        {
+          label: "Relationship to Child",
+          value: String(input.relationshipToChild || "").trim(),
+        },
+        { label: "Email Address", value: parentEmail },
+        {
+          label: "Primary Phone Number",
+          value: String(input.primaryPhone || "").trim(),
+        },
+        {
+          label: "Alternate Phone Number",
+          value: String(input.alternatePhone || "").trim(),
+        },
+        {
+          label: "Emergency Contact Name",
+          value: String(input.emergencyContactName || "").trim(),
+        },
+        {
+          label: "Emergency Relationship",
+          value: String(input.emergencyRelationship || "").trim(),
+        },
+        {
+          label: "Emergency Contact Email",
+          value: String(input.emergencyEmail || "").trim(),
+        },
+        {
+          label: "Emergency Contact Phone",
+          value: String(input.emergencyPhone || "").trim(),
+        },
+        {
+          label: "Emergency Contact Address",
+          value: [
+            input.emergencyStreet,
+            input.emergencyCity,
+            input.emergencyState,
+            input.emergencyZip,
+          ]
+            .filter(Boolean)
+            .join(", "),
+        },
+        { label: "Participant(s)", value: participantNames },
+      ].filter((row) => String(row.value || "").trim());
 
   const payload = {
     registration_submission_id: String(input.submissionId || "").trim(),
@@ -1587,14 +2303,28 @@ async function sendRegistrationSubmissionEmail(env, input) {
     form_values_json: JSON.stringify(registrationFormValues),
   };
 
-  const primary = await postRegistrationEmailAction(env, "send_registration_receipt_email", payload);
+  const primary = await postRegistrationEmailAction(
+    env,
+    "send_registration_receipt_email",
+    payload,
+  );
   if (primary.ok) return primary;
 
-  const fallback = await postRegistrationEmailAction(env, "send_registration_paid_email", payload);
+  const fallback = await postRegistrationEmailAction(
+    env,
+    "send_registration_paid_email",
+    payload,
+  );
   if (fallback.ok) return fallback;
 
   if (!payload.registration_submission_id && !payload.submission_id) {
-    return { ok: false, error: fallback.error || primary.error || "Apps Script registration email send failed" };
+    return {
+      ok: false,
+      error:
+        fallback.error ||
+        primary.error ||
+        "Apps Script registration email send failed",
+    };
   }
 
   // Backward-compatible fallback for scripts only supporting the newer action name.
@@ -1618,10 +2348,16 @@ async function sendVolunteerCoachConfirmationEmail(env, input) {
   params.append("submission_id", submissionId);
 
   try {
-    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(
+      env,
+      params,
+    );
     const parsed = response.parsed;
     if (!parsed?.ok) {
-      return { ok: false, error: parsed?.error || "Apps Script volunteer/coach email send failed" };
+      return {
+        ok: false,
+        error: parsed?.error || "Apps Script volunteer/coach email send failed",
+      };
     }
     return { ok: true };
   } catch (error) {
@@ -1643,10 +2379,16 @@ async function postRegistrationEmailAction(env, action, payload) {
   });
 
   try {
-    const response = await postAppsScriptFormWithUpdateTokenFallback(env, params);
+    const response = await postAppsScriptFormWithUpdateTokenFallback(
+      env,
+      params,
+    );
     const parsed = response.parsed;
     if (!parsed?.ok) {
-      return { ok: false, error: parsed?.error || `Apps Script ${action} failed` };
+      return {
+        ok: false,
+        error: parsed?.error || `Apps Script ${action} failed`,
+      };
     }
     return { ok: true };
   } catch (error) {
@@ -1684,7 +2426,10 @@ async function parseWebhookPayload(request) {
   if (contentType.includes("application/json")) {
     return request.json().catch(() => null);
   }
-  if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
+  if (
+    contentType.includes("application/x-www-form-urlencoded") ||
+    contentType.includes("multipart/form-data")
+  ) {
     const formData = await request.formData().catch(() => null);
     if (!formData) return null;
     const out = {};
@@ -1699,132 +2444,149 @@ async function parseWebhookPayload(request) {
 }
 
 function normalizePaymentWebhookPayload(payload) {
-  const metadata = payload && typeof payload.metadata === "object" ? payload.metadata : {};
+  const metadata =
+    payload && typeof payload.metadata === "object" ? payload.metadata : {};
   const data = payload && typeof payload.data === "object" ? payload.data : {};
-  const payment = payload && typeof payload.payment === "object" ? payload.payment : {};
-  const transaction = payload && typeof payload.transaction === "object" ? payload.transaction : {};
+  const payment =
+    payload && typeof payload.payment === "object" ? payload.payment : {};
+  const transaction =
+    payload && typeof payload.transaction === "object"
+      ? payload.transaction
+      : {};
 
   const paidStatus = String(
-    payload.payment_status
-      || payload.status
-      || payload.event
-      || payload.event_type
-      || payload.transaction_status
-      || payload.result
-      || payload.outcome
-      || data.payment_status
-      || data.status
-      || payment.status
-      || transaction.status
-      || metadata.payment_status
-      || "",
-  ).trim().toLowerCase();
+    payload.payment_status ||
+      payload.status ||
+      payload.event ||
+      payload.event_type ||
+      payload.transaction_status ||
+      payload.result ||
+      payload.outcome ||
+      data.payment_status ||
+      data.status ||
+      payment.status ||
+      transaction.status ||
+      metadata.payment_status ||
+      "",
+  )
+    .trim()
+    .toLowerCase();
 
   const paidFlag = String(
-    payload.paid
-      || payload.is_paid
-      || payload.success
-      || data.paid
-      || data.is_paid
-      || payment.paid
-      || payment.is_paid
-      || metadata.paid
-      || "",
-  ).trim().toLowerCase();
+    payload.paid ||
+      payload.is_paid ||
+      payload.success ||
+      data.paid ||
+      data.is_paid ||
+      payment.paid ||
+      payment.is_paid ||
+      metadata.paid ||
+      "",
+  )
+    .trim()
+    .toLowerCase();
 
   return {
     submissionId: String(
-      payload.registration_submission_id
-        || payload.submission_id
-        || payload.submissionId
-        || payload.registrationId
-        || payload.reference
-        || payload.external_reference
-        || payload.order_id
-        || payload.cart_id
-        || payload.invoice_id
-        || data.registration_submission_id
-        || data.submission_id
-        || data.reference
-        || payment.reference
-        || transaction.reference
-        || metadata.registration_submission_id
-        || metadata.submission_id
-        || metadata.reference
-        || metadata.external_reference
-        || "",
+      payload.registration_submission_id ||
+        payload.submission_id ||
+        payload.submissionId ||
+        payload.registrationId ||
+        payload.reference ||
+        payload.external_reference ||
+        payload.order_id ||
+        payload.cart_id ||
+        payload.invoice_id ||
+        data.registration_submission_id ||
+        data.submission_id ||
+        data.reference ||
+        payment.reference ||
+        transaction.reference ||
+        metadata.registration_submission_id ||
+        metadata.submission_id ||
+        metadata.reference ||
+        metadata.external_reference ||
+        "",
     ).trim(),
     agreementTransactionId: String(
-      payload.agreement_transaction_id
-        || payload.transaction_id
-        || payload.agreementTxId
-        || data.agreement_transaction_id
-        || metadata.agreement_transaction_id
-        || "",
+      payload.agreement_transaction_id ||
+        payload.transaction_id ||
+        payload.agreementTxId ||
+        data.agreement_transaction_id ||
+        metadata.agreement_transaction_id ||
+        "",
     ).trim(),
     paymentTransactionId: String(
-      payload.payment_transaction_id
-        || payload.payment_id
-        || payload.gateway_transaction_id
-        || payload.charge_id
-        || payload.id
-        || data.payment_transaction_id
-        || data.payment_id
-        || payment.id
-        || transaction.id
-        || "",
+      payload.payment_transaction_id ||
+        payload.payment_id ||
+        payload.gateway_transaction_id ||
+        payload.charge_id ||
+        payload.id ||
+        data.payment_transaction_id ||
+        data.payment_id ||
+        payment.id ||
+        transaction.id ||
+        "",
     ).trim(),
     amount: String(
-      payload.payment_amount
-        || payload.amount
-        || payload.total
-        || payload.gross_amount
-        || data.payment_amount
-        || data.amount
-        || payment.amount
-        || transaction.amount
-        || metadata.payment_amount
-        || "",
+      payload.payment_amount ||
+        payload.amount ||
+        payload.total ||
+        payload.gross_amount ||
+        data.payment_amount ||
+        data.amount ||
+        payment.amount ||
+        transaction.amount ||
+        metadata.payment_amount ||
+        "",
     ).trim(),
     currency: String(
-      payload.payment_currency
-        || payload.currency
-        || data.payment_currency
-        || data.currency
-        || payment.currency
-        || transaction.currency
-        || metadata.payment_currency
-        || "USD",
+      payload.payment_currency ||
+        payload.currency ||
+        data.payment_currency ||
+        data.currency ||
+        payment.currency ||
+        transaction.currency ||
+        metadata.payment_currency ||
+        "USD",
     ).trim(),
     receiptUrl: String(
-      payload.payment_receipt_url
-        || payload.receipt_url
-        || payload.receiptUrl
-        || payload.receipt
-        || payload.invoice_url
-        || data.payment_receipt_url
-        || data.receipt_url
-        || payment.receipt_url
-        || transaction.receipt_url
-        || metadata.payment_receipt_url
-        || "",
+      payload.payment_receipt_url ||
+        payload.receipt_url ||
+        payload.receiptUrl ||
+        payload.receipt ||
+        payload.invoice_url ||
+        data.payment_receipt_url ||
+        data.receipt_url ||
+        payment.receipt_url ||
+        transaction.receipt_url ||
+        metadata.payment_receipt_url ||
+        "",
     ).trim(),
     paidAt: String(
-      payload.payment_paid_at
-        || payload.paid_at
-        || payload.completed_at
-        || payload.updated_at
-        || payload.timestamp
-        || data.payment_paid_at
-        || data.paid_at
-        || data.completed_at
-        || payment.paid_at
-        || transaction.completed_at
-        || metadata.payment_paid_at
-        || new Date().toISOString(),
+      payload.payment_paid_at ||
+        payload.paid_at ||
+        payload.completed_at ||
+        payload.updated_at ||
+        payload.timestamp ||
+        data.payment_paid_at ||
+        data.paid_at ||
+        data.completed_at ||
+        payment.paid_at ||
+        transaction.completed_at ||
+        metadata.payment_paid_at ||
+        new Date().toISOString(),
     ).trim(),
-    paid: ["paid", "completed", "complete", "success", "succeeded", "captured", "approved"].includes(paidStatus)
-      || ["true", "1", "yes", "y"].includes(paidFlag),
+    paid:
+      [
+        "paid",
+        "completed",
+        "complete",
+        "success",
+        "succeeded",
+        "captured",
+        "approved",
+      ].includes(paidStatus) || ["true", "1", "yes", "y"].includes(paidFlag),
   };
 }
 
@@ -1846,7 +2608,10 @@ function isLocalHttpVariantOfAllowedOrigin(origin, allowedOrigins, requestUrl) {
   try {
     const parsedOrigin = new URL(origin || "");
     const parsedRequestUrl = new URL(requestUrl || "");
-    if (parsedOrigin.protocol !== "http:" || parsedRequestUrl.protocol !== "http:") {
+    if (
+      parsedOrigin.protocol !== "http:" ||
+      parsedRequestUrl.protocol !== "http:"
+    ) {
       return false;
     }
     return allowedOrigins.some((allowedOrigin) => {
@@ -1872,23 +2637,34 @@ function isAllowedOrigin(origin, csv, requestUrl) {
   if (isLocalDevUrl(origin)) return true;
   const allowed = [
     ...DEFAULT_ALLOWED_ORIGINS,
-    ...csv.split(",").map((v) => v.trim()).filter(Boolean),
+    ...csv
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean),
   ];
-  return allowed.includes(origin) || isLocalHttpVariantOfAllowedOrigin(origin, allowed, requestUrl);
+  return (
+    allowed.includes(origin) ||
+    isLocalHttpVariantOfAllowedOrigin(origin, allowed, requestUrl)
+  );
 }
 
 function buildCorsHeaders(request, env) {
   const origin = request?.headers?.get("Origin") || "";
   const requestUrl = request?.url || "";
-  const allowOrigin = isAllowedOrigin(origin, env.ALLOWED_ORIGINS || "", requestUrl)
+  const allowOrigin = isAllowedOrigin(
+    origin,
+    env.ALLOWED_ORIGINS || "",
+    requestUrl,
+  )
     ? origin
     : PRIMARY_APP_ORIGIN;
   return {
     "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, x-webhook-token",
+    "Access-Control-Allow-Headers":
+      "Content-Type, Authorization, x-webhook-token",
     "Access-Control-Max-Age": "86400",
-    "Vary": "Origin",
+    Vary: "Origin",
   };
 }
 
@@ -1935,7 +2711,9 @@ async function doFetch(env, path, init = {}) {
 
 async function sha256Hex(bytes) {
   const hash = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return [...new Uint8Array(hash)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 async function hmacHex(secret, value) {
@@ -1950,12 +2728,19 @@ async function hmacHex(secret, value) {
     false,
     ["sign"],
   );
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value));
-  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const sig = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(value),
+  );
+  return [...new Uint8Array(sig)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function timingSafeEq(a, b) {
-  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length)
+    return false;
   let out = 0;
   for (let i = 0; i < a.length; i += 1) {
     out |= a.charCodeAt(i) ^ b.charCodeAt(i);
@@ -1982,16 +2767,25 @@ function hasAppsScriptUpdateToken(env) {
 }
 
 function getAppsScriptUpdateTokenCandidates(env) {
-  return [...new Set([
-    String(env?.APPS_SCRIPT_UPDATE_TOKEN || "").trim(),
-    String(env?.AGREEMENT_UPDATE_TOKEN || "").trim(),
-  ].filter(Boolean))];
+  return [
+    ...new Set(
+      [
+        String(env?.APPS_SCRIPT_UPDATE_TOKEN || "").trim(),
+        String(env?.AGREEMENT_UPDATE_TOKEN || "").trim(),
+      ].filter(Boolean),
+    ),
+  ];
 }
 
 function cloneParamsWithoutUpdateTokens(params) {
   const clone = new URLSearchParams();
   params.forEach((value, key) => {
-    if (key === "update_token" || key === "token" || key === "agreement_update_token") return;
+    if (
+      key === "update_token" ||
+      key === "token" ||
+      key === "agreement_update_token"
+    )
+      return;
     clone.append(key, value);
   });
   return clone;

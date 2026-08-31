@@ -59,3 +59,98 @@
   padding: 11px 13px;
   font-weight: 600;
 }
+
+/* Continuation withdrawal controls */
+.withdraw-registration-panel {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid rgba(182, 29, 43, 0.18);
+  border-radius: 16px;
+  background: #fffafa;
+}
+
+.withdraw-registration-panel__intro {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.withdraw-registration-panel__intro strong {
+  color: var(--ink, #10131d);
+}
+
+.withdraw-registration-panel__intro span,
+.withdraw-registration-warning {
+  color: var(--muted, #516173);
+  line-height: 1.45;
+}
+
+.withdraw-registration-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(182, 29, 43, 0.16);
+}
+
+.withdraw-field-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.withdraw-input {
+  width: 100%;
+  border: 1px solid var(--line, #d9dfea);
+  border-radius: 12px;
+  padding: 11px 12px;
+  font: inherit;
+  background: #fff;
+}
+
+.withdraw-input:focus {
+  outline: none;
+  border-color: var(--brand, #6f2dbd);
+  box-shadow: 0 0 0 3px rgba(111, 45, 189, 0.1);
+}
+
+.withdraw-input--invalid {
+  border: 1px solid var(--danger, #b61d2b) !important;
+  box-shadow: 0 0 0 2px rgba(182, 29, 43, 0.08) !important;
+}
+
+.withdraw-inline-message {
+  min-height: 1.2em;
+  margin: 0;
+  color: var(--danger, #b61d2b);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.withdraw-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.withdraw-final-confirmation {
+  margin-top: 4px;
+  padding: 14px;
+  border: 1px solid rgba(182, 29, 43, 0.28);
+  border-radius: 12px;
+  background: rgba(182, 29, 43, 0.05);
+}
+
+.withdraw-final-confirmation p {
+  margin: 0 0 12px;
+  line-height: 1.45;
+}
+
+.btn-danger {
+  border-color: #9f1724;
+  background: #b61d2b;
+  color: #fff;
+}
+
+.btn-danger:hover {
+  filter: brightness(0.96);
+}

@@ -4,9 +4,7 @@
   const FBZX = "-3891024944817654155";
 
   const GOOGLE_MAPS_API_KEY_META =
-    document
-      .querySelector('meta[name="google-maps-api-key"]')
-      ?.content.trim() || "";
+    document.querySelector('meta[name="google-maps-api-key"]')?.content.trim() || "";
 
   const APP_ORIGIN = window.location.origin;
 
@@ -26,9 +24,7 @@
   const PUBLIC_CONFIG_ENDPOINT = `${API_ORIGIN}/api/public-config`;
 
   const GOOGLE_APPS_SCRIPT_URL =
-    document
-      .querySelector('meta[name="google-apps-script-url"]')
-      ?.content.trim() || "";
+    document.querySelector('meta[name="google-apps-script-url"]')?.content.trim() || "";
 
   const MLS_PLAYER_WAIVER_URL =
     "https://cdn.mediavalet.com/usca/rcx/ViZqxKaKCkOG_lY1tHVXHQ/0NjqRSjMNUKvGw1yBUgd4Q/Original/2.1%20Player%20Registration%20Agreement%20-%20MLS%20GO.pdf";
@@ -39,11 +35,14 @@
   const MLS_TERMS_OF_SERVICE_URL =
     "https://www.mlssoccer.com/legal/terms-of-service";
 
-  const PPF_LIABILITY_FORM_URL = `${REGISTRATION_ASSET_ORIGIN}/documents/PPF%20Liability%20Form.pdf`;
+  const PPF_LIABILITY_FORM_URL =
+    `${REGISTRATION_ASSET_ORIGIN}/documents/PPF%20Liability%20Form.pdf`;
 
-  const PLAYER_AGREEMENT_TEMPLATE_URL = `${REGISTRATION_ASSET_ORIGIN}/documents/MLS%20GO%20Player%20Registration%20Agreement.pdf`;
+  const PLAYER_AGREEMENT_TEMPLATE_URL =
+    `${REGISTRATION_ASSET_ORIGIN}/documents/MLS%20GO%20Player%20Registration%20Agreement.pdf`;
 
-  const VOLUNTEER_AGREEMENT_TEMPLATE_URL = `${REGISTRATION_ASSET_ORIGIN}/documents/MLS%20GO%20Volunteer%20Agreement.pdf`;
+  const VOLUNTEER_AGREEMENT_TEMPLATE_URL =
+    `${REGISTRATION_ASSET_ORIGIN}/documents/MLS%20GO%20Volunteer%20Agreement.pdf`;
 
   const SIGNING_ENDPOINT = `${API_ORIGIN}/api/sign-agreement`;
 
@@ -108,6 +107,8 @@
   const FINAL_CONFIRMATION_ENDPOINT = `${API_ORIGIN}/api/forms/final-confirmation`;
   const RESUME_CONTEXT_ENDPOINT = `${API_ORIGIN}/api/resume/context`;
   const RESUME_COMPLETE_ENDPOINT = `${API_ORIGIN}/api/resume/complete`;
+  const RESUME_WITHDRAW_VERIFY_ENDPOINT = `${API_ORIGIN}/api/resume/withdraw/verify`;
+  const RESUME_WITHDRAW_CONFIRM_ENDPOINT = `${API_ORIGIN}/api/resume/withdraw/confirm`;
   const STAGE_SECTION_IDS = Object.freeze({
     [STAGES.PLAYER_REGISTRATION]: [
       "parent-section",
@@ -146,36 +147,31 @@
     },
     [STAGES.PLAYER_AGREEMENT]: {
       title: "Player Agreement",
-      subtitle:
-        "Review the required documents. We will generate and record the Player Agreement after you confirm this stage.",
+      subtitle: "Review the required documents. We will generate and record the Player Agreement after you confirm this stage.",
       progressLabel: "Player agreement",
       submitLabel: "Record Player Agreement",
     },
     [STAGES.SCHOLARSHIP_APPLICATION]: {
       title: "Scholarship Guidelines",
-      subtitle:
-        "Review the scholarship guidelines below. Your agreement is preloaded from your registration. Accepting this page records your acceptance of the agreement.",
+      subtitle: "Review the scholarship guidelines below. Your agreement is preloaded from your registration. Accepting this page records your acceptance of the agreement.",
       progressLabel: "Scholarship guidelines",
       submitLabel: "Accept Scholarship Guidelines",
     },
     [STAGES.VOLUNTEER_APPLICATION]: {
       title: "Volunteer Application",
-      subtitle:
-        "Complete the volunteer application. The Volunteer Agreement will be recorded in the next stage.",
+      subtitle: "Complete the volunteer application. The Volunteer Agreement will be recorded in the next stage.",
       progressLabel: "Volunteer application",
       submitLabel: "Submit Volunteer Application",
     },
     [STAGES.COACHING_APPLICATION]: {
       title: "Coaching Application",
-      subtitle:
-        "Complete the coaching application. The Volunteer Agreement will be recorded after the coaching application is complete.",
+      subtitle: "Complete the coaching application. The Volunteer Agreement will be recorded after the coaching application is complete.",
       progressLabel: "Coaching application",
       submitLabel: "Submit Coaching Application",
     },
     [STAGES.VOLUNTEER_AGREEMENT]: {
       title: "Volunteer Agreement",
-      subtitle:
-        "Review the Volunteer Agreement before we generate and record it for your application.",
+      subtitle: "Review the Volunteer Agreement before we generate and record it for your application.",
       progressLabel: "Volunteer agreement",
       submitLabel: "Record Volunteer Agreement",
     },
@@ -232,58 +228,12 @@
   ];
 
   const STATE_ABBREVIATIONS = [
-    "AL",
-    "AK",
-    "AZ",
-    "AR",
-    "CA",
-    "CO",
-    "CT",
-    "DE",
-    "FL",
-    "GA",
-    "HI",
-    "ID",
-    "IL",
-    "IN",
-    "IA",
-    "KS",
-    "KY",
-    "LA",
-    "ME",
-    "MD",
-    "MA",
-    "MI",
-    "MN",
-    "MS",
-    "MO",
-    "MT",
-    "NE",
-    "NV",
-    "NH",
-    "NJ",
-    "NM",
-    "NY",
-    "NC",
-    "ND",
-    "OH",
-    "OK",
-    "OR",
-    "PA",
-    "RI",
-    "SC",
-    "SD",
-    "TN",
-    "TX",
-    "UT",
-    "VT",
-    "VA",
-    "WA",
-    "WV",
-    "WI",
-    "WY",
-    "DC",
-    "PR",
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+    "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+    "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+    "DC", "PR",
   ];
 
   const EMAIL_FIELD_NAMES = new Set([
@@ -454,6 +404,7 @@
   let googleMapsApiKeyPromise;
   let isSubmittingStage = false;
   let registrationResumeState = null;
+  let withdrawalVerificationToken = "";
 
   buildPage();
   updatePaymentPageNote();
@@ -469,10 +420,7 @@
   updateExperienceSummaryRequirements();
   initializeRegistrationContinuation().catch((error) => {
     console.error("registration-resume-init-failed", error);
-    formMessage.classList.remove(
-      "form-message--loading",
-      "form-message--success",
-    );
+    formMessage.classList.remove("form-message--loading", "form-message--success");
     formMessage.classList.add("form-message--error");
     formMessage.textContent =
       "We couldn’t load your registration information. Please reopen the secure link from your email or contact Paducah GO Soccer for assistance.";
@@ -485,35 +433,20 @@
 
     const requestedTestMode = params.get("resumeTest") === "1";
 
-    formMessage.classList.remove(
-      "form-message--error",
-      "form-message--success",
-    );
+    formMessage.classList.remove("form-message--error", "form-message--success");
     formMessage.classList.add("form-message--loading");
     formMessage.textContent =
       "Please wait, your registration is being loaded... We’re securely restoring your previous registration information. This may take a few seconds.";
 
-    const response = await fetchWithTimeout(
-      RESUME_CONTEXT_ENDPOINT,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({ resumeToken }),
-      },
-      FORM_UPSERT_TIMEOUT_MS,
-    );
+    const response = await fetchWithTimeout(RESUME_CONTEXT_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ resumeToken }),
+    }, FORM_UPSERT_TIMEOUT_MS);
 
     const payload = await response.json().catch(() => null);
     if (!response.ok || !payload?.ok || !payload?.context) {
-      throw new Error(
-        String(
-          payload?.error ||
-            `Saved registration could not be loaded (${response.status}).`,
-        ),
-      );
+      throw new Error(String(payload?.error || `Saved registration could not be loaded (${response.status}).`));
     }
 
     const context = payload.context;
@@ -523,20 +456,16 @@
       context,
     };
 
-    registrationSubmissionId = String(
-      context.registrationSubmissionId || "",
-    ).trim();
+    registrationSubmissionId = String(context.registrationSubmissionId || "").trim();
     if (!registrationSubmissionId) {
       throw new Error("The saved registration is missing its registration ID.");
     }
 
     applyRegistrationResumeContext(context);
+    ensureWithdrawalPanel(context);
     if (registrationResumeState.testMode) showRegistrationResumeTestBanner();
 
-    formMessage.classList.remove(
-      "form-message--loading",
-      "form-message--error",
-    );
+    formMessage.classList.remove("form-message--loading", "form-message--error");
     formMessage.classList.add("form-message--success");
     formMessage.textContent = registrationResumeState.testMode
       ? "Your registration information has been loaded. Please review the pre-filled information below. TEST MODE: This is a read-only continuation preview. No live registration data will be changed."
@@ -557,12 +486,9 @@
     setValue("parentZip", parent.zip || "");
 
     const emergency = context.emergency || {};
-    const sameAsParent = /^(yes|true|1)$/i.test(
-      String(emergency.sameAsParent || ""),
-    );
+    const sameAsParent = /^(yes|true|1)$/i.test(String(emergency.sameAsParent || ""));
     const emergencyToggle = form.elements.namedItem("emergencySameAsParent");
-    if (emergencyToggle instanceof HTMLInputElement)
-      emergencyToggle.checked = sameAsParent;
+    if (emergencyToggle instanceof HTMLInputElement) emergencyToggle.checked = sameAsParent;
     setValue("emergencyFirstName", emergency.firstName || "");
     setValue("emergencyLastName", emergency.lastName || "");
     setValue("emergencyRelationship", emergency.relationship || "");
@@ -574,11 +500,8 @@
     setValue("emergencyState", emergency.state || "");
     setValue("emergencyZip", emergency.zip || "");
 
-    const players = Array.isArray(context.players)
-      ? context.players.slice(0, 4)
-      : [];
-    if (!players.length)
-      throw new Error("No claimed participants were available to continue.");
+    const players = Array.isArray(context.players) ? context.players.slice(0, 4) : [];
+    if (!players.length) throw new Error("No claimed participants were available to continue.");
 
     for (let i = 1; i <= 4; i += 1) {
       const player = players[i - 1] || {};
@@ -594,8 +517,7 @@
       setValue(`p${i}RaceOther`, player.raceOther || "");
       setValue(`p${i}FavoriteClub`, player.favoriteClub || "");
       setValue(`p${i}HearAbout`, player.hearAbout || "");
-      if (i < 4)
-        setValue(`addPlayer${i + 1}`, players.length > i ? "Yes" : "No");
+      if (i < 4) setValue(`addPlayer${i + 1}`, players.length > i ? "Yes" : "No");
     }
 
     setValue("scholarshipRequested", context.scholarshipRequested || "No");
@@ -612,21 +534,211 @@
     renderWizard();
   }
 
+  function ensureWithdrawalPanel(context) {
+    if (!registrationResumeState?.token || standaloneFlow) return;
+
+    let panel = document.getElementById("withdraw-registration-panel");
+    if (!panel) {
+      panel = document.createElement("section");
+      panel.id = "withdraw-registration-panel";
+      panel.className = "withdraw-registration-panel";
+      const footer = form.querySelector(".form-footer");
+      if (footer) form.insertBefore(panel, footer);
+      else form.appendChild(panel);
+    }
+
+    const players = Array.isArray(context?.players) ? context.players : [];
+    const playerOptions = players.map((player, index) => {
+      const name = [player?.firstName, player?.lastName].filter(Boolean).join(" ").trim() || `Player ${index + 1}`;
+      return `<option value="player:${index}">Player: ${escapeHtmlForUi(name)}</option>`;
+    }).join("");
+
+    panel.innerHTML = `
+      <div class="withdraw-registration-panel__intro">
+        <strong>No longer want to register?</strong>
+        <span>If you no longer want to continue this registration, you can withdraw it from active enrollment.</span>
+      </div>
+      <button type="button" class="btn btn-ghost withdraw-registration-toggle" id="withdraw-registration-toggle">Withdraw Registration</button>
+      <div class="withdraw-registration-form" id="withdraw-registration-form" hidden>
+        <p class="withdraw-registration-warning"><strong>This action removes this registration from the active Players sheet.</strong> A copy will be kept in the Cache tab for administrative history.</p>
+        <label class="withdraw-field-label" for="withdraw-verification-subject">Confirm using</label>
+        <select id="withdraw-verification-subject" class="withdraw-input">
+          <option value="parent">Parent/Guardian date of birth</option>
+          ${playerOptions}
+        </select>
+        <label class="withdraw-field-label" for="withdraw-verification-dob">Date of birth</label>
+        <input id="withdraw-verification-dob" class="withdraw-input" type="text" inputmode="numeric" autocomplete="off" placeholder="MM/DD/YYYY" maxlength="10" />
+        <p class="withdraw-inline-message" id="withdraw-inline-message" role="alert"></p>
+        <div class="withdraw-actions">
+          <button type="button" class="btn btn-primary" id="withdraw-verify-btn">Verify Date of Birth</button>
+          <button type="button" class="btn btn-ghost" id="withdraw-cancel-btn">Cancel</button>
+        </div>
+        <div class="withdraw-final-confirmation" id="withdraw-final-confirmation" hidden>
+          <p><strong>Date of birth confirmed.</strong> This will remove the registration from active enrollment. This cannot be undone from this page.</p>
+          <button type="button" class="btn btn-danger" id="withdraw-confirm-btn">Yes, Withdraw Registration</button>
+        </div>
+      </div>`;
+
+    const toggle = panel.querySelector("#withdraw-registration-toggle");
+    const withdrawForm = panel.querySelector("#withdraw-registration-form");
+    const cancel = panel.querySelector("#withdraw-cancel-btn");
+    const dobInput = panel.querySelector("#withdraw-verification-dob");
+    const verifyBtn = panel.querySelector("#withdraw-verify-btn");
+    const confirmBtn = panel.querySelector("#withdraw-confirm-btn");
+
+    toggle?.addEventListener("click", () => {
+      withdrawForm.hidden = false;
+      toggle.hidden = true;
+      dobInput?.focus();
+    });
+    cancel?.addEventListener("click", () => resetWithdrawalPanel(panel));
+    dobInput?.addEventListener("input", () => {
+      dobInput.value = formatDobText(dobInput.value);
+      clearWithdrawalMessage(panel);
+    });
+    verifyBtn?.addEventListener("click", () => verifyWithdrawalRequest(panel));
+    confirmBtn?.addEventListener("click", () => confirmWithdrawalRequest(panel));
+  }
+
+  function escapeHtmlForUi(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function resetWithdrawalPanel(panel) {
+    withdrawalVerificationToken = "";
+    const formWrap = panel?.querySelector("#withdraw-registration-form");
+    const toggle = panel?.querySelector("#withdraw-registration-toggle");
+    const dob = panel?.querySelector("#withdraw-verification-dob");
+    const final = panel?.querySelector("#withdraw-final-confirmation");
+    const verify = panel?.querySelector("#withdraw-verify-btn");
+    if (formWrap) formWrap.hidden = true;
+    if (toggle) toggle.hidden = false;
+    if (dob) {
+      dob.value = "";
+      dob.classList.remove("withdraw-input--invalid");
+    }
+    if (final) final.hidden = true;
+    if (verify) verify.hidden = false;
+    clearWithdrawalMessage(panel);
+  }
+
+  function clearWithdrawalMessage(panel) {
+    const message = panel?.querySelector("#withdraw-inline-message");
+    const dob = panel?.querySelector("#withdraw-verification-dob");
+    if (message) message.textContent = "";
+    if (dob) dob.classList.remove("withdraw-input--invalid");
+  }
+
+  function setWithdrawalMessage(panel, message, invalid = false) {
+    const target = panel?.querySelector("#withdraw-inline-message");
+    const dob = panel?.querySelector("#withdraw-verification-dob");
+    if (target) target.textContent = message || "";
+    if (dob) dob.classList.toggle("withdraw-input--invalid", Boolean(invalid));
+  }
+
+  async function verifyWithdrawalRequest(panel) {
+    if (!registrationResumeState?.token) return;
+    const select = panel.querySelector("#withdraw-verification-subject");
+    const dob = panel.querySelector("#withdraw-verification-dob");
+    const verifyBtn = panel.querySelector("#withdraw-verify-btn");
+    const final = panel.querySelector("#withdraw-final-confirmation");
+    const value = String(select?.value || "parent");
+    const dobValue = formatDobText(String(dob?.value || ""));
+    if (!isValidDobValue(dobValue)) {
+      setWithdrawalMessage(panel, "Enter a valid date of birth in MM/DD/YYYY format.", true);
+      dob?.focus();
+      return;
+    }
+
+    const playerMatch = value.match(/^player:(\d+)$/);
+    const body = {
+      resumeToken: registrationResumeState.token,
+      subjectType: playerMatch ? "player" : "parent",
+      playerIndex: playerMatch ? Number(playerMatch[1]) : null,
+      dob: dobValue,
+    };
+
+    try {
+      verifyBtn.disabled = true;
+      setWithdrawalMessage(panel, "Verifying date of birth...");
+      const response = await fetchWithTimeout(RESUME_WITHDRAW_VERIFY_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(body),
+      }, FORM_UPSERT_TIMEOUT_MS);
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.ok || !payload?.verificationToken) {
+        throw new Error(String(payload?.error || "We could not verify that date of birth."));
+      }
+      withdrawalVerificationToken = payload.verificationToken;
+      setWithdrawalMessage(panel, "Date of birth confirmed.");
+      verifyBtn.hidden = true;
+      final.hidden = false;
+    } catch (error) {
+      withdrawalVerificationToken = "";
+      setWithdrawalMessage(panel, String(error?.message || "We could not verify that date of birth."), true);
+      dob?.focus();
+    } finally {
+      verifyBtn.disabled = false;
+    }
+  }
+
+  async function confirmWithdrawalRequest(panel) {
+    if (!registrationResumeState?.token || !withdrawalVerificationToken) {
+      setWithdrawalMessage(panel, "Please verify the date of birth before confirming withdrawal.", true);
+      return;
+    }
+    const confirmBtn = panel.querySelector("#withdraw-confirm-btn");
+    try {
+      confirmBtn.disabled = true;
+      setWithdrawalMessage(panel, "Withdrawing registration... Please do not close this window.");
+      const response = await fetchWithTimeout(RESUME_WITHDRAW_CONFIRM_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          resumeToken: registrationResumeState.token,
+          verificationToken: withdrawalVerificationToken,
+        }),
+      }, FORM_UPSERT_TIMEOUT_MS);
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.ok) {
+        throw new Error(String(payload?.error || "We could not withdraw this registration."));
+      }
+
+      if (payload.testMode) {
+        setWithdrawalMessage(panel, payload.message || "TEST MODE: withdrawal verified; no live rows were moved.");
+        confirmBtn.disabled = false;
+        return;
+      }
+
+      form.hidden = true;
+      if (progressText) progressText.textContent = "Withdrawn";
+      if (progressFill) progressFill.style.width = "100%";
+      formMessage.textContent = "";
+      successPanel.hidden = false;
+      const heading = successPanel.querySelector("h2");
+      const copy = successPanel.querySelector("p");
+      if (heading) heading.textContent = "Registration Withdrawn";
+      if (copy) copy.textContent = "Your registration has been removed from active enrollment. No further action is required.";
+    } catch (error) {
+      setWithdrawalMessage(panel, String(error?.message || "We could not withdraw this registration."), false);
+      confirmBtn.disabled = false;
+    }
+  }
+
   function showRegistrationResumeTestBanner() {
     if (document.getElementById("registration-resume-test-banner")) return;
     const banner = document.createElement("div");
     banner.id = "registration-resume-test-banner";
-    banner.textContent =
-      "TEST CONTINUATION — no live registration changes will be saved.";
+    banner.textContent = "TEST CONTINUATION — no live registration changes will be saved.";
     Object.assign(banner.style, {
-      position: "sticky",
-      top: "0",
-      zIndex: "9999",
-      padding: "10px 14px",
-      background: "#fff3cd",
-      color: "#664d03",
-      fontWeight: "700",
-      textAlign: "center",
+      position: "sticky", top: "0", zIndex: "9999", padding: "10px 14px",
+      background: "#fff3cd", color: "#664d03", fontWeight: "700", textAlign: "center",
     });
     document.body.prepend(banner);
   }
@@ -656,16 +768,10 @@
 
   function parseInitialSectionId() {
     const value = new URLSearchParams(window.location.search).get("section");
-    const normalized = String(value || "")
-      .trim()
-      .toLowerCase();
+    const normalized = String(value || "").trim().toLowerCase();
     if (!normalized) return "";
 
-    if (
-      normalized === "agreements" ||
-      normalized === "agreement" ||
-      normalized === "waiver"
-    ) {
+    if (normalized === "agreements" || normalized === "agreement" || normalized === "waiver") {
       return "agreements-section";
     }
 
@@ -673,12 +779,8 @@
   }
 
   function resolvePaymentMode() {
-    const rawValue = new URLSearchParams(window.location.search).get(
-      PAYMENT_MODE_QUERY_PARAM,
-    );
-    const normalized = String(rawValue || PAYMENT_MODE_DEFAULT)
-      .trim()
-      .toLowerCase();
+    const rawValue = new URLSearchParams(window.location.search).get(PAYMENT_MODE_QUERY_PARAM);
+    const normalized = String(rawValue || PAYMENT_MODE_DEFAULT).trim().toLowerCase();
     if (normalized === "redirect") return "redirect";
     return "paused";
   }
@@ -693,10 +795,9 @@
     }
 
     paymentPageNote.hidden = false;
-    paymentPageNote.textContent =
-      PAYMENT_MODE === "redirect"
-        ? "After submission, you will be redirected to our secure payment page to complete registration."
-        : "Payments are temporarily paused while we update our payment system. Your registration is still saved, and we’ll email you a secure payment link when it’s ready.";
+    paymentPageNote.textContent = PAYMENT_MODE === "redirect"
+      ? "After submission, you will be redirected to our secure payment page to complete registration."
+      : "Payments are temporarily paused while we update our payment system. Your registration is still saved, and we’ll email you a secure payment link when it’s ready.";
   }
 
   function buildPage() {
@@ -733,69 +834,16 @@
     );
     section.append(
       createGrid([
-        createTextField({
-          label: "Parent/Guardian First Name",
-          name: "parentFirstName",
-          required: true,
-        }),
-        createTextField({
-          label: "Parent/Guardian Last Name",
-          name: "parentLastName",
-          required: true,
-        }),
-        createTextField({
-          label: "Parent/Guardian Email",
-          name: "parentEmail",
-          required: true,
-          type: "email",
-          autocomplete: "email",
-        }),
-        createTextField({
-          label: "Parent/Guardian Cell Phone",
-          name: "parentPhone",
-          required: true,
-          type: "tel",
-          inputMode: "tel",
-          autocomplete: "tel",
-        }),
-        createTextField({
-          label: "Parent/Guardian Date of Birth",
-          name: "parentGuardianDob",
-          required: true,
-          type: "date",
-        }),
-        createTextField({
-          label: "Street Address",
-          name: "parentStreet",
-          required: true,
-          autocomplete: "street-address",
-          addressField: true,
-          placeholder: "Start typing the address",
-        }),
-        createTextField({
-          label: "Apartment, Suite, or Unit",
-          name: "parentApt",
-          autocomplete: "address-line2",
-        }),
-        createTextField({
-          label: "City",
-          name: "parentCity",
-          required: true,
-          autocomplete: "address-level2",
-        }),
-        createSelectField({
-          label: "State",
-          name: "parentState",
-          required: true,
-          options: STATE_ABBREVIATIONS,
-        }),
-        createTextField({
-          label: "ZIP Code",
-          name: "parentZip",
-          required: true,
-          inputMode: "numeric",
-          autocomplete: "postal-code",
-        }),
+        createTextField({ label: "Parent/Guardian First Name", name: "parentFirstName", required: true }),
+        createTextField({ label: "Parent/Guardian Last Name", name: "parentLastName", required: true }),
+        createTextField({ label: "Parent/Guardian Email", name: "parentEmail", required: true, type: "email", autocomplete: "email" }),
+        createTextField({ label: "Parent/Guardian Cell Phone", name: "parentPhone", required: true, type: "tel", inputMode: "tel", autocomplete: "tel" }),
+        createTextField({ label: "Parent/Guardian Date of Birth", name: "parentGuardianDob", required: true, type: "date" }),
+        createTextField({ label: "Street Address", name: "parentStreet", required: true, autocomplete: "street-address", addressField: true, placeholder: "Start typing the address" }),
+        createTextField({ label: "Apartment, Suite, or Unit", name: "parentApt", autocomplete: "address-line2" }),
+        createTextField({ label: "City", name: "parentCity", required: true, autocomplete: "address-level2" }),
+        createSelectField({ label: "State", name: "parentState", required: true, options: STATE_ABBREVIATIONS }),
+        createTextField({ label: "ZIP Code", name: "parentZip", required: true, inputMode: "numeric", autocomplete: "postal-code" }),
       ]),
     );
     return section;
@@ -821,60 +869,16 @@
     fields.dataset.emergencyFields = "true";
     fields.append(
       createGrid([
-        createTextField({
-          label: "Emergency Contact First Name",
-          name: "emergencyFirstName",
-        }),
-        createTextField({
-          label: "Emergency Contact Last Name",
-          name: "emergencyLastName",
-        }),
-        createTextField({
-          label: "Relationship",
-          name: "emergencyRelationship",
-          placeholder: "Grandparent, aunt, coach, etc.",
-        }),
-        createTextField({
-          label: "Emergency Contact Email",
-          name: "emergencyEmail",
-          type: "email",
-          autocomplete: "email",
-        }),
-        createTextField({
-          label: "Emergency Contact Phone",
-          name: "emergencyPhone",
-          type: "tel",
-          inputMode: "tel",
-          autocomplete: "tel",
-        }),
-        createTextField({
-          label: "Street Address",
-          name: "emergencyStreet",
-          autocomplete: "street-address",
-          addressField: true,
-          placeholder: "Start typing the address",
-        }),
-        createTextField({
-          label: "Apartment, Suite, or Unit",
-          name: "emergencyApt",
-          autocomplete: "address-line2",
-        }),
-        createTextField({
-          label: "City",
-          name: "emergencyCity",
-          autocomplete: "address-level2",
-        }),
-        createSelectField({
-          label: "State",
-          name: "emergencyState",
-          options: STATE_ABBREVIATIONS,
-        }),
-        createTextField({
-          label: "ZIP Code",
-          name: "emergencyZip",
-          inputMode: "numeric",
-          autocomplete: "postal-code",
-        }),
+        createTextField({ label: "Emergency Contact First Name", name: "emergencyFirstName" }),
+        createTextField({ label: "Emergency Contact Last Name", name: "emergencyLastName" }),
+        createTextField({ label: "Relationship", name: "emergencyRelationship", placeholder: "Grandparent, aunt, coach, etc." }),
+        createTextField({ label: "Emergency Contact Email", name: "emergencyEmail", type: "email", autocomplete: "email" }),
+        createTextField({ label: "Emergency Contact Phone", name: "emergencyPhone", type: "tel", inputMode: "tel", autocomplete: "tel" }),
+        createTextField({ label: "Street Address", name: "emergencyStreet", autocomplete: "street-address", addressField: true, placeholder: "Start typing the address" }),
+        createTextField({ label: "Apartment, Suite, or Unit", name: "emergencyApt", autocomplete: "address-line2" }),
+        createTextField({ label: "City", name: "emergencyCity", autocomplete: "address-level2" }),
+        createSelectField({ label: "State", name: "emergencyState", options: STATE_ABBREVIATIONS }),
+        createTextField({ label: "ZIP Code", name: "emergencyZip", inputMode: "numeric", autocomplete: "postal-code" }),
       ]),
     );
 
@@ -898,57 +902,14 @@
     );
 
     const grid = createGrid([
-      createTextField({
-        label: `Player ${playerIndex} - First Name`,
-        name: `p${playerIndex}FirstName`,
-        required: true,
-      }),
-      createTextField({
-        label: `Player ${playerIndex} - Last Name`,
-        name: `p${playerIndex}LastName`,
-        required: true,
-      }),
-      createTextField({
-        label: `Player ${playerIndex} - Date of Birth`,
-        name: `p${playerIndex}Dob`,
-        required: true,
-        type: "date",
-      }),
-      createSelectField({
-        label: `Player ${playerIndex} - Gender Identity`,
-        name: `p${playerIndex}Gender`,
-        required: true,
-        options: ["Female", "Male", "Non-binary", "Prefer not to specify"],
-      }),
-      createSelectField({
-        label: `Player ${playerIndex} - Division`,
-        name: `p${playerIndex}Grade`,
-        required: true,
-        options: [
-          "2nd/3rd Grade Boys",
-          "2nd/3rd Grade Girls",
-          "4th/5th Grade Boys",
-          "4th/5th Grade Girls",
-        ],
-      }),
-      createSelectField({
-        label: `Player ${playerIndex} - Jersey Size`,
-        name: `p${playerIndex}Jersey`,
-        required: true,
-        options: ["YXXS", "YXS", "YS", "YM", "YL", "YXL/AS", "AM", "AL", "AXL"],
-      }),
-      createSelectField({
-        label: `Player ${playerIndex} - Shorts Size`,
-        name: `p${playerIndex}Shorts`,
-        required: true,
-        options: ["YXXS", "YXS", "YS", "YM", "YL", "YXL/AS", "AM", "AL", "AXL"],
-      }),
-      createSelectField({
-        label: `Player ${playerIndex} - Sock Size`,
-        name: `p${playerIndex}Socks`,
-        required: true,
-        options: ["YS/YM", "YL/YXL", "A"],
-      }),
+      createTextField({ label: `Player ${playerIndex} - First Name`, name: `p${playerIndex}FirstName`, required: true }),
+      createTextField({ label: `Player ${playerIndex} - Last Name`, name: `p${playerIndex}LastName`, required: true }),
+      createTextField({ label: `Player ${playerIndex} - Date of Birth`, name: `p${playerIndex}Dob`, required: true, type: "date" }),
+      createSelectField({ label: `Player ${playerIndex} - Gender Identity`, name: `p${playerIndex}Gender`, required: true, options: ["Female", "Male", "Non-binary", "Prefer not to specify"] }),
+      createSelectField({ label: `Player ${playerIndex} - Division`, name: `p${playerIndex}Grade`, required: true, options: ["2nd/3rd Grade Boys", "2nd/3rd Grade Girls", "4th/5th Grade Boys", "4th/5th Grade Girls"] }),
+      createSelectField({ label: `Player ${playerIndex} - Jersey Size`, name: `p${playerIndex}Jersey`, required: true, options: ["YXXS", "YXS", "YS", "YM", "YL", "YXL/AS", "AM", "AL", "AXL"] }),
+      createSelectField({ label: `Player ${playerIndex} - Shorts Size`, name: `p${playerIndex}Shorts`, required: true, options: ["YXXS", "YXS", "YS", "YM", "YL", "YXL/AS", "AM", "AL", "AXL"] }),
+      createSelectField({ label: `Player ${playerIndex} - Sock Size`, name: `p${playerIndex}Socks`, required: true, options: ["YS/YM", "YL/YXL", "A"] }),
       createSelectField({
         label: `Player ${playerIndex} - Race/Ethnicity`,
         name: `p${playerIndex}Race`,
@@ -965,24 +926,9 @@
           "I do not wish to disclose",
         ],
       }),
-      createTextField({
-        label: `Player ${playerIndex} - Race/Ethnicity - If Other, Please Specify`,
-        name: `p${playerIndex}RaceOther`,
-        conditionalOn: `p${playerIndex}Race`,
-        conditionalValue: "Other (write in)",
-      }),
-      createSelectField({
-        label: `Player ${playerIndex} - Favorite MLS Club`,
-        name: `p${playerIndex}FavoriteClub`,
-        required: true,
-        options: CLUB_OPTIONS,
-      }),
-      createSelectField({
-        label: `Player ${playerIndex} - How Did You Hear About MLS GO?`,
-        name: `p${playerIndex}HearAbout`,
-        required: true,
-        options: HEAR_ABOUT_OPTIONS,
-      }),
+      createTextField({ label: `Player ${playerIndex} - Race/Ethnicity - If Other, Please Specify`, name: `p${playerIndex}RaceOther`, conditionalOn: `p${playerIndex}Race`, conditionalValue: "Other (write in)" }),
+      createSelectField({ label: `Player ${playerIndex} - Favorite MLS Club`, name: `p${playerIndex}FavoriteClub`, required: true, options: CLUB_OPTIONS }),
+      createSelectField({ label: `Player ${playerIndex} - How Did You Hear About MLS GO?`, name: `p${playerIndex}HearAbout`, required: true, options: HEAR_ABOUT_OPTIONS }),
     ]);
 
     section.append(grid);
@@ -1040,11 +986,13 @@
       label: "Accept Scholarship Guidelines",
       name: "scholarshipGuidelinesAccepted",
       required: true,
-      descriptionHtml:
-        'I am <strong id="scholarship-acceptance-parent">Parent/Guardian</strong>, the parent or guardian of <strong id="scholarship-acceptance-participants">the listed participant(s)</strong>. I have read, understand, and accept the Paducah GO Soccer Scholarship Guidelines.',
+      descriptionHtml: 'I am <strong id="scholarship-acceptance-parent">Parent/Guardian</strong>, the parent or guardian of <strong id="scholarship-acceptance-participants">the listed participant(s)</strong>. I have read, understand, and accept the Paducah GO Soccer Scholarship Guidelines.',
     });
 
-    section.append(agreementPreview, agreementAcceptance);
+    section.append(
+      agreementPreview,
+      agreementAcceptance,
+    );
     return section;
   }
 
@@ -1065,8 +1013,7 @@
 
     const intro = document.createElement("p");
     intro.className = "scholarship-agreement-doc__intro";
-    intro.textContent =
-      "Your scholarship application is ready below for your review.";
+    intro.textContent = "Your scholarship application is ready below for your review.";
 
     header.append(kicker, title, intro);
 
@@ -1075,26 +1022,26 @@
     body.innerHTML = [
       '<p class="scholarship-agreement-doc__lead">We understand that families may face unexpected challenges, which is why Paducah GO Soccer offers this scholarship to ensure that financial hardship does not prevent a child from participating. To keep the scholarship program fair and available to all children, recipients and their families are expected to follow the participation, school attendance, conduct, and communication guidelines outlined below. These expectations are intended to support each child’s success both on and off the field.</p>',
       '<p class="scholarship-agreement-doc__coverage"><strong>The scholarship covers the full $75 registration fee.</strong> It is intended for children who would otherwise be unable to participate because of the cost.</p>',
-      "<h4>Who can receive a scholarship</h4>",
-      "<ul>",
-      "<li><strong>Grade and school:</strong> The child is enrolled in grade K-12 at a public school in Paducah or the surrounding area.</li>",
-      "<li><strong>Financial need:</strong> A parent or guardian confirms that paying the $75 fee would be a hardship. No detailed financial records are required.</li>",
-      "<li><strong>Registration:</strong> The family completes the scholarship request and all regular player registration forms.</li>",
-      "<li><strong>Availability:</strong> Scholarships are awarded while scholarship funds and team spaces are available. One scholarship may be awarded per child, per season.</li>",
-      "</ul>",
-      "<p>Scholarships are not based on soccer ability, school grades, or prior playing experience.</p>",
-      "<h4>Guidelines for continuing through the season</h4>",
-      "<ul>",
-      "<li><strong>School attendance:</strong> The child should maintain at least 80% attendance in school. Excused absences for illness, disability, family emergencies, or other approved reasons will not count against the child.</li>",
-      "<li><strong>School conduct:</strong> The child should make a reasonable effort to learn without becoming an ongoing disruption to themselves or others. An isolated incident will not automatically affect the scholarship, but a continuing pattern identified by the school may require a family meeting and improvement plan.</li>",
-      "<li><strong>Respect:</strong> The child should behave respectfully toward parents and guardians, teachers, coaches, officials, teammates, and other families.</li>",
-      "<li><strong>Soccer participation:</strong> The player should attend practices and games regularly, with a goal of attending at least 75% of scheduled activities.</li>",
-      "<li><strong>Communication:</strong> A parent or guardian should notify the coach when the player will be absent. If the player has two consecutive unexcused absences, the program will contact the family to see whether help is needed.</li>",
-      "<li><strong>Inactive players:</strong> If the player stops attending and the family does not respond after reasonable contact attempts, the program may release the roster spot to another child.</li>",
-      "</ul>",
-      "<p>A scholarship will not be taken away because of an illness, emergency, transportation problem, disability-related need, or another reasonable hardship when the family communicates with the program.</p>",
-      "<h4>Family acknowledgment</h4>",
-      "<p>By accepting the scholarship, the family agrees to make a good-faith effort to help the player participate for the full season and to stay in contact with the coach.</p>",
+      '<h4>Who can receive a scholarship</h4>',
+      '<ul>',
+      '<li><strong>Grade and school:</strong> The child is enrolled in grade K-12 at a public school in Paducah or the surrounding area.</li>',
+      '<li><strong>Financial need:</strong> A parent or guardian confirms that paying the $75 fee would be a hardship. No detailed financial records are required.</li>',
+      '<li><strong>Registration:</strong> The family completes the scholarship request and all regular player registration forms.</li>',
+      '<li><strong>Availability:</strong> Scholarships are awarded while scholarship funds and team spaces are available. One scholarship may be awarded per child, per season.</li>',
+      '</ul>',
+      '<p>Scholarships are not based on soccer ability, school grades, or prior playing experience.</p>',
+      '<h4>Guidelines for continuing through the season</h4>',
+      '<ul>',
+      '<li><strong>School attendance:</strong> The child should maintain at least 80% attendance in school. Excused absences for illness, disability, family emergencies, or other approved reasons will not count against the child.</li>',
+      '<li><strong>School conduct:</strong> The child should make a reasonable effort to learn without becoming an ongoing disruption to themselves or others. An isolated incident will not automatically affect the scholarship, but a continuing pattern identified by the school may require a family meeting and improvement plan.</li>',
+      '<li><strong>Respect:</strong> The child should behave respectfully toward parents and guardians, teachers, coaches, officials, teammates, and other families.</li>',
+      '<li><strong>Soccer participation:</strong> The player should attend practices and games regularly, with a goal of attending at least 75% of scheduled activities.</li>',
+      '<li><strong>Communication:</strong> A parent or guardian should notify the coach when the player will be absent. If the player has two consecutive unexcused absences, the program will contact the family to see whether help is needed.</li>',
+      '<li><strong>Inactive players:</strong> If the player stops attending and the family does not respond after reasonable contact attempts, the program may release the roster spot to another child.</li>',
+      '</ul>',
+      '<p>A scholarship will not be taken away because of an illness, emergency, transportation problem, disability-related need, or another reasonable hardship when the family communicates with the program.</p>',
+      '<h4>Family acknowledgment</h4>',
+      '<p>By accepting the scholarship, the family agrees to make a good-faith effort to help the player participate for the full season and to stay in contact with the coach.</p>',
     ].join("");
 
     const identity = document.createElement("div");
@@ -1209,70 +1156,16 @@
     );
     section.append(
       createGrid([
-        createTextField({
-          label: "First Name",
-          name: "volFirstName",
-          required: true,
-          autocomplete: "given-name",
-        }),
-        createTextField({
-          label: "Last Name",
-          name: "volLastName",
-          required: true,
-          autocomplete: "family-name",
-        }),
-        createTextField({
-          label: "Email",
-          name: "volEmail",
-          required: true,
-          type: "email",
-          autocomplete: "email",
-        }),
-        createTextField({
-          label: "Phone",
-          name: "volPhone",
-          required: true,
-          type: "tel",
-          inputMode: "tel",
-          autocomplete: "tel",
-        }),
-        createTextField({
-          label: "Date of Birth",
-          name: "volDob",
-          required: true,
-          type: "date",
-        }),
-        createTextField({
-          label: "Street Address",
-          name: "volStreet",
-          required: true,
-          autocomplete: "street-address",
-          addressField: true,
-        }),
-        createTextField({
-          label: "Apartment, Suite, or Unit",
-          name: "volApt",
-          autocomplete: "address-line2",
-        }),
-        createTextField({
-          label: "City",
-          name: "volCity",
-          required: true,
-          autocomplete: "address-level2",
-        }),
-        createSelectField({
-          label: "State",
-          name: "volState",
-          required: true,
-          options: STATE_ABBREVIATIONS,
-        }),
-        createTextField({
-          label: "ZIP Code",
-          name: "volZip",
-          required: true,
-          inputMode: "numeric",
-          autocomplete: "postal-code",
-        }),
+        createTextField({ label: "First Name", name: "volFirstName", required: true, autocomplete: "given-name" }),
+        createTextField({ label: "Last Name", name: "volLastName", required: true, autocomplete: "family-name" }),
+        createTextField({ label: "Email", name: "volEmail", required: true, type: "email", autocomplete: "email" }),
+        createTextField({ label: "Phone", name: "volPhone", required: true, type: "tel", inputMode: "tel", autocomplete: "tel" }),
+        createTextField({ label: "Date of Birth", name: "volDob", required: true, type: "date" }),
+        createTextField({ label: "Street Address", name: "volStreet", required: true, autocomplete: "street-address", addressField: true }),
+        createTextField({ label: "Apartment, Suite, or Unit", name: "volApt", autocomplete: "address-line2" }),
+        createTextField({ label: "City", name: "volCity", required: true, autocomplete: "address-level2" }),
+        createSelectField({ label: "State", name: "volState", required: true, options: STATE_ABBREVIATIONS }),
+        createTextField({ label: "ZIP Code", name: "volZip", required: true, inputMode: "numeric", autocomplete: "postal-code" }),
       ]),
     );
     return section;
@@ -1292,8 +1185,7 @@
         name: "agreeVolunteerAgreement",
         required: true,
         requireLinksViewed: true,
-        description:
-          "I have reviewed the MLS GO Volunteer Agreement and agree to the terms for my application.",
+        description: "I have reviewed the MLS GO Volunteer Agreement and agree to the terms for my application.",
         links: [
           {
             href: VOLUNTEER_AGREEMENT_TEMPLATE_URL,
@@ -1431,29 +1323,10 @@
 
     section.append(
       createGrid([
-        createTextField({
-          label: "Reference 1 Full Name",
-          name: "coachRef1Name",
-          required: true,
-        }),
-        createTextField({
-          label: "Reference 1 Relationship",
-          name: "coachRef1Relationship",
-          required: true,
-        }),
-        createTextField({
-          label: "Reference 1 Phone",
-          name: "coachRef1Phone",
-          required: true,
-          type: "tel",
-          inputMode: "tel",
-        }),
-        createTextField({
-          label: "Reference 1 Email",
-          name: "coachRef1Email",
-          required: true,
-          type: "email",
-        }),
+        createTextField({ label: "Reference 1 Full Name", name: "coachRef1Name", required: true }),
+        createTextField({ label: "Reference 1 Relationship", name: "coachRef1Relationship", required: true }),
+        createTextField({ label: "Reference 1 Phone", name: "coachRef1Phone", required: true, type: "tel", inputMode: "tel" }),
+        createTextField({ label: "Reference 1 Email", name: "coachRef1Email", required: true, type: "email" }),
       ]),
     );
 
@@ -1591,14 +1464,7 @@
   }
 
   function createSelectField(options) {
-    const {
-      label,
-      name,
-      required = false,
-      options: selectOptions,
-      conditionalOn,
-      conditionalValue,
-    } = options;
+    const { label, name, required = false, options: selectOptions, conditionalOn, conditionalValue } = options;
     const wrap = createFieldWrap(label, name, required);
     const select = document.createElement("select");
     select.id = name;
@@ -1724,12 +1590,9 @@
           allLinksViewed = viewedState.every(Boolean);
           if (allLinksViewed) {
             input.disabled = false;
-            status.textContent =
-              "All required documents viewed. You can now check this box.";
+            status.textContent = "All required documents viewed. You can now check this box.";
           } else {
-            const remaining = viewedState.filter(
-              (isViewed) => !isViewed,
-            ).length;
+            const remaining = viewedState.filter((isViewed) => !isViewed).length;
             status.textContent =
               remaining === 1
                 ? "Open the remaining document to enable this checkbox."
@@ -1749,14 +1612,7 @@
   }
 
   function createCheckboxGroupField(options) {
-    const {
-      label,
-      name,
-      required = false,
-      options: values,
-      conditionalOn,
-      conditionalValue,
-    } = options;
+    const { label, name, required = false, options: values, conditionalOn, conditionalValue } = options;
     const wrap = document.createElement("div");
     wrap.className = "field-group";
     if (required) wrap.dataset.requiredGroup = name;
@@ -1820,11 +1676,7 @@
     viewer.src = agreementUrl;
     viewer.title = `${title} Viewer`;
 
-    const printedNameWrap = createFieldWrap(
-      signerNameLabel,
-      printedNameName,
-      true,
-    );
+    const printedNameWrap = createFieldWrap(signerNameLabel, printedNameName, true);
     const printedNameInput = document.createElement("input");
     printedNameInput.type = "text";
     printedNameInput.id = printedNameName;
@@ -1850,7 +1702,13 @@
     consentChoice.append(consentInput, consentText);
     consentWrap.appendChild(consentChoice);
 
-    wrap.append(heading, controls, viewer, printedNameWrap, consentWrap);
+    wrap.append(
+      heading,
+      controls,
+      viewer,
+      printedNameWrap,
+      consentWrap,
+    );
 
     return wrap;
   }
@@ -1884,14 +1742,7 @@
 
     form.addEventListener("input", (event) => {
       const target = event.target;
-      if (
-        !(
-          target instanceof HTMLInputElement ||
-          target instanceof HTMLSelectElement ||
-          target instanceof HTMLTextAreaElement
-        )
-      )
-        return;
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) return;
 
       clearFieldValidationState(target);
 
@@ -1900,19 +1751,11 @@
       if (target.dataset.zipField === "true") formatZipField(target);
 
       if (target.name === "emergencySameAsParent") {
-        const emergencyFields = form.querySelector(
-          '[data-emergency-fields="true"]',
-        );
-        if (emergencyFields)
-          emergencyFields.classList.toggle("hidden", target.checked);
+        const emergencyFields = form.querySelector('[data-emergency-fields="true"]');
+        if (emergencyFields) emergencyFields.classList.toggle("hidden", target.checked);
       }
 
-      if (
-        target.name === "p1Race" ||
-        target.name === "p2Race" ||
-        target.name === "p3Race" ||
-        target.name === "p4Race"
-      ) {
+      if (target.name === "p1Race" || target.name === "p2Race" || target.name === "p3Race" || target.name === "p4Race") {
         syncConditionalFields(target.name, target.value);
       }
 
@@ -1933,12 +1776,7 @@
       }
 
       if (
-        [
-          "parentFirstName",
-          "parentLastName",
-          "volFirstName",
-          "volLastName",
-        ].includes(target.name)
+        ["parentFirstName", "parentLastName", "volFirstName", "volLastName"].includes(target.name)
       ) {
         syncAgreementPrefills();
       }
@@ -1952,18 +1790,8 @@
 
     form.addEventListener("change", (event) => {
       const target = event.target;
-      if (
-        !(
-          target instanceof HTMLInputElement ||
-          target instanceof HTMLSelectElement ||
-          target instanceof HTMLTextAreaElement
-        )
-      )
-        return;
-      if (
-        playerToggleNames.includes(target.name) ||
-        target.name === "emergencySameAsParent"
-      ) {
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) return;
+      if (playerToggleNames.includes(target.name) || target.name === "emergencySameAsParent") {
         applyVisibility();
         renderWizard();
       }
@@ -1973,108 +1801,57 @@
       updateScholarshipAgreementPreview();
     });
 
-    form.addEventListener(
-      "blur",
-      (event) => {
-        const target = event.target;
-        if (
-          !(
-            target instanceof HTMLInputElement ||
-            target instanceof HTMLSelectElement ||
-            target instanceof HTMLTextAreaElement
-          )
-        )
-          return;
-        normalizeFieldValue(target);
-        validateField(target, { showMessage: false });
-      },
-      true,
-    );
+    form.addEventListener("blur", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement)) return;
+      normalizeFieldValue(target);
+      validateField(target, { showMessage: false });
+    }, true);
   }
 
   function updateScholarshipAgreementPreview() {
     const pages = document.getElementById("scholarship-agreement-pages");
-    const participantIdentity = document.getElementById(
-      "scholarship-identity-participants",
-    );
-    const gradeIdentity = document.getElementById(
-      "scholarship-identity-grades",
-    );
-    const parentIdentity = document.getElementById(
-      "scholarship-identity-parent",
-    );
-    const acceptanceParent = document.getElementById(
-      "scholarship-acceptance-parent",
-    );
-    const acceptanceParticipants = document.getElementById(
-      "scholarship-acceptance-participants",
-    );
+    const participantIdentity = document.getElementById("scholarship-identity-participants");
+    const gradeIdentity = document.getElementById("scholarship-identity-grades");
+    const parentIdentity = document.getElementById("scholarship-identity-parent");
+    const acceptanceParent = document.getElementById("scholarship-acceptance-parent");
+    const acceptanceParticipants = document.getElementById("scholarship-acceptance-participants");
     if (!pages) return;
 
-    const parentName =
-      [getTextValue("parentFirstName"), getTextValue("parentLastName")]
-        .filter(Boolean)
-        .join(" ")
-        .trim() || "Parent/Guardian";
+    const parentName = [getTextValue("parentFirstName"), getTextValue("parentLastName")].filter(Boolean).join(" ").trim() || "Parent/Guardian";
     const participantCards = collectRegistrationPlayersPreview();
-    const participantNames = participantCards.map(
-      (participant) => participant.name || "Participant",
-    );
+    const participantNames = participantCards.map((participant) => participant.name || "Participant");
     const participantGrades = participantCards
-      .map((participant) =>
-        formatScholarshipDivisionLabel(participant.grade, participant.gender),
-      )
+      .map((participant) => formatScholarshipDivisionLabel(participant.grade, participant.gender))
       .filter(Boolean);
     const acceptedDate = formatScholarshipAgreementPreviewDate(new Date());
 
-    if (participantIdentity)
-      participantIdentity.textContent =
-        participantNames.join(", ") || "Participant";
-    if (gradeIdentity)
-      gradeIdentity.textContent =
-        participantGrades.join(", ") || "Not provided";
+    if (participantIdentity) participantIdentity.textContent = participantNames.join(", ") || "Participant";
+    if (gradeIdentity) gradeIdentity.textContent = participantGrades.join(", ") || "Not provided";
     if (parentIdentity) parentIdentity.textContent = parentName;
     if (acceptanceParent) acceptanceParent.textContent = parentName;
-    if (acceptanceParticipants)
-      acceptanceParticipants.textContent =
-        participantNames.join(", ") || "the listed participant(s)";
+    if (acceptanceParticipants) acceptanceParticipants.textContent = participantNames.join(", ") || "the listed participant(s)";
 
     if (!participantCards.length) {
-      pages.innerHTML =
-        '<div class="scholarship-agreement-page"><p class="scholarship-agreement-empty">Add at least one participant above to preview the completed scholarship document.</p></div>';
+      pages.innerHTML = '<div class="scholarship-agreement-page"><p class="scholarship-agreement-empty">Add at least one participant above to preview the completed scholarship document.</p></div>';
       return;
     }
 
-    pages.innerHTML = participantCards
-      .map((participant, index) => {
-        const safeName = escapeInlineHtml(participant.name || "Participant");
-        const safeGrade = escapeInlineHtml(
-          formatScholarshipDivisionLabel(
-            participant.grade,
-            participant.gender,
-          ) || "Not provided",
-        );
-        const safeParent = escapeInlineHtml(parentName);
-        const safeDate = escapeInlineHtml(acceptedDate);
-        return [
-          '<article class="scholarship-agreement-page">',
-          `<div class="scholarship-agreement-page__label">Participant Copy ${index + 1}</div>`,
-          '<div class="scholarship-agreement-page__ack">',
-          '<p class="scholarship-agreement-page__line">Player: <span>' +
-            safeName +
-            "</span>     Grade: <span>" +
-            safeGrade +
-            "</span></p>",
-          '<p class="scholarship-agreement-page__line">Parent/Guardian: <span>' +
-            safeParent +
-            "</span>     Date: <span>" +
-            safeDate +
-            "</span></p>",
-          "</div>",
-          "</article>",
-        ].join("");
-      })
-      .join("");
+    pages.innerHTML = participantCards.map((participant, index) => {
+      const safeName = escapeInlineHtml(participant.name || "Participant");
+      const safeGrade = escapeInlineHtml(formatScholarshipDivisionLabel(participant.grade, participant.gender) || "Not provided");
+      const safeParent = escapeInlineHtml(parentName);
+      const safeDate = escapeInlineHtml(acceptedDate);
+      return [
+        '<article class="scholarship-agreement-page">',
+        `<div class="scholarship-agreement-page__label">Participant Copy ${index + 1}</div>`,
+        '<div class="scholarship-agreement-page__ack">',
+        '<p class="scholarship-agreement-page__line">Player: <span>' + safeName + '</span>     Grade: <span>' + safeGrade + '</span></p>',
+        '<p class="scholarship-agreement-page__line">Parent/Guardian: <span>' + safeParent + '</span>     Date: <span>' + safeDate + '</span></p>',
+        '</div>',
+        '</article>',
+      ].join("");
+    }).join("");
   }
 
   function collectRegistrationPlayersPreview() {
@@ -2096,10 +1873,8 @@
     const normalizedGender = String(gender || "").trim();
     if (!normalizedGrade) return normalizedGender;
     if (/\b(Boys|Girls)\b/i.test(normalizedGrade)) return normalizedGrade;
-    if (/^(Male|Boy|Boys)$/i.test(normalizedGender))
-      return `${normalizedGrade} Boys`;
-    if (/^(Female|Girl|Girls)$/i.test(normalizedGender))
-      return `${normalizedGrade} Girls`;
+    if (/^(Male|Boy|Boys)$/i.test(normalizedGender)) return `${normalizedGrade} Boys`;
+    if (/^(Female|Girl|Girls)$/i.test(normalizedGender)) return `${normalizedGrade} Girls`;
     return normalizedGrade;
   }
 
@@ -2128,20 +1903,8 @@
   function setConditionalRequired(controllerName, targetName) {
     const controller = form.elements.namedItem(controllerName);
     const target = form.elements.namedItem(targetName);
-    if (
-      !(
-        controller instanceof HTMLInputElement ||
-        controller instanceof HTMLSelectElement
-      )
-    )
-      return;
-    if (
-      !(
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement
-      )
-    )
-      return;
+    if (!(controller instanceof HTMLInputElement || controller instanceof HTMLSelectElement)) return;
+    if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return;
 
     const requiresSummary = controller.value === "Yes";
     target.required = requiresSummary;
@@ -2163,9 +1926,7 @@
     lockedFlowOptions = {
       standaloneFlow,
       scholarshipRequested: registrationData?.scholarship?.requested || "No",
-      helpChoice: normalizeHelpChoice(
-        registrationData?.helpChoice || HELP_OPTION.NO,
-      ),
+      helpChoice: normalizeHelpChoice(registrationData?.helpChoice || HELP_OPTION.NO),
     };
   }
 
@@ -2183,13 +1944,8 @@
   }
 
   function includePlayerSectionByCondition(sectionId) {
-    if (sectionId === "player-section-2")
-      return getTextValue("addPlayer2") === "Yes";
-    if (sectionId === "player-section-3")
-      return (
-        getTextValue("addPlayer2") === "Yes" &&
-        getTextValue("addPlayer3") === "Yes"
-      );
+    if (sectionId === "player-section-2") return getTextValue("addPlayer2") === "Yes";
+    if (sectionId === "player-section-3") return getTextValue("addPlayer2") === "Yes" && getTextValue("addPlayer3") === "Yes";
     if (sectionId === "player-section-4") {
       return (
         getTextValue("addPlayer2") === "Yes" &&
@@ -2206,10 +1962,7 @@
       .map((sectionId) => document.getElementById(sectionId))
       .filter(Boolean)
       .filter((section) => {
-        if (
-          stage === STAGES.PLAYER_REGISTRATION &&
-          !includePlayerSectionByCondition(section.id)
-        ) {
+        if (stage === STAGES.PLAYER_REGISTRATION && !includePlayerSectionByCondition(section.id)) {
           return false;
         }
         return !section.classList.contains("hidden");
@@ -2242,28 +1995,22 @@
     }
 
     if (previousId) {
-      const sameIndex = visible.findIndex(
-        (section) => section.id === previousId,
-      );
+      const sameIndex = visible.findIndex((section) => section.id === previousId);
       if (sameIndex >= 0) {
         activeSectionIndex = sameIndex;
         return;
       }
     }
 
-    if (activeSectionIndex >= visible.length)
-      activeSectionIndex = visible.length - 1;
+    if (activeSectionIndex >= visible.length) activeSectionIndex = visible.length - 1;
     if (activeSectionIndex < 0) activeSectionIndex = 0;
   }
 
   function applyVisibility() {
     const previousId = getActiveSectionId();
     const emergencySameAsParent = getCheckboxValue("emergencySameAsParent");
-    const emergencyFields = form.querySelector(
-      '[data-emergency-fields="true"]',
-    );
-    if (emergencyFields)
-      emergencyFields.classList.toggle("hidden", emergencySameAsParent);
+    const emergencyFields = form.querySelector('[data-emergency-fields="true"]');
+    if (emergencyFields) emergencyFields.classList.toggle("hidden", emergencySameAsParent);
 
     syncConditionalFields("p1Race", getTextValue("p1Race"));
     syncConditionalFields("p2Race", getTextValue("p2Race"));
@@ -2275,10 +2022,7 @@
 
   function renderWizard() {
     const stage = getCurrentStage();
-    if (
-      stage === STAGES.THANK_YOU ||
-      (stage === STAGES.PAYMENT && !form.hidden)
-    ) {
+    if (stage === STAGES.THANK_YOU || (stage === STAGES.PAYMENT && !form.hidden)) {
       renderSuccessStage();
       return;
     }
@@ -2288,11 +2032,9 @@
 
     const previousId = getActiveSectionId();
     const visible = getVisibleSections();
-    Array.from(sectionsRoot.querySelectorAll(".form-section")).forEach(
-      (section) => {
-        section.classList.remove("is-current");
-      },
-    );
+    Array.from(sectionsRoot.querySelectorAll(".form-section")).forEach((section) => {
+      section.classList.remove("is-current");
+    });
 
     if (!visible.length) return;
     alignActiveSection(previousId);
@@ -2303,10 +2045,7 @@
     const current = activeSectionIndex + 1;
     const total = visible.length;
     const stages = getRequiredStagesForCurrentFlow();
-    const pct = Math.max(
-      1,
-      Math.round(((activeStageIndex + 1) / stages.length) * 100),
-    );
+    const pct = Math.max(1, Math.round(((activeStageIndex + 1) / stages.length) * 100));
     if (progressFill) progressFill.style.width = `${pct}%`;
 
     const meta = getStageMeta(stage);
@@ -2314,8 +2053,7 @@
       progressText.textContent = `${meta.progressLabel} — Step ${activeStageIndex + 1} of ${stages.length} · Section ${current} of ${total}`;
     }
 
-    if (backBtn)
-      backBtn.disabled = isSubmittingStage || activeSectionIndex === 0;
+    if (backBtn) backBtn.disabled = isSubmittingStage || activeSectionIndex === 0;
     if (nextBtn) {
       const isLast = activeSectionIndex === total - 1;
       nextBtn.textContent = isLast ? meta.submitLabel : "Next Section";
@@ -2376,14 +2114,7 @@
   }
 
   function normalizeFieldValue(field) {
-    if (
-      !(
-        field instanceof HTMLInputElement ||
-        field instanceof HTMLTextAreaElement ||
-        field instanceof HTMLSelectElement
-      )
-    )
-      return;
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement)) return;
 
     const name = String(field.name || "");
     if (!name || field.type === "checkbox" || field.type === "radio") return;
@@ -2423,14 +2154,7 @@
   }
 
   function validateField(field, { showMessage = true } = {}) {
-    if (
-      !(
-        field instanceof HTMLInputElement ||
-        field instanceof HTMLTextAreaElement ||
-        field instanceof HTMLSelectElement
-      )
-    )
-      return "";
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement)) return "";
 
     clearFieldValidationState(field);
 
@@ -2440,21 +2164,13 @@
 
     if (field instanceof HTMLInputElement && field.type === "checkbox") {
       if (field.required && !field.checked) {
-        return setFieldValidationError(
-          field,
-          "This acknowledgement is required.",
-          showMessage,
-        );
+        return setFieldValidationError(field, "This acknowledgement is required.", showMessage);
       }
       return "";
     }
 
     if (field.required && !value) {
-      return setFieldValidationError(
-        field,
-        "This field is required.",
-        showMessage,
-      );
+      return setFieldValidationError(field, "This field is required.", showMessage);
     }
 
     if (!value) return "";
@@ -2462,38 +2178,22 @@
     if (field.dataset.dobField === "true") {
       const rawDob = parseUsDateParts(value);
       if (rawDob && rawDob > startOfLocalDay(new Date())) {
-        return setFieldValidationError(
-          field,
-          "Date of birth cannot be in the future.",
-          showMessage,
-        );
+        return setFieldValidationError(field, "Date of birth cannot be in the future.", showMessage);
       }
 
       const parsed = parseUsDate(value);
       if (!parsed) {
-        return setFieldValidationError(
-          field,
-          "Enter a valid date of birth in MM/DD/YYYY format.",
-          showMessage,
-        );
+        return setFieldValidationError(field, "Enter a valid date of birth in MM/DD/YYYY format.", showMessage);
       }
 
       if (field.name === "parentGuardianDob" || field.name === "volDob") {
         if (!isAtLeastAge(parsed, 18)) {
-          return setFieldValidationError(
-            field,
-            "The parent/guardian must be at least 18 years old.",
-            showMessage,
-          );
+          return setFieldValidationError(field, "The parent/guardian must be at least 18 years old.", showMessage);
         }
       }
 
       if (/^p[1-4]Dob$/.test(field.name) && !isUnderAge(parsed, 18)) {
-        return setFieldValidationError(
-          field,
-          "Participants must be under 18 years old. Please verify the date of birth.",
-          showMessage,
-        );
+        return setFieldValidationError(field, "Participants must be under 18 years old. Please verify the date of birth.", showMessage);
       }
     }
 
@@ -2505,26 +2205,12 @@
       );
     }
 
-    if (
-      field.dataset.zipField === "true" &&
-      !/^\d{5}(?:-\d{4})?$/.test(value)
-    ) {
-      return setFieldValidationError(
-        field,
-        "Enter a valid ZIP code (12345 or 12345-6789).",
-        showMessage,
-      );
+    if (field.dataset.zipField === "true" && !/^\d{5}(?:-\d{4})?$/.test(value)) {
+      return setFieldValidationError(field, "Enter a valid ZIP code (12345 or 12345-6789).", showMessage);
     }
 
-    if (
-      (field.type === "email" || EMAIL_FIELD_NAMES.has(field.name)) &&
-      !isValidEmailValue(value)
-    ) {
-      return setFieldValidationError(
-        field,
-        "Enter a valid email address.",
-        showMessage,
-      );
+    if ((field.type === "email" || EMAIL_FIELD_NAMES.has(field.name)) && !isValidEmailValue(value)) {
+      return setFieldValidationError(field, "Enter a valid email address.", showMessage);
     }
 
     if (NAME_FIELD_PATTERN.test(field.name) && !isValidPersonName(value)) {
@@ -2539,11 +2225,7 @@
       ["parentState", "emergencyState", "volState"].includes(field.name) &&
       !STATE_ABBREVIATIONS.includes(value.toUpperCase())
     ) {
-      return setFieldValidationError(
-        field,
-        "Select a valid U.S. state or territory.",
-        showMessage,
-      );
+      return setFieldValidationError(field, "Select a valid U.S. state or territory.", showMessage);
     }
 
     return "";
@@ -2552,9 +2234,7 @@
   function setFieldValidationError(field, message, showMessage) {
     field.setCustomValidity(message);
     markFieldInvalid(field, message);
-    if (showMessage && formMessage)
-      formMessage.textContent =
-        "Please correct the highlighted information below.";
+    if (showMessage && formMessage) formMessage.textContent = "Please correct the highlighted information below.";
     return message;
   }
 
@@ -2576,8 +2256,7 @@
   }
 
   function clearFieldValidationState(field) {
-    if (typeof field.setCustomValidity === "function")
-      field.setCustomValidity("");
+    if (typeof field.setCustomValidity === "function") field.setCustomValidity("");
     field.removeAttribute("aria-invalid");
     field.removeAttribute("aria-describedby");
     const error = field.closest(".field-group")?.querySelector(".field-error");
@@ -2585,65 +2264,30 @@
   }
 
   function parseUsDateParts(value) {
-    const match = String(value || "")
-      .trim()
-      .match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    const match = String(value || "").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (!match) return null;
 
     const month = Number(match[1]);
     const day = Number(match[2]);
     const year = Number(match[3]);
-    if (
-      !Number.isInteger(month) ||
-      !Number.isInteger(day) ||
-      !Number.isInteger(year)
-    )
-      return null;
-    if (
-      month < 1 ||
-      month > 12 ||
-      day < 1 ||
-      day > 31 ||
-      year < 1900 ||
-      year > 2100
-    )
-      return null;
+    if (!Number.isInteger(month) || !Number.isInteger(day) || !Number.isInteger(year)) return null;
+    if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900 || year > 2100) return null;
 
     const date = new Date(year, month - 1, day);
-    if (
-      date.getFullYear() !== year ||
-      date.getMonth() !== month - 1 ||
-      date.getDate() !== day
-    )
-      return null;
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
     return date;
   }
 
   function parseUsDate(value) {
-    const match = String(value || "")
-      .trim()
-      .match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    const match = String(value || "").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (!match) return null;
 
     const month = Number(match[1]);
     const day = Number(match[2]);
     const year = Number(match[3]);
 
-    if (
-      !Number.isInteger(month) ||
-      !Number.isInteger(day) ||
-      !Number.isInteger(year)
-    )
-      return null;
-    if (
-      month < 1 ||
-      month > 12 ||
-      day < 1 ||
-      day > 31 ||
-      year < 1900 ||
-      year > 2100
-    )
-      return null;
+    if (!Number.isInteger(month) || !Number.isInteger(day) || !Number.isInteger(year)) return null;
+    if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900 || year > 2100) return null;
 
     const date = new Date(year, month - 1, day);
     if (
@@ -2679,9 +2323,7 @@
   }
 
   function formatDobText(value) {
-    const digits = String(value || "")
-      .replace(/\D/g, "")
-      .slice(0, 8);
+    const digits = String(value || "").replace(/\D/g, "").slice(0, 8);
     if (digits.length <= 2) return digits;
     if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
     return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
@@ -2689,8 +2331,7 @@
 
   function formatUsPhone(value) {
     let digits = String(value || "").replace(/\D/g, "");
-    if (digits.length === 11 && digits.startsWith("1"))
-      digits = digits.slice(1);
+    if (digits.length === 11 && digits.startsWith("1")) digits = digits.slice(1);
     digits = digits.slice(0, 10);
 
     if (digits.length === 0) return "";
@@ -2701,8 +2342,7 @@
 
   function isValidNanpPhone(value) {
     let digits = String(value || "").replace(/\D/g, "");
-    if (digits.length === 11 && digits.startsWith("1"))
-      digits = digits.slice(1);
+    if (digits.length === 11 && digits.startsWith("1")) digits = digits.slice(1);
     if (!/^\d{10}$/.test(digits)) return false;
 
     const area = digits.slice(0, 3);
@@ -2714,17 +2354,13 @@
   }
 
   function formatUsZip(value) {
-    const digits = String(value || "")
-      .replace(/\D/g, "")
-      .slice(0, 9);
+    const digits = String(value || "").replace(/\D/g, "").slice(0, 9);
     if (digits.length <= 5) return digits;
     return `${digits.slice(0, 5)}-${digits.slice(5)}`;
   }
 
   function normalizeEmailValue(value) {
-    return String(value || "")
-      .trim()
-      .toLowerCase();
+    return String(value || "").trim().toLowerCase();
   }
 
   function isValidEmailValue(value) {
@@ -2745,9 +2381,7 @@
   }
 
   function collapseSpaces(value) {
-    return String(value || "")
-      .replace(/\s+/g, " ")
-      .trim();
+    return String(value || "").replace(/\s+/g, " ").trim();
   }
 
   function splitAddressFieldIfNeeded(streetField) {
@@ -2760,28 +2394,14 @@
     const zipField = form.elements.namedItem(`${prefix}Zip`);
 
     if (
-      !(
-        cityField instanceof HTMLInputElement ||
-        cityField instanceof HTMLSelectElement
-      ) ||
-      !(
-        stateField instanceof HTMLInputElement ||
-        stateField instanceof HTMLSelectElement
-      ) ||
-      !(
-        zipField instanceof HTMLInputElement ||
-        zipField instanceof HTMLSelectElement
-      )
+      !(cityField instanceof HTMLInputElement || cityField instanceof HTMLSelectElement) ||
+      !(stateField instanceof HTMLInputElement || stateField instanceof HTMLSelectElement) ||
+      !(zipField instanceof HTMLInputElement || zipField instanceof HTMLSelectElement)
     ) {
       return;
     }
 
-    if (
-      cityField.value.trim() ||
-      stateField.value.trim() ||
-      zipField.value.trim()
-    )
-      return;
+    if (cityField.value.trim() || stateField.value.trim() || zipField.value.trim()) return;
 
     const match = raw.match(
       /^(.*?),\s*([^,]+?),\s*([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)\s*$/,
@@ -2802,12 +2422,8 @@
     const seen = new Map();
 
     for (let index = 1; index <= playerCount; index += 1) {
-      const first = normalizeNameValue(
-        getTextValue(`p${index}FirstName`),
-      ).toLowerCase();
-      const last = normalizeNameValue(
-        getTextValue(`p${index}LastName`),
-      ).toLowerCase();
+      const first = normalizeNameValue(getTextValue(`p${index}FirstName`)).toLowerCase();
+      const last = normalizeNameValue(getTextValue(`p${index}LastName`)).toLowerCase();
       const dob = formatDobText(getTextValue(`p${index}Dob`));
 
       if (!first || !last || !dob) continue;
@@ -2844,16 +2460,12 @@
       if (error) return field;
     }
 
-    const groups = Array.from(
-      section.querySelectorAll("[data-required-group]"),
-    );
+    const groups = Array.from(section.querySelectorAll("[data-required-group]"));
     for (const group of groups) {
       if (group.closest(".hidden")) continue;
       const key = group.dataset.requiredGroup;
       if (!key) continue;
-      const checked = group.querySelectorAll(
-        `input[name="${key}[]"]:checked`,
-      ).length;
+      const checked = group.querySelectorAll(`input[name="${key}[]"]:checked`).length;
       if (!checked) {
         const first = group.querySelector(`input[name="${key}[]"]`);
         if (first instanceof HTMLInputElement) {
@@ -2892,8 +2504,7 @@
             typeof invalid.validationMessage === "string"
               ? invalid.validationMessage.trim()
               : "";
-          formMessage.textContent =
-            "Please correct the highlighted information below.";
+          formMessage.textContent = "Please correct the highlighted information below.";
           invalid.focus?.();
           return;
         }
@@ -2919,11 +2530,7 @@
       }
     } catch (error) {
       const message = String(error?.message || "").trim();
-      setSubmissionStatus(
-        getCurrentStage(),
-        "error",
-        message || "Submission failed. Please retry in a moment.",
-      );
+      setSubmissionStatus(getCurrentStage(), "error", message || "Submission failed. Please retry in a moment.");
     } finally {
       isSubmittingStage = false;
       renderWizard();
@@ -2943,9 +2550,7 @@
     } else if (stage === STAGES.PLAYER_AGREEMENT) {
       playerAgreementSigned = true;
     } else if (stage === STAGES.SCHOLARSHIP_APPLICATION) {
-      if (completedRegistrationData)
-        completedRegistrationData.scholarship =
-          collectScholarshipApplicationData();
+      if (completedRegistrationData) completedRegistrationData.scholarship = collectScholarshipApplicationData();
       scholarshipSubmitted = true;
     } else if (stage === STAGES.VOLUNTEER_APPLICATION) {
       completedVolunteerData = collectVolunteerData();
@@ -2976,31 +2581,21 @@
       return;
     }
 
-    const playerNames = Array.isArray(details?.playerNames)
-      ? details.playerNames
-      : [];
+    const playerNames = Array.isArray(details?.playerNames) ? details.playerNames : [];
     const currentIndex = Number(details?.currentIndex || 0);
     const totalCount = Number(details?.totalCount || 0);
 
     const runningMessages = {
-      [STAGES.PLAYER_REGISTRATION]:
-        "Submitting your player registration. Please don’t close this window.",
-      [STAGES.PLAYER_AGREEMENT]:
-        "Generating and recording your Player Agreement. Please don’t close this window.",
-      [STAGES.SCHOLARSHIP_APPLICATION]:
-        playerNames.length && currentIndex > 0 && totalCount > 0
-          ? `Recording the scholarship application for ${playerNames[currentIndex - 1]} (${currentIndex} of ${totalCount}). Please don’t close this window.`
-          : "Submitting your scholarship application. Please don’t close this window.",
-      [STAGES.VOLUNTEER_APPLICATION]:
-        "Submitting your volunteer application. Please don’t close this window.",
-      [STAGES.COACHING_APPLICATION]:
-        "Submitting your coaching application. Please don’t close this window.",
-      [STAGES.VOLUNTEER_AGREEMENT]:
-        "Generating and recording your Volunteer Agreement. Please don’t close this window.",
-      [STAGES.FINAL_CONFIRMATION_EMAIL]:
-        "Finalizing your submission and preparing your confirmation email. Please don’t close this window.",
-      [STAGES.PAYMENT]:
-        "Your forms have been submitted successfully. Continue to secure payment to finish the player registration.",
+      [STAGES.PLAYER_REGISTRATION]: "Submitting your player registration. Please don’t close this window.",
+      [STAGES.PLAYER_AGREEMENT]: "Generating and recording your Player Agreement. Please don’t close this window.",
+      [STAGES.SCHOLARSHIP_APPLICATION]: playerNames.length && currentIndex > 0 && totalCount > 0
+        ? `Recording the scholarship application for ${playerNames[currentIndex - 1]} (${currentIndex} of ${totalCount}). Please don’t close this window.`
+        : "Submitting your scholarship application. Please don’t close this window.",
+      [STAGES.VOLUNTEER_APPLICATION]: "Submitting your volunteer application. Please don’t close this window.",
+      [STAGES.COACHING_APPLICATION]: "Submitting your coaching application. Please don’t close this window.",
+      [STAGES.VOLUNTEER_AGREEMENT]: "Generating and recording your Volunteer Agreement. Please don’t close this window.",
+      [STAGES.FINAL_CONFIRMATION_EMAIL]: "Finalizing your submission and preparing your confirmation email. Please don’t close this window.",
+      [STAGES.PAYMENT]: "Your forms have been submitted successfully. Continue to secure payment to finish the player registration.",
     };
 
     const stageLabels = {
@@ -3015,17 +2610,13 @@
 
     flowStatus.hidden = false;
     if (state === "submitting") {
-      flowStatus.textContent =
-        runningMessages[stage] ||
-        "Submitting your form. Please don’t close this window.";
+      flowStatus.textContent = runningMessages[stage] || "Submitting your form. Please don’t close this window.";
       formMessage.textContent = "";
       return;
     }
 
     const stageLabel = stageLabels[stage] || "submission";
-    const friendlyError =
-      optionalError ||
-      `We couldn’t record your ${stageLabel}. Your previous information is saved. Please select Retry to continue.`;
+    const friendlyError = optionalError || `We couldn’t record your ${stageLabel}. Your previous information is saved. Please select Retry to continue.`;
     flowStatus.textContent = friendlyError;
     formMessage.textContent = friendlyError;
   }
@@ -3070,47 +2661,18 @@
     registrationSyncWarning = "";
 
     const registrationData = collectRegistrationData();
-    registrationSubmissionId =
-      registrationSubmissionId || generateSubmissionId("reg");
+    registrationSubmissionId = registrationSubmissionId || generateSubmissionId("reg");
     registrationData.registrationSubmissionId = registrationSubmissionId;
     const params = new URLSearchParams();
 
-    appendIfPresent(
-      params,
-      PARENT_ENTRY_MAP.firstName,
-      registrationData.parent.firstName,
-    );
-    appendIfPresent(
-      params,
-      PARENT_ENTRY_MAP.lastName,
-      registrationData.parent.lastName,
-    );
-    appendIfPresent(
-      params,
-      PARENT_ENTRY_MAP.email,
-      registrationData.parent.email,
-    );
-    appendIfPresent(
-      params,
-      PARENT_ENTRY_MAP.phone,
-      registrationData.parent.phone,
-    );
-    appendIfPresent(
-      params,
-      PARENT_ENTRY_MAP.street,
-      registrationData.parent.street,
-    );
+    appendIfPresent(params, PARENT_ENTRY_MAP.firstName, registrationData.parent.firstName);
+    appendIfPresent(params, PARENT_ENTRY_MAP.lastName, registrationData.parent.lastName);
+    appendIfPresent(params, PARENT_ENTRY_MAP.email, registrationData.parent.email);
+    appendIfPresent(params, PARENT_ENTRY_MAP.phone, registrationData.parent.phone);
+    appendIfPresent(params, PARENT_ENTRY_MAP.street, registrationData.parent.street);
     appendIfPresent(params, PARENT_ENTRY_MAP.apt, registrationData.parent.apt);
-    appendIfPresent(
-      params,
-      PARENT_ENTRY_MAP.city,
-      registrationData.parent.city,
-    );
-    appendIfPresent(
-      params,
-      PARENT_ENTRY_MAP.state,
-      registrationData.parent.state,
-    );
+    appendIfPresent(params, PARENT_ENTRY_MAP.city, registrationData.parent.city);
+    appendIfPresent(params, PARENT_ENTRY_MAP.state, registrationData.parent.state);
     appendIfPresent(params, PARENT_ENTRY_MAP.zip, registrationData.parent.zip);
 
     registrationData.players.forEach((player, idx) => {
@@ -3129,8 +2691,7 @@
       appendIfPresent(params, entryMap.raceOther, player.raceOther);
       appendIfPresent(params, entryMap.favoriteClub, player.favoriteClub);
       appendIfPresent(params, entryMap.hearAbout, player.hearAbout);
-      if (entryMap.addAnother)
-        appendIfPresent(params, entryMap.addAnother, player.addAnother || "No");
+      if (entryMap.addAnother) appendIfPresent(params, entryMap.addAnother, player.addAnother || "No");
     });
 
     appendIfPresent(
@@ -3213,8 +2774,7 @@
 
     setSubmissionStatus(STAGES.VOLUNTEER_APPLICATION, "submitting");
     const data = collectVolunteerData();
-    volunteerSubmissionId =
-      volunteerSubmissionId || generateSubmissionId("vol");
+    volunteerSubmissionId = volunteerSubmissionId || generateSubmissionId("vol");
     data.submission_id = volunteerSubmissionId;
     await postAuxFlow("volunteer_application", data);
     completedVolunteerData = data;
@@ -3231,8 +2791,7 @@
 
     setSubmissionStatus(STAGES.COACHING_APPLICATION, "submitting");
     const data = collectCoachingData();
-    coachingSubmissionId =
-      coachingSubmissionId || generateSubmissionId("coach");
+    coachingSubmissionId = coachingSubmissionId || generateSubmissionId("coach");
     data.submission_id = coachingSubmissionId;
     await postAuxFlow("coaching_application", data);
     completedCoachingData = data;
@@ -3242,12 +2801,8 @@
   }
 
   async function submitVolunteerAgreementStage() {
-    const needsVolunteerAgreement = Boolean(
-      completedVolunteerData && volunteerSubmissionId,
-    );
-    const needsCoachingAgreement = Boolean(
-      completedCoachingData && coachingSubmissionId,
-    );
+    const needsVolunteerAgreement = Boolean(completedVolunteerData && volunteerSubmissionId);
+    const needsCoachingAgreement = Boolean(completedCoachingData && coachingSubmissionId);
 
     const volunteerDone = !needsVolunteerAgreement || volunteerAgreementSigned;
     const coachingDone = !needsCoachingAgreement || coachingAgreementSigned;
@@ -3262,7 +2817,7 @@
       await generateVolunteerAgreement(
         completedVolunteerData,
         "volunteer_application",
-        volunteerSubmissionId,
+        volunteerSubmissionId
       );
     }
 
@@ -3270,7 +2825,7 @@
       await generateVolunteerAgreement(
         completedCoachingData,
         "coaching_application",
-        coachingSubmissionId,
+        coachingSubmissionId
       );
     }
 
@@ -3290,12 +2845,8 @@
 
     try {
       const emailResult = await sendFinalConfirmationEmail();
-      scholarshipDocumentUrl = String(
-        emailResult?.scholarshipDocumentUrl || scholarshipDocumentUrl || "",
-      ).trim();
-      finalConfirmationEmailFailed = !Boolean(
-        emailResult?.sent || emailResult?.duplicate,
-      );
+      scholarshipDocumentUrl = String(emailResult?.scholarshipDocumentUrl || scholarshipDocumentUrl || "").trim();
+      finalConfirmationEmailFailed = !Boolean(emailResult?.sent || emailResult?.duplicate);
     } catch (error) {
       finalConfirmationEmailFailed = true;
       console.warn("final-confirmation-email-failed", error);
@@ -3306,8 +2857,7 @@
         await finalizeRegistrationContinuation();
       } catch (error) {
         console.warn("registration-resume-reconciliation-failed", error);
-        registrationSyncWarning =
-          "Your registration was saved, but we could not automatically reconcile the earlier attempts. Our team will review them; you do not need to register again.";
+        registrationSyncWarning = "Your registration was saved, but we could not automatically reconcile the earlier attempts. Our team will review them; you do not need to register again.";
       }
     }
 
@@ -3316,43 +2866,27 @@
   }
 
   async function finalizeRegistrationContinuation() {
-    if (!registrationResumeState?.token || registrationResumeState.testMode)
-      return { ok: true, skipped: true };
-    const response = await fetchWithTimeout(
-      RESUME_COMPLETE_ENDPOINT,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          resumeToken: registrationResumeState.token,
-          registrationSubmissionId,
-          playerCount:
-            completedRegistrationData?.players?.length || selectedPlayerCount(),
-        }),
-      },
-      FORM_UPSERT_TIMEOUT_MS,
-    );
+    if (!registrationResumeState?.token || registrationResumeState.testMode) return { ok: true, skipped: true };
+    const response = await fetchWithTimeout(RESUME_COMPLETE_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        resumeToken: registrationResumeState.token,
+        registrationSubmissionId,
+        playerCount: completedRegistrationData?.players?.length || selectedPlayerCount(),
+      }),
+    }, FORM_UPSERT_TIMEOUT_MS);
     const payload = await response.json().catch(() => null);
     if (!response.ok || !payload?.ok) {
-      throw new Error(
-        String(
-          payload?.error ||
-            `Continuation reconciliation failed (${response.status}).`,
-        ),
-      );
+      throw new Error(String(payload?.error || `Continuation reconciliation failed (${response.status}).`));
     }
     return payload;
   }
 
   function renderSuccessStage() {
-    Array.from(sectionsRoot.querySelectorAll(".form-section")).forEach(
-      (section) => {
-        section.classList.remove("is-current");
-      },
-    );
+    Array.from(sectionsRoot.querySelectorAll(".form-section")).forEach((section) => {
+      section.classList.remove("is-current");
+    });
 
     if (progressFill) progressFill.style.width = "100%";
     if (progressText) progressText.textContent = "Complete";
@@ -3372,9 +2906,7 @@
     if (heading) heading.textContent = thankYouContent.heading;
     if (copy) copy.textContent = thankYouContent.message;
 
-    Array.from(
-      successPanel.querySelectorAll("[data-dynamic-success='true']"),
-    ).forEach((node) => node.remove());
+    Array.from(successPanel.querySelectorAll("[data-dynamic-success='true']")).forEach((node) => node.remove());
 
     if (registrationSyncWarning) {
       const syncWarning = document.createElement("p");
@@ -3396,11 +2928,7 @@
     }
 
     const descriptor = getFlowDescriptor(getFlowOptions());
-    const resumePaymentStatus = String(
-      registrationResumeState?.context?.payment?.status || "",
-    )
-      .trim()
-      .toLowerCase();
+    const resumePaymentStatus = String(registrationResumeState?.context?.payment?.status || "").trim().toLowerCase();
     const resumePaymentAlreadyPaid = resumePaymentStatus === "paid";
     const paymentAllowed =
       descriptor.paymentRequired &&
@@ -3411,8 +2939,7 @@
     if (registrationResumeState?.testMode) {
       const testMessage = document.createElement("p");
       testMessage.dataset.dynamicSuccess = "true";
-      testMessage.textContent =
-        "TEST MODE complete. No registration, agreement, scholarship, volunteer, coaching, payment, or duplicate-reconciliation records were changed.";
+      testMessage.textContent = "TEST MODE complete. No registration, agreement, scholarship, volunteer, coaching, payment, or duplicate-reconciliation records were changed.";
       successPanel.appendChild(testMessage);
     }
 
@@ -3425,25 +2952,18 @@
 
     const playerCount = selectedPlayerCount();
     const paymentAmount = calculateRegistrationFeeAmount();
-    const registrationTotalMessage = formatRegistrationTotalMessage(
-      playerCount,
-      paymentAmount,
-    );
+    const registrationTotalMessage = formatRegistrationTotalMessage(playerCount, paymentAmount);
     const paymentMessage = document.createElement("p");
     paymentMessage.dataset.dynamicSuccess = "true";
-    paymentMessage.textContent =
-      PAYMENT_MODE === "redirect"
-        ? `Your forms have been submitted successfully. Redirecting you to secure payment in a moment. Registration total: ${registrationTotalMessage}.`
-        : `Your forms have been submitted successfully. Registration total: ${registrationTotalMessage}.`;
+    paymentMessage.textContent = PAYMENT_MODE === "redirect"
+      ? `Your forms have been submitted successfully. Redirecting you to secure payment in a moment. Registration total: ${registrationTotalMessage}.`
+      : `Your forms have been submitted successfully. Registration total: ${registrationTotalMessage}.`;
     successPanel.appendChild(paymentMessage);
 
-    const paymentRedirectUrl = buildPaymentRedirectUrl(
-      completedRegistrationData,
-    );
-    const paymentButton =
-      PAYMENT_MODE === "redirect"
-        ? document.createElement("a")
-        : document.createElement("p");
+    const paymentRedirectUrl = buildPaymentRedirectUrl(completedRegistrationData);
+    const paymentButton = PAYMENT_MODE === "redirect"
+      ? document.createElement("a")
+      : document.createElement("p");
     paymentButton.dataset.dynamicSuccess = "true";
     paymentButton.className = "btn btn-primary";
 
@@ -3464,10 +2984,9 @@
 
     const paymentHint = document.createElement("p");
     paymentHint.dataset.dynamicSuccess = "true";
-    paymentHint.textContent =
-      PAYMENT_MODE === "redirect"
-        ? `If the payment page does not prefill the registration fee, select Other and enter ${registrationTotalMessage}. If you are not redirected automatically, use the button above.`
-        : `${PAYMENT_PAUSED_MESSAGE} Your registration fee amount is ${registrationTotalMessage}.`;
+    paymentHint.textContent = PAYMENT_MODE === "redirect"
+      ? `If the payment page does not prefill the registration fee, select Other and enter ${registrationTotalMessage}. If you are not redirected automatically, use the button above.`
+      : `${PAYMENT_PAUSED_MESSAGE} Your registration fee amount is ${registrationTotalMessage}.`;
     successPanel.appendChild(paymentHint);
 
     if (PAYMENT_MODE === "redirect" && paymentRedirectUrl) {
@@ -3506,14 +3025,7 @@
 
   function setIfEmpty(name, value) {
     const field = form.elements.namedItem(name);
-    if (
-      !(
-        field instanceof HTMLInputElement ||
-        field instanceof HTMLSelectElement ||
-        field instanceof HTMLTextAreaElement
-      )
-    )
-      return;
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement)) return;
     if (field.value && field.value.trim()) return;
     field.value = value || "";
   }
@@ -3528,8 +3040,7 @@
   }
 
   function formatRegistrationTotalMessage(playerCount, paymentAmount) {
-    const playerLabel =
-      playerCount === 1 ? "1 player" : `${playerCount} players`;
+    const playerLabel = playerCount === 1 ? "1 player" : `${playerCount} players`;
     return `$${REGISTRATION_FEE_AMOUNT_PER_PLAYER} x ${playerLabel} = $${paymentAmount}`;
   }
 
@@ -3560,59 +3071,16 @@
       const lastName = sanitizePaymentParam(parent.lastName);
       const email = sanitizePaymentParam(parent.email);
       const zip = sanitizePaymentParam(parent.zip);
-      const submissionId = sanitizePaymentParam(
-        registrationData?.registrationSubmissionId,
-      );
+      const submissionId = sanitizePaymentParam(registrationData?.registrationSubmissionId);
       const paymentAmount = String(calculateRegistrationFeeAmount());
 
-      appendPaymentParamVariants(
-        url,
-        ["firstName", "firstname", "first_name", "givenName", "given_name"],
-        firstName,
-      );
-      appendPaymentParamVariants(
-        url,
-        ["lastName", "lastname", "last_name", "familyName", "family_name"],
-        lastName,
-      );
-      appendPaymentParamVariants(
-        url,
-        ["fullName", "full_name", "name"],
-        [firstName, lastName].filter(Boolean).join(" "),
-      );
-      appendPaymentParamVariants(
-        url,
-        [
-          "email",
-          "emailAddress",
-          "email_address",
-          "customerEmail",
-          "customer_email",
-        ],
-        email,
-      );
-      appendPaymentParamVariants(
-        url,
-        ["zip", "zipCode", "zipcode", "postalCode", "postal_code", "postal"],
-        zip,
-      );
-      appendPaymentParamVariants(
-        url,
-        [
-          "registration_submission_id",
-          "submission_id",
-          "submissionId",
-          "registrationId",
-          "reference",
-          "external_reference",
-        ],
-        submissionId,
-      );
-      appendPaymentParamVariants(
-        url,
-        ["payment_amount", "amount", "total"],
-        paymentAmount,
-      );
+      appendPaymentParamVariants(url, ["firstName", "firstname", "first_name", "givenName", "given_name"], firstName);
+      appendPaymentParamVariants(url, ["lastName", "lastname", "last_name", "familyName", "family_name"], lastName);
+      appendPaymentParamVariants(url, ["fullName", "full_name", "name"], [firstName, lastName].filter(Boolean).join(" "));
+      appendPaymentParamVariants(url, ["email", "emailAddress", "email_address", "customerEmail", "customer_email"], email);
+      appendPaymentParamVariants(url, ["zip", "zipCode", "zipcode", "postalCode", "postal_code", "postal"], zip);
+      appendPaymentParamVariants(url, ["registration_submission_id", "submission_id", "submissionId", "registrationId", "reference", "external_reference"], submissionId);
+      appendPaymentParamVariants(url, ["payment_amount", "amount", "total"], paymentAmount);
       appendPaymentParamVariants(url, ["payment_currency", "currency"], "USD");
 
       return url.toString();
@@ -3695,12 +3163,8 @@
         eligibility: getCheckedValues("scholarshipEligibility"),
         circumstances: getTextValue("scholarshipCircumstances"),
         contributionAmount: getTextValue("scholarshipContributionAmount"),
-        participationCommitment: getCheckboxValue(
-          "scholarshipParticipationCommitment",
-        ),
-        parentAcknowledgement: getCheckboxValue(
-          "scholarshipParentAcknowledgement",
-        ),
+        participationCommitment: getCheckboxValue("scholarshipParticipationCommitment"),
+        parentAcknowledgement: getCheckboxValue("scholarshipParentAcknowledgement"),
         guidelinesAccepted: getCheckboxValue("scholarshipGuidelinesAccepted"),
       },
       helpChoice: getTextValue("helpChoice"),
@@ -3736,124 +3200,34 @@
     const rows = [];
     if (!registrationData) return rows;
 
-    pushEmailResponseRow(
-      rows,
-      "Registration ID",
-      registrationData.registrationSubmissionId || "",
-    );
+    pushEmailResponseRow(rows, "Registration ID", registrationData.registrationSubmissionId || "");
     pushEmailResponseRow(rows, "Submitted At", registrationData.submittedAt);
-    pushEmailResponseRow(
-      rows,
-      "Parent/Guardian First Name",
-      registrationData.parent?.firstName,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Parent/Guardian Last Name",
-      registrationData.parent?.lastName,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Parent/Guardian Email",
-      registrationData.parent?.email,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Parent/Guardian Phone",
-      registrationData.parent?.phone,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Parent/Guardian Date of Birth",
-      registrationData.parent?.dob,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Parent/Guardian Street",
-      registrationData.parent?.street,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Parent/Guardian Apt",
-      registrationData.parent?.apt,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Parent/Guardian City",
-      registrationData.parent?.city,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Parent/Guardian State",
-      registrationData.parent?.state,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Parent/Guardian Zip",
-      registrationData.parent?.zip,
-    );
+    pushEmailResponseRow(rows, "Parent/Guardian First Name", registrationData.parent?.firstName);
+    pushEmailResponseRow(rows, "Parent/Guardian Last Name", registrationData.parent?.lastName);
+    pushEmailResponseRow(rows, "Parent/Guardian Email", registrationData.parent?.email);
+    pushEmailResponseRow(rows, "Parent/Guardian Phone", registrationData.parent?.phone);
+    pushEmailResponseRow(rows, "Parent/Guardian Date of Birth", registrationData.parent?.dob);
+    pushEmailResponseRow(rows, "Parent/Guardian Street", registrationData.parent?.street);
+    pushEmailResponseRow(rows, "Parent/Guardian Apt", registrationData.parent?.apt);
+    pushEmailResponseRow(rows, "Parent/Guardian City", registrationData.parent?.city);
+    pushEmailResponseRow(rows, "Parent/Guardian State", registrationData.parent?.state);
+    pushEmailResponseRow(rows, "Parent/Guardian Zip", registrationData.parent?.zip);
 
-    pushEmailResponseRow(
-      rows,
-      "Emergency Contact Same As Parent",
-      registrationData.emergency?.sameAsParent,
-    );
+    pushEmailResponseRow(rows, "Emergency Contact Same As Parent", registrationData.emergency?.sameAsParent);
     if (!registrationData.emergency?.sameAsParent) {
-      pushEmailResponseRow(
-        rows,
-        "Emergency Contact First Name",
-        registrationData.emergency?.firstName,
-      );
-      pushEmailResponseRow(
-        rows,
-        "Emergency Contact Last Name",
-        registrationData.emergency?.lastName,
-      );
-      pushEmailResponseRow(
-        rows,
-        "Emergency Contact Relationship",
-        registrationData.emergency?.relationship,
-      );
-      pushEmailResponseRow(
-        rows,
-        "Emergency Contact Email",
-        registrationData.emergency?.email,
-      );
-      pushEmailResponseRow(
-        rows,
-        "Emergency Contact Phone",
-        registrationData.emergency?.phone,
-      );
-      pushEmailResponseRow(
-        rows,
-        "Emergency Contact Street",
-        registrationData.emergency?.street,
-      );
-      pushEmailResponseRow(
-        rows,
-        "Emergency Contact Apt",
-        registrationData.emergency?.apt,
-      );
-      pushEmailResponseRow(
-        rows,
-        "Emergency Contact City",
-        registrationData.emergency?.city,
-      );
-      pushEmailResponseRow(
-        rows,
-        "Emergency Contact State",
-        registrationData.emergency?.state,
-      );
-      pushEmailResponseRow(
-        rows,
-        "Emergency Contact Zip",
-        registrationData.emergency?.zip,
-      );
+      pushEmailResponseRow(rows, "Emergency Contact First Name", registrationData.emergency?.firstName);
+      pushEmailResponseRow(rows, "Emergency Contact Last Name", registrationData.emergency?.lastName);
+      pushEmailResponseRow(rows, "Emergency Contact Relationship", registrationData.emergency?.relationship);
+      pushEmailResponseRow(rows, "Emergency Contact Email", registrationData.emergency?.email);
+      pushEmailResponseRow(rows, "Emergency Contact Phone", registrationData.emergency?.phone);
+      pushEmailResponseRow(rows, "Emergency Contact Street", registrationData.emergency?.street);
+      pushEmailResponseRow(rows, "Emergency Contact Apt", registrationData.emergency?.apt);
+      pushEmailResponseRow(rows, "Emergency Contact City", registrationData.emergency?.city);
+      pushEmailResponseRow(rows, "Emergency Contact State", registrationData.emergency?.state);
+      pushEmailResponseRow(rows, "Emergency Contact Zip", registrationData.emergency?.zip);
     }
 
-    const players = Array.isArray(registrationData.players)
-      ? registrationData.players
-      : [];
+    const players = Array.isArray(registrationData.players) ? registrationData.players : [];
     pushEmailResponseRow(rows, "Player Count", players.length);
     players.forEach((player, index) => {
       const n = index + 1;
@@ -3867,85 +3241,25 @@
       pushEmailResponseRow(rows, `Player ${n} Socks Size`, player?.socks);
       pushEmailResponseRow(rows, `Player ${n} Race`, player?.race);
       pushEmailResponseRow(rows, `Player ${n} Race Other`, player?.raceOther);
-      pushEmailResponseRow(
-        rows,
-        `Player ${n} Favorite Club`,
-        player?.favoriteClub,
-      );
-      pushEmailResponseRow(
-        rows,
-        `Player ${n} Heard About Program`,
-        player?.hearAbout,
-      );
+      pushEmailResponseRow(rows, `Player ${n} Favorite Club`, player?.favoriteClub);
+      pushEmailResponseRow(rows, `Player ${n} Heard About Program`, player?.hearAbout);
       pushEmailResponseRow(rows, `Player ${n} Add Another`, player?.addAnother);
     });
 
     pushEmailResponseRow(rows, "Help Choice", registrationData.helpChoice);
-    pushEmailResponseRow(
-      rows,
-      "Scholarship Requested",
-      registrationData.scholarship?.requested,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Scholarship Level",
-      registrationData.scholarship?.level,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Scholarship Household Size",
-      registrationData.scholarship?.householdSize,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Scholarship Household Income",
-      registrationData.scholarship?.householdIncome,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Scholarship Eligibility",
-      registrationData.scholarship?.eligibility,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Scholarship Circumstances",
-      registrationData.scholarship?.circumstances,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Scholarship Contribution Amount",
-      registrationData.scholarship?.contributionAmount,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Scholarship Participation Commitment",
-      registrationData.scholarship?.participationCommitment,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Scholarship Parent Acknowledgement",
-      registrationData.scholarship?.parentAcknowledgement,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Agree Waiver",
-      registrationData.agreements?.waiver,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Agree PPF Liability",
-      registrationData.agreements?.liability,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Agree Privacy",
-      registrationData.agreements?.privacy,
-    );
-    pushEmailResponseRow(
-      rows,
-      "Agree Marketing",
-      registrationData.agreements?.marketing,
-    );
+    pushEmailResponseRow(rows, "Scholarship Requested", registrationData.scholarship?.requested);
+    pushEmailResponseRow(rows, "Scholarship Level", registrationData.scholarship?.level);
+    pushEmailResponseRow(rows, "Scholarship Household Size", registrationData.scholarship?.householdSize);
+    pushEmailResponseRow(rows, "Scholarship Household Income", registrationData.scholarship?.householdIncome);
+    pushEmailResponseRow(rows, "Scholarship Eligibility", registrationData.scholarship?.eligibility);
+    pushEmailResponseRow(rows, "Scholarship Circumstances", registrationData.scholarship?.circumstances);
+    pushEmailResponseRow(rows, "Scholarship Contribution Amount", registrationData.scholarship?.contributionAmount);
+    pushEmailResponseRow(rows, "Scholarship Participation Commitment", registrationData.scholarship?.participationCommitment);
+    pushEmailResponseRow(rows, "Scholarship Parent Acknowledgement", registrationData.scholarship?.parentAcknowledgement);
+    pushEmailResponseRow(rows, "Agree Waiver", registrationData.agreements?.waiver);
+    pushEmailResponseRow(rows, "Agree PPF Liability", registrationData.agreements?.liability);
+    pushEmailResponseRow(rows, "Agree Privacy", registrationData.agreements?.privacy);
+    pushEmailResponseRow(rows, "Agree Marketing", registrationData.agreements?.marketing);
 
     return rows;
   }
@@ -3977,22 +3291,15 @@
 
   function collectScholarshipApplicationData() {
     return {
-      requested:
-        completedRegistrationData?.scholarship?.requested ||
-        getTextValue("scholarshipRequested") ||
-        "Yes",
+      requested: completedRegistrationData?.scholarship?.requested || getTextValue("scholarshipRequested") || "Yes",
       level: getTextValue("scholarshipLevel"),
       householdSize: getTextValue("scholarshipHouseholdSize"),
       householdIncome: getTextValue("scholarshipHouseholdIncome"),
       eligibility: getCheckedValues("scholarshipEligibility"),
       circumstances: getTextValue("scholarshipCircumstances"),
       contributionAmount: getTextValue("scholarshipContributionAmount"),
-      participationCommitment: getCheckboxValue(
-        "scholarshipParticipationCommitment",
-      ),
-      parentAcknowledgement: getCheckboxValue(
-        "scholarshipParentAcknowledgement",
-      ),
+      participationCommitment: getCheckboxValue("scholarshipParticipationCommitment"),
+      parentAcknowledgement: getCheckboxValue("scholarshipParentAcknowledgement"),
       guidelinesAccepted: getCheckboxValue("scholarshipGuidelinesAccepted"),
     };
   }
@@ -4000,10 +3307,8 @@
   function getParticipantNames(registrationData) {
     return Array.isArray(registrationData?.players)
       ? registrationData.players
-          .map((player) =>
-            `${player?.firstName || ""} ${player?.lastName || ""}`.trim(),
-          )
-          .filter(Boolean)
+        .map((player) => `${player?.firstName || ""} ${player?.lastName || ""}`.trim())
+        .filter(Boolean)
       : [];
   }
 
@@ -4027,8 +3332,7 @@
     if (playerAgreementSigned) return;
 
     const viewedAtUtc = new Date().toISOString();
-    const printedName =
-      `${registrationData.parent.firstName} ${registrationData.parent.lastName}`.trim();
+    const printedName = `${registrationData.parent.firstName} ${registrationData.parent.lastName}`.trim();
 
     const payload = {
       agreementType: "player",
@@ -4057,17 +3361,14 @@
           .filter(Boolean)
           .join(", "),
         primaryPhone: registrationData.parent.phone,
-        alternatePhone: registrationData.emergency?.sameAsParent
-          ? ""
-          : registrationData.emergency?.phone || "",
+        alternatePhone: registrationData.emergency?.sameAsParent ? "" : registrationData.emergency?.phone || "",
         parentStreet: registrationData.parent.street,
         parentCity: registrationData.parent.city,
         parentState: registrationData.parent.state,
         parentZip: registrationData.parent.zip,
         parentEmail: registrationData.parent.email,
         parentPhone: registrationData.parent.phone,
-        guardianName:
-          `${registrationData.parent.firstName} ${registrationData.parent.lastName}`.trim(),
+        guardianName: `${registrationData.parent.firstName} ${registrationData.parent.lastName}`.trim(),
         guardianDob: registrationData.parent.dob,
         guardianStreet: registrationData.parent.street,
         guardianCity: registrationData.parent.city,
@@ -4113,33 +3414,19 @@
 
     const result = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(
-        resolveAgreementRequestError(
-          result,
-          "Player agreement document generation failed.",
-        ),
-      );
+      throw new Error(resolveAgreementRequestError(result, "Player agreement document generation failed."));
     }
-    playerAgreementTransactionId =
-      result.transactionId || playerAgreementTransactionId;
-    playerAgreementDownloadUrl =
-      result.emailDownloadUrl ||
-      result.signerDownloadUrl ||
-      playerAgreementDownloadUrl;
+    playerAgreementTransactionId = result.transactionId || playerAgreementTransactionId;
+    playerAgreementDownloadUrl = result.emailDownloadUrl || result.signerDownloadUrl || playerAgreementDownloadUrl;
     if (result?.sheetUpdate && result.sheetUpdate.ok === false) {
-      throw new Error(
-        "We couldn’t record your Player Agreement. Your previous information is saved. Please select Retry to continue.",
-      );
+      throw new Error("We couldn’t record your Player Agreement. Your previous information is saved. Please select Retry to continue.");
     }
     playerAgreementSigned = true;
   }
 
   async function generateVolunteerAgreement(data, formType, submissionId) {
     const isCoachingAgreement = formType === "coaching_application";
-    if (
-      isCoachingAgreement ? coachingAgreementSigned : volunteerAgreementSigned
-    )
-      return;
+    if (isCoachingAgreement ? coachingAgreementSigned : volunteerAgreementSigned) return;
 
     const viewedAtUtc = new Date().toISOString();
     const printedName = `${data.firstName} ${data.lastName}`.trim();
@@ -4181,34 +3468,19 @@
 
     const result = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(
-        resolveAgreementRequestError(
-          result,
-          "Volunteer agreement document generation failed.",
-        ),
-      );
+      throw new Error(resolveAgreementRequestError(result, "Volunteer agreement document generation failed."));
     }
     if (result?.sheetUpdate && result.sheetUpdate.ok === false) {
-      throw new Error(
-        "We couldn’t record your Volunteer Agreement. Your previous information is saved. Please select Retry to continue.",
-      );
+      throw new Error("We couldn’t record your Volunteer Agreement. Your previous information is saved. Please select Retry to continue.");
     }
 
     if (isCoachingAgreement) {
-      coachingAgreementTransactionId =
-        result.transactionId || coachingAgreementTransactionId;
-      coachingAgreementDownloadUrl =
-        result.emailDownloadUrl ||
-        result.signerDownloadUrl ||
-        coachingAgreementDownloadUrl;
+      coachingAgreementTransactionId = result.transactionId || coachingAgreementTransactionId;
+      coachingAgreementDownloadUrl = result.emailDownloadUrl || result.signerDownloadUrl || coachingAgreementDownloadUrl;
       coachingAgreementSigned = true;
     } else {
-      volunteerAgreementTransactionId =
-        result.transactionId || volunteerAgreementTransactionId;
-      volunteerAgreementDownloadUrl =
-        result.emailDownloadUrl ||
-        result.signerDownloadUrl ||
-        volunteerAgreementDownloadUrl;
+      volunteerAgreementTransactionId = result.transactionId || volunteerAgreementTransactionId;
+      volunteerAgreementDownloadUrl = result.emailDownloadUrl || result.signerDownloadUrl || volunteerAgreementDownloadUrl;
       volunteerAgreementSigned = true;
     }
   }
@@ -4221,7 +3493,10 @@
     let age = now.getFullYear() - dob.getFullYear();
     const monthDelta = now.getMonth() - dob.getMonth();
 
-    if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < dob.getDate())) {
+    if (
+      monthDelta < 0 ||
+      (monthDelta === 0 && now.getDate() < dob.getDate())
+    ) {
       age -= 1;
     }
 
@@ -4239,9 +3514,7 @@
   }
 
   function splitLegalName(fullName) {
-    const normalized = String(fullName || "")
-      .trim()
-      .replace(/\s+/g, " ");
+    const normalized = String(fullName || "").trim().replace(/\s+/g, " ");
     if (!normalized) return { firstName: "", lastName: "" };
     const parts = normalized.split(" ");
     if (parts.length === 1) return { firstName: parts[0], lastName: "" };
@@ -4280,105 +3553,66 @@
   }
 
   async function postFormResponse(params) {
-    await fetchWithTimeout(
-      FORM_ACTION,
-      {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        },
-        body: params.toString(),
+    await fetchWithTimeout(FORM_ACTION, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
       },
-      6000,
-    );
+      body: params.toString(),
+    }, 6000);
   }
 
   async function sendFinalConfirmationEmail() {
     const descriptor = getFlowDescriptor(getFlowOptions());
     const participantNames = getParticipantNames(completedRegistrationData);
-    const applicantFirstName =
-      completedRegistrationData?.parent?.firstName ||
-      completedVolunteerData?.firstName ||
-      completedCoachingData?.firstName ||
-      "";
-    const applicantLastName =
-      completedRegistrationData?.parent?.lastName ||
-      completedVolunteerData?.lastName ||
-      completedCoachingData?.lastName ||
-      "";
-    const recipientEmail =
-      completedRegistrationData?.parent?.email ||
-      completedVolunteerData?.email ||
-      completedCoachingData?.email ||
-      "";
-    const submissionId =
-      registrationSubmissionId || volunteerSubmissionId || coachingSubmissionId;
-    const paymentUrl = descriptor.paymentRequired
-      ? buildPaymentRedirectUrl(completedRegistrationData)
-      : "";
+    const applicantFirstName = completedRegistrationData?.parent?.firstName || completedVolunteerData?.firstName || completedCoachingData?.firstName || "";
+    const applicantLastName = completedRegistrationData?.parent?.lastName || completedVolunteerData?.lastName || completedCoachingData?.lastName || "";
+    const recipientEmail = completedRegistrationData?.parent?.email || completedVolunteerData?.email || completedCoachingData?.email || "";
+    const submissionId = registrationSubmissionId || volunteerSubmissionId || coachingSubmissionId;
+    const paymentUrl = descriptor.paymentRequired ? buildPaymentRedirectUrl(completedRegistrationData) : "";
     const signedDocumentUrls = [];
 
     if (playerAgreementDownloadUrl) {
-      signedDocumentUrls.push({
-        label: "Player Agreement",
-        url: playerAgreementDownloadUrl,
-      });
+      signedDocumentUrls.push({ label: "Player Agreement", url: playerAgreementDownloadUrl });
     }
     if (volunteerAgreementDownloadUrl) {
-      signedDocumentUrls.push({
-        label: "Volunteer Agreement",
-        url: volunteerAgreementDownloadUrl,
-      });
+      signedDocumentUrls.push({ label: "Volunteer Agreement", url: volunteerAgreementDownloadUrl });
     }
     if (coachingAgreementDownloadUrl) {
-      signedDocumentUrls.push({
-        label: "Coaching Volunteer Agreement",
-        url: coachingAgreementDownloadUrl,
-      });
+      signedDocumentUrls.push({ label: "Coaching Volunteer Agreement", url: coachingAgreementDownloadUrl });
     }
 
-    const res = await fetchWithTimeout(
-      FINAL_CONFIRMATION_ENDPOINT,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          submissionId,
-          registrationSubmissionId,
-          volunteerSubmissionId,
-          coachingSubmissionId,
-          emailType: descriptor.emailType,
-          applicantFirstName,
-          applicantLastName,
-          recipientEmail,
-          participantNames,
-          formsRecorded: descriptor.formsRecorded,
-          agreementsRecorded: descriptor.agreementsRecorded,
-          scholarshipRequested:
-            completedRegistrationData?.scholarship?.requested || "No",
-          paymentRequired: descriptor.paymentRequired,
-          paymentUrl,
-          paymentAmount: descriptor.paymentRequired
-            ? String(calculateRegistrationFeeAmount())
-            : "",
-          signedDocumentUrls,
-          sourceUrl: window.location.href,
-        }),
+    const res = await fetchWithTimeout(FINAL_CONFIRMATION_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
       },
-      FINAL_CONFIRMATION_TIMEOUT_MS,
-    );
+      body: JSON.stringify({
+        submissionId,
+        registrationSubmissionId,
+        volunteerSubmissionId,
+        coachingSubmissionId,
+        emailType: descriptor.emailType,
+        applicantFirstName,
+        applicantLastName,
+        recipientEmail,
+        participantNames,
+        formsRecorded: descriptor.formsRecorded,
+        agreementsRecorded: descriptor.agreementsRecorded,
+        scholarshipRequested: completedRegistrationData?.scholarship?.requested || "No",
+        paymentRequired: descriptor.paymentRequired,
+        paymentUrl,
+        paymentAmount: descriptor.paymentRequired ? String(calculateRegistrationFeeAmount()) : "",
+        signedDocumentUrls,
+        sourceUrl: window.location.href,
+      }),
+    }, FINAL_CONFIRMATION_TIMEOUT_MS);
 
     const payload = await res.json().catch(() => null);
     if (!res.ok || !payload?.ok) {
-      throw new Error(
-        String(
-          payload?.error || `Final confirmation email failed (${res.status})`,
-        ).trim(),
-      );
+      throw new Error(String(payload?.error || `Final confirmation email failed (${res.status})`).trim());
     }
 
     return payload.result || { sent: true };
@@ -4452,8 +3686,7 @@
     const values = {
       defer_confirmation_email: "yes",
       submitted_at: registrationData.submittedAt,
-      registration_submission_id:
-        registrationData.registrationSubmissionId || "",
+      registration_submission_id: registrationData.registrationSubmissionId || "",
       page_url: registrationData.pageUrl,
       parent_first_name: registrationData.parent?.firstName || "",
       parent_last_name: registrationData.parent?.lastName || "",
@@ -4463,20 +3696,12 @@
       scholarship_level: scholarship.level || "",
       scholarship_household_size: scholarship.householdSize || "",
       scholarship_household_income: scholarship.householdIncome || "",
-      scholarship_eligibility: Array.isArray(scholarship.eligibility)
-        ? scholarship.eligibility.join(", ")
-        : "",
+      scholarship_eligibility: Array.isArray(scholarship.eligibility) ? scholarship.eligibility.join(", ") : "",
       scholarship_circumstances: scholarship.circumstances || "",
       scholarship_contribution_amount: scholarship.contributionAmount || "",
-      scholarship_participation_commitment: scholarship.participationCommitment
-        ? "yes"
-        : "no",
-      scholarship_parent_acknowledgement: scholarship.parentAcknowledgement
-        ? "yes"
-        : "no",
-      scholarship_guidelines_accepted: scholarship.guidelinesAccepted
-        ? "yes"
-        : "no",
+      scholarship_participation_commitment: scholarship.participationCommitment ? "yes" : "no",
+      scholarship_parent_acknowledgement: scholarship.parentAcknowledgement ? "yes" : "no",
+      scholarship_guidelines_accepted: scholarship.guidelinesAccepted ? "yes" : "no",
       participant_names: participantNames.join(", "),
     };
 
@@ -4493,35 +3718,26 @@
     let error = "";
 
     try {
-      res = await fetchWithTimeout(
-        FORM_UPSERT_ENDPOINT,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            formType,
-            values: {
-              ...values,
-              defer_confirmation_email:
-                values?.defer_confirmation_email || "yes",
-            },
-          }),
+      res = await fetchWithTimeout(FORM_UPSERT_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
-        FORM_UPSERT_TIMEOUT_MS,
-      );
+        body: JSON.stringify({
+          formType,
+          values: {
+            ...values,
+            defer_confirmation_email: values?.defer_confirmation_email || "yes",
+          },
+        }),
+      }, FORM_UPSERT_TIMEOUT_MS);
       payload = await res.json().catch(() => null);
       if (!res.ok || !payload?.ok) {
-        error = String(
-          payload?.error || `Form upsert failed (${res.status})`,
-        ).trim();
+        error = String(payload?.error || `Form upsert failed (${res.status})`).trim();
       }
     } catch (err) {
-      error = String(
-        err?.message || err || "Form upsert request failed",
-      ).trim();
+      error = String(err?.message || err || "Form upsert request failed").trim();
     }
 
     if (!error) return;
@@ -4546,33 +3762,26 @@
       if (value === undefined || value === null) return;
       if (Array.isArray(value)) {
         if (value.length) params.append(key, value.join(", "));
-        return;
-      }
+      return;
+    }
       if (typeof value === "object") return;
       const text = String(value).trim();
       if (text) params.append(key, text);
     });
 
-    await fetchWithTimeout(
-      GOOGLE_APPS_SCRIPT_URL,
-      {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        },
-        body: params.toString(),
+    await fetchWithTimeout(GOOGLE_APPS_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
       },
-      5000,
-    );
+      body: params.toString(),
+    }, 5000);
   }
 
   async function fetchWithTimeout(url, init, timeoutMs) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(
-      () => controller.abort("Request timeout"),
-      timeoutMs,
-    );
+    const timeoutId = setTimeout(() => controller.abort("Request timeout"), timeoutMs);
     try {
       return await fetch(url, {
         ...init,
@@ -4584,9 +3793,9 @@
   }
 
   function getCheckedValues(groupName) {
-    return Array.from(
-      form.querySelectorAll(`input[name="${groupName}[]"]:checked`),
-    ).map((input) => input.value);
+    return Array.from(form.querySelectorAll(`input[name="${groupName}[]"]:checked`)).map(
+      (input) => input.value,
+    );
   }
 
   function appendValue(params, key, value) {
@@ -4625,14 +3834,12 @@
   }
 
   function syncConditionalFields(controllerName, controllerValue) {
-    form
-      .querySelectorAll(`[data-conditional-on="${controllerName}"]`)
-      .forEach((field) => {
-        const expectedValue = field.dataset.conditionalValue;
-        const match = controllerValue === expectedValue;
-        const fieldWrap = field.closest(".field-group");
-        if (fieldWrap) fieldWrap.classList.toggle("hidden", !match);
-      });
+    form.querySelectorAll(`[data-conditional-on="${controllerName}"]`).forEach((field) => {
+      const expectedValue = field.dataset.conditionalValue;
+      const match = controllerValue === expectedValue;
+      const fieldWrap = field.closest(".field-group");
+      if (fieldWrap) fieldWrap.classList.toggle("hidden", !match);
+    });
   }
 
   function formatPhoneField(input) {
@@ -4657,11 +3864,8 @@
     if (digits.length >= 8 && !input.validationMessage) {
       window.setTimeout(() => {
         const wrap = input.closest(".field-group");
-        const nextField = wrap?.nextElementSibling?.querySelector(
-          "input, select, textarea",
-        );
-        if (nextField && typeof nextField.focus === "function")
-          nextField.focus();
+        const nextField = wrap?.nextElementSibling?.querySelector("input, select, textarea");
+        if (nextField && typeof nextField.focus === "function") nextField.focus();
       }, 0);
     }
   }
@@ -4688,10 +3892,9 @@
         });
         if (res.ok) {
           const payload = await res.json().catch(() => null);
-          const key =
-            typeof payload?.googleMapsApiKey === "string"
-              ? payload.googleMapsApiKey.trim()
-              : "";
+          const key = typeof payload?.googleMapsApiKey === "string"
+            ? payload.googleMapsApiKey.trim()
+            : "";
           if (key) return key;
         }
       } catch (_error) {
@@ -4713,20 +3916,14 @@
     if (!key) return false;
 
     return new Promise((resolve, reject) => {
-      const existing = document.querySelector(
-        'script[data-google-places="true"]',
-      );
+      const existing = document.querySelector('script[data-google-places="true"]');
       if (existing) {
         if (window.google?.maps?.places || existing.dataset.loaded === "true") {
           resolve(true);
           return;
         }
         existing.addEventListener("load", () => resolve(true), { once: true });
-        existing.addEventListener(
-          "error",
-          () => reject(new Error("Google Places failed to load")),
-          { once: true },
-        );
+        existing.addEventListener("error", () => reject(new Error("Google Places failed to load")), { once: true });
         return;
       }
 
@@ -4757,9 +3954,7 @@
         return;
       }
 
-      const addressFields = Array.from(
-        form.querySelectorAll('[data-address-field="true"]'),
-      );
+      const addressFields = Array.from(form.querySelectorAll('[data-address-field="true"]'));
       addressFields.forEach((input) => {
         const autocomplete = new google.maps.places.Autocomplete(input, {
           types: ["address"],
@@ -4778,12 +3973,9 @@
               ? "vol"
               : "parent";
 
-          if (parsed.street)
-            setValue(`${prefix}Street`, collapseSpaces(parsed.street));
-          if (parsed.city)
-            setValue(`${prefix}City`, collapseSpaces(parsed.city));
-          if (parsed.state)
-            setValue(`${prefix}State`, parsed.state.toUpperCase());
+          if (parsed.street) setValue(`${prefix}Street`, collapseSpaces(parsed.street));
+          if (parsed.city) setValue(`${prefix}City`, collapseSpaces(parsed.city));
+          if (parsed.state) setValue(`${prefix}State`, parsed.state.toUpperCase());
           if (parsed.zip) setValue(`${prefix}Zip`, formatUsZip(parsed.zip));
         });
       });
@@ -4838,19 +4030,14 @@
 
   function setValue(name, value) {
     const field = form.elements.namedItem(name);
-    if (
-      field instanceof HTMLInputElement ||
-      field instanceof HTMLSelectElement ||
-      field instanceof HTMLTextAreaElement
-    ) {
+    if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement) {
       field.value = value;
     }
   }
 
   function parsePlaceAddress(components) {
     const result = { street: "", city: "", state: "", zip: "" };
-    const lookup = (type) =>
-      components.find((component) => component.types.includes(type));
+    const lookup = (type) => components.find((component) => component.types.includes(type));
     const streetNumber = lookup("street_number")?.long_name || "";
     const route = lookup("route")?.long_name || "";
     result.street = [streetNumber, route].filter(Boolean).join(" ");
